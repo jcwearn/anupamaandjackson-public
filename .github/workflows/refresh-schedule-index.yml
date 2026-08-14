@@ -47,14 +47,65 @@ jobs:
           SHEET_ID: ${{ secrets.SHEET_ID }}
         run: node scripts/build-schedule-index.js
 
+      # Commits land as me, SSH-signed, so a nightly refresh reads the same as
+      # any other commit on main instead of an unsigned bot row.
+      #
+      # PUBLIC_SYNC_SIGNING_KEY is the account-wide signing key set up for the
+      # public snapshot; publish.yaml passes the same secret through to
+      # jcwearn/workflows. It is shared, despite the name -- renaming it means
+      # changing both workflows.
       - name: Commit if changed
+        env:
+          SIGNING_KEY: ${{ secrets.PUBLIC_SYNC_SIGNING_KEY }}
         run: |
+          set -euo pipefail
+
           if git diff --quiet -- public/schedule-index.json; then
             echo "Index unchanged — nothing to commit."
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # No unsigned fallback. public-sync.yaml has one because it serves
+          # repos that have not been onboarded yet; here the secret is known to
+          # exist, and quietly pushing unsigned is the exact thing this step is
+          # here to stop.
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::PUBLIC_SYNC_SIGNING_KEY is empty -- refusing to push unsigned."
+            exit 1
+          fi
+
+          # Mode before contents, so the key is never briefly world-readable.
+          # RUNNER_TEMP rather than the working directory: the repo is checked
+          # out at the workspace root here, and a private key inside the tree is
+          # one stray `git add -A` away from being committed.
+          install -m 600 /dev/null "$RUNNER_TEMP/signing-key"
+          printf '%s\n' "$SIGNING_KEY" > "$RUNNER_TEMP/signing-key"
+
+          git config gpg.format ssh
+          git config user.signingkey "$RUNNER_TEMP/signing-key"
+          git config commit.gpgsign true
+
+          # Author and committer both, byte-identical: GitHub matches the
+          # signature to the account by committer email, and collapses the two
+          # into one line on the commit list only when the strings match.
+          git config user.name "Jackson Wearn"
+          git config user.email "jcwearn@users.noreply.github.com"
+
           git add public/schedule-index.json
           git commit -m "Refresh schedule index"
+
+          # Not `git verify-commit`: verifying an SSH signature locally needs a
+          # gpg.ssh.allowedSignersFile the runner does not have, so it would
+          # fail on a perfectly good signature. Checking the header is attached
+          # is what can be established here; GitHub verifies it server-side.
+          if ! git cat-file commit HEAD | grep -q '^gpgsig'; then
+            echo "::error::Signing was configured but HEAD carries no signature."
+            exit 1
+          fi
+          echo "Commit is signed."
+
           git push
+
+      - name: Remove signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/signing-key"
