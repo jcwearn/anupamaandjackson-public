@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { readFixture, readGoogleSheet } from './lib/roster.js'
 import {
   assertAdminTagExists,
+  assertEveryGuestResolves,
   assertGatesExist,
   assertGolkondaAnswersRecognized,
   assertGolkondaColumnsExist,
@@ -105,8 +106,15 @@ async function main() {
   const { index, stats } = await buildIndex({ guests, catalogEvents, sourceHash, keralaResponses })
 
   if (!args.force) {
-    const previousCount = args.fixture ? 0 : Object.keys(previous?.guests ?? {}).length
+    // `previous.guestCount`, never Object.keys(previous.guests) — that object
+    // is keyed per alias and counting it compares guests against lookup keys.
+    // An index published before v4 has no count, and skips the ratio check
+    // until the first run under this version republishes one.
+    const previousCount = args.fixture ? 0 : (previous?.guestCount ?? 0)
     assertRosterPlausible(stats.guests, previousCount)
+    // Not on the fixture, which carries a deliberately tagless row to exercise
+    // that path. The warning below still reports it.
+    if (!args.fixture) assertEveryGuestResolves(stats.unresolvedRows)
   }
 
   // Counts only — never names.
@@ -118,10 +126,11 @@ async function main() {
     `Golkonda rooms:   ${stats.golkondaCovered} covered, ${stats.golkondaOwn} own ` +
       `(tagged, attending, and taking the room)`
   )
-  if (stats.withoutEvents > 0) {
+  if (stats.unresolvedRows.length > 0) {
     console.warn(
-      `\nWarning: ${stats.withoutEvents} guest(s) carry no gating tag and are absent from ` +
-        `the index — they will be told we can't find them. Check their tags in With Joy.\n`
+      `\nWarning: ${stats.unresolvedRows.length} guest(s) carry no gating tag and are absent ` +
+        `from the index (sheet row(s) ${stats.unresolvedRows.join(', ')}) — they will be told ` +
+        `we can't find them. Check their tags in With Joy.\n`
     )
   }
   console.log('Invited per event:')

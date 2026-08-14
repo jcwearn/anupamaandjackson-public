@@ -11,10 +11,11 @@ import {
   lookupHash,
 } from '../../src/lib/guestCrypto.js'
 
-// Bumped to 2 when the guest record gained `golkonda`, and to 3 when events
-// gained `indianWear`. Feeds sourceFingerprint, so bumping it is what makes a
-// shape change actually republish.
-export const INDEX_VERSION = 3
+// Bumped to 2 when the guest record gained `golkonda`, to 3 when events gained
+// `indianWear`, and to 4 when the index gained `guestCount`. Feeds
+// sourceFingerprint, so bumping it is what makes a shape change actually
+// republish.
+export const INDEX_VERSION = 4
 
 /**
  * The With Joy tag that admits a guest to the unlinked /invites/links page.
@@ -265,6 +266,14 @@ export function assertAdminTagExists(knownTags) {
   }
 }
 
+/**
+ * Both arguments must be counts of *guests*. Passing the published index's
+ * `Object.keys(guests).length` as the baseline is the one mistake to avoid:
+ * that object is keyed per alias, and since aliasesFor mints several spellings
+ * per guest it runs ~11% above the guest count — enough on its own to trip the
+ * 10% floor below and stall the daily sync. Read `guestCount` off the previous
+ * index instead.
+ */
 export function assertRosterPlausible(guestCount, previousCount) {
   if (guestCount === 0) throw new Error('Roster resolved to zero guests — refusing to publish.')
   if (previousCount && guestCount < previousCount * 0.9) {
@@ -273,6 +282,24 @@ export function assertRosterPlausible(guestCount, previousCount) {
         `publish in case the export is broken; re-run with --force if this is real.`
     )
   }
+}
+
+/**
+ * A guest carrying no gating tag resolves to no record at all, so they are
+ * absent from the index and the site tells them we can't find them. That is
+ * almost always a tagging slip in With Joy rather than a deliberate exclusion,
+ * and as a warning it scrolled past unread — so it fails the sync instead.
+ *
+ * Rows, never names: the sync's output is counts-only by design, and a row
+ * number is what locates them in the sheet anyway.
+ */
+export function assertEveryGuestResolves(unresolvedRows) {
+  if (unresolvedRows.length === 0) return
+  throw new Error(
+    `${unresolvedRows.length} guest(s) carry no gating tag and would be absent from the ` +
+      `index (sheet row(s) ${unresolvedRows.join(', ')}) — they would be told we can't find ` +
+      `them. Tag them in With Joy, or re-run with --force to publish without them.`
+  )
 }
 
 const KERALA_TRIPS = new Set(['full', 'short'])
@@ -525,6 +552,11 @@ export async function buildIndex({
 
   const records = buildGuestRecords(guests, catalogEvents, keralaPayloads)
 
+  const resolvedRows = new Set(records.map((record) => record.row))
+  const unresolvedRows = guests
+    .filter((guest) => !resolvedRows.has(guest.row))
+    .map((guest) => guest.row)
+
   // A respondent whose With Joy row resolves to no record (tags stripped, say)
   // would otherwise just quietly never see their personalized page.
   if (keralaPayloads) {
@@ -611,6 +643,10 @@ export async function buildIndex({
     index: {
       v: INDEX_VERSION,
       updatedAt: new Date().toISOString(),
+      // The next run's plausibility baseline. Published because `guests` below
+      // is keyed per alias and so cannot be counted for this, and it discloses
+      // nothing that the size of that object does not already imply.
+      guestCount: records.length,
       sourceHash,
       kdf: {
         name: 'PBKDF2',
@@ -627,10 +663,10 @@ export async function buildIndex({
       keralaResponses: records.filter((record) => record.kerala).length,
       golkondaCovered: records.filter((record) => record.golkonda === 'covered').length,
       golkondaOwn: records.filter((record) => record.golkonda === 'own').length,
-      // Guests carrying no gating tag at all resolve to nothing and are left
-      // out of the index, so they see the not-found path. Usually a data gap
-      // rather than an intentional exclusion, so it is reported, not hidden.
-      withoutEvents: guests.length - records.length,
+      // Sheet rows that resolved to no record at all and are absent from the
+      // index. Rows rather than a bare count so the failure names where to
+      // look; see assertEveryGuestResolves.
+      unresolvedRows,
       lookupKeys: Object.keys(guestIndex).length,
       perEvent: Object.fromEntries(
         catalogEvents.map((event) => [

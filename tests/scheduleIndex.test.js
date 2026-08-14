@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { readFixture } from '../scripts/lib/roster.js'
 import {
   assertAdminTagExists,
+  assertEveryGuestResolves,
   assertGatesExist,
   assertGolkondaAnswersRecognized,
   assertGolkondaColumnsExist,
@@ -333,6 +334,24 @@ describe('build-time guards', () => {
     expect(() => assertRosterPlausible(0, 100)).toThrow(/zero guests/)
     expect(() => assertRosterPlausible(50, 100)).toThrow(/>10%/)
     expect(() => assertRosterPlausible(95, 100)).not.toThrow()
+  })
+
+  it('publishes a guest count for the next run to compare against', () => {
+    // The whole point of the field: `guests` is keyed per alias, so it cannot
+    // stand in for the roster size. A sync that counted those keys instead
+    // compared 648 guests against 721 lookup keys and stalled for a day.
+    expect(index.guestCount).toBe(stats.guests)
+    expect(Object.keys(index.guests).length).toBeGreaterThan(index.guestCount)
+    expect(() => assertRosterPlausible(stats.guests, index.guestCount)).not.toThrow()
+    expect(() => assertRosterPlausible(648, 721)).toThrow(/>10%/)
+  })
+
+  it('refuses to publish while a guest carries no gating tag', () => {
+    // Row 18 is the fixture's Tagless Guest, who resolves to no record at all.
+    expect(stats.unresolvedRows).toEqual([18])
+    expect(() => assertEveryGuestResolves(stats.unresolvedRows)).toThrow(/sheet row\(s\) 18/)
+    expect(() => assertEveryGuestResolves([12, 40])).toThrow(/2 guest\(s\).*row\(s\) 12, 40/s)
+    expect(() => assertEveryGuestResolves([])).not.toThrow()
   })
 })
 
