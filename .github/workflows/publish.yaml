@@ -12,18 +12,19 @@ jobs:
     with:
       target-repo: jcwearn/anupamaandjackson-public
       readme-override: .github/public-README.md
-      # generic, not the usual passthrough, because of what this repo is about.
+      # Left at the default passthrough, like the other mirrors. This repo ran
+      # on generic for a while, because room assignments were being worked out
+      # in commit subjects -- two of them name guests, and .publicignore cannot
+      # see a commit message, so message-mode was the only thing guarding it.
       #
-      # Not for the two historical commits that name guests -- a sync only ever
-      # replays messages newer than the last one, so those are already out of
-      # reach. It is for the next one. Room assignments and price exceptions get
-      # worked out in commit messages here, and a subject like "Room <name> with
-      # <name> in Kerala" is a natural thing to write in a wedding repo and the
-      # exact thing being mirrored away. Defaulting to opaque means a careless
-      # subject line cannot undo the filtering.
+      # That work is finished, and those two subjects are historical: a sync
+      # only replays messages newer than the last one, so they are out of reach
+      # either way. The remaining 546 are dependency bumps and site changes,
+      # which are worth reading and were being hidden for nothing.
       #
-      # The cost is descriptive history on a mirror nobody develops in.
-      message-mode: generic
+      # Worth knowing if that changes: the workflow's gitleaks pass scans commit
+      # messages, but it catches credentials, not names. Nothing here will stop
+      # a subject that names a guest except not writing one.
       signer-name: Jackson Wearn
       signer-email: jcwearn@users.noreply.github.com
     secrets:
