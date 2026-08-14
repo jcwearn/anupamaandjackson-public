@@ -1,0 +1,71 @@
+# rsync exclude patterns for the public snapshot.
+#
+# actions/checkout only materializes tracked files, so anything already in
+# .gitignore will not be present anyway. Listing those paths here regardless is
+# deliberate: it makes the filter correct when run locally against a dirty
+# working tree, and it survives a file being accidentally committed later.
+#
+# Patterns are rsync filter rules, not gitignore rules. A trailing / matches
+# directories only; a leading / anchors to the repo root.
+
+# Never publish VCS or CI-local state
+.git/
+.github/public-README.md
+
+# Agent / editor state
+.claude/
+.vscode/
+.idea/
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# Guest data. This is the reason this repo is mirrored rather than published.
+# ---------------------------------------------------------------------------
+
+# The whole directory, not named files.
+#
+# data/kerala-trip-responses.json holds 43 real email addresses along with room
+# pairings and a price exception. data/schedule-events.json is the plaintext
+# that every gated event's copy is encrypted from -- its own header says it is
+# never imported by src/ precisely so that private copy never reaches the
+# browser unencrypted, and publishing it hands over exactly what the encryption
+# exists to withhold, for all ten gated events.
+#
+# The first version of this file named kerala-trip-responses.json alone and let
+# schedule-events.json through. Excluding the directory is the rule that would
+# not have made that mistake: everything in data/ is generator input, none of it
+# is needed to read the code, and the next file added here is private by default
+# rather than by someone remembering to add a line.
+data/
+
+# The encrypted per-guest index: 621 guests under a key derived from each
+# guest's own name. The live site serves this already, but names are guessable
+# and the repo's own comment concedes it will not withstand a determined
+# attacker. Serving one current copy is a different proposition from publishing
+# every historical snapshot into something archived and searchable forever.
+# It is regenerated nightly, so the snapshot loses nothing by omitting it.
+public/schedule-index.json
+
+# Guest data exports, mirroring the .gitignore block of the same name. That
+# block carves out tests/fixtures/*.csv because that one is synthetic -- Ada
+# Lovelace, Grace Hopper, Alan Turing -- and the tests need it, so carve it out
+# here too. rsync has no "!" negation; an explicit "+ " include placed ahead of
+# the excludes is the equivalent, and it is honoured in an --exclude-from file.
++ tests/fixtures/*.csv
+*.xlsx
+*.xls
+*.csv
+
+# Local secrets
+.env
+.env.*
+
+# Build output and local state
+dist/
+dist-server/
+deployment.log
+working-material/
+
+# Not present in CI, where checkout only materializes tracked files, but a
+# local dry run copies the whole dependency tree without this.
+node_modules/

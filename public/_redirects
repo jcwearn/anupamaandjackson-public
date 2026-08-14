@@ -1,0 +1,3 @@
+# Travel Tips moved under /travel. The browser reattaches the #fragment across a
+# 301 on its own, so deep links like /travel-tips#what-to-pack survive.
+/travel-tips  /travel/tips  301

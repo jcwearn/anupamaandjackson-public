@@ -1,0 +1,60 @@
+name: Refresh schedule index
+
+# Rebuilds public/schedule-index.json from the With Joy export and commits it
+# when the roster actually changed. Pushing to main triggers the Cloudflare
+# Pages deploy, so no separate deploy step is needed here.
+#
+# Timing: the exporter writes the sheet daily at 06:00 America/New_York (see
+# k3s-cluster/apps/withjoy-exporter/cronjob.yaml), and this has to run after it.
+# GitHub Actions cron is UTC-only — there is no timeZone field — so 11:30 UTC is
+# the earliest slot that stays after the export year-round:
+#
+#   EST (winter, UTC-5): 11:30 UTC = 06:30 ET, 30 minutes after
+#   EDT (summer, UTC-4): 11:30 UTC = 07:30 ET, 90 minutes after
+#
+# The hour of drift across DST is deliberate. Firing early is the failure that
+# matters: it rebuilds the index from the previous day's sheet, silently. If the
+# exporter's schedule moves, move this with it.
+
+on:
+  schedule:
+    - cron: '30 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let a scheduled run and a manual run push at the same time.
+concurrency:
+  group: refresh-schedule-index
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+
+      # No `npm ci`: the generator deliberately uses only Node builtins, so
+      # this job needs nothing from node_modules.
+      - name: Build encrypted index
+        env:
+          GOOGLE_SA_EMAIL: ${{ secrets.GOOGLE_SA_EMAIL }}
+          GOOGLE_SA_PRIVATE_KEY: ${{ secrets.GOOGLE_SA_PRIVATE_KEY }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+        run: node scripts/build-schedule-index.js
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- public/schedule-index.json; then
+            echo "Index unchanged — nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/schedule-index.json
+          git commit -m "Refresh schedule index"
+          git push

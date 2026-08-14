@@ -1,0 +1,169 @@
+#!/usr/bin/env node
+/**
+ * Builds public/schedule-index.json from the With Joy export.
+ *
+ * Reads the `latest` sheet of the Google Sheet the daily exporter writes (or a
+ * local CSV via --fixture), resolves each guest's invitation tags into events,
+ * and writes an encrypted index. No guest name and no private event detail
+ * appears in the output in plaintext.
+ *
+ *   node scripts/build-schedule-index.js --fixture tests/fixtures/guests.sample.csv
+ *   node scripts/build-schedule-index.js --dry-run
+ *   node scripts/build-schedule-index.js
+ */
+import { readFile, writeFile } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { readFixture, readGoogleSheet } from './lib/roster.js'
+import {
+  assertAdminTagExists,
+  assertGatesExist,
+  assertGolkondaAnswersRecognized,
+  assertGolkondaColumnsExist,
+  assertRosterPlausible,
+  assertUniversalEventsMatch,
+  buildIndex,
+  sourceFingerprint,
+} from './lib/scheduleIndex.js'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const CATALOG_PATH = join(root, 'data', 'schedule-events.json')
+const BUNDLED_PATH = join(root, 'src', 'data', 'scheduleEvents.ts')
+const KERALA_RESPONSES_PATH = join(root, 'data', 'kerala-trip-responses.json')
+const OUTPUT_PATH = join(root, 'public', 'schedule-index.json')
+
+function parseArgs(argv) {
+  const args = { dryRun: false, force: false, fixture: null, kerala: null }
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--dry-run') args.dryRun = true
+    else if (argv[i] === '--force') args.force = true
+    else if (argv[i] === '--fixture') {
+      args.fixture = argv[i + 1]
+      i += 1
+    } else if (argv[i] === '--kerala') {
+      args.kerala = argv[i + 1]
+      i += 1
+    }
+  }
+  return args
+}
+
+async function readPreviousIndex() {
+  try {
+    return JSON.parse(await readFile(OUTPUT_PATH, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+async function loadRoster(fixture) {
+  // resolve, not join: absolute fixture paths should be used as given.
+  if (fixture) return readFixture(resolve(root, fixture))
+
+  const { GOOGLE_SA_EMAIL, GOOGLE_SA_PRIVATE_KEY, SHEET_ID, SHEET_NAME } = process.env
+  if (!GOOGLE_SA_EMAIL || !GOOGLE_SA_PRIVATE_KEY || !SHEET_ID) {
+    throw new Error(
+      'Set GOOGLE_SA_EMAIL, GOOGLE_SA_PRIVATE_KEY and SHEET_ID, or pass --fixture <csv>.'
+    )
+  }
+  return readGoogleSheet({
+    clientEmail: GOOGLE_SA_EMAIL,
+    privateKey: GOOGLE_SA_PRIVATE_KEY,
+    sheetId: SHEET_ID,
+    sheetName: SHEET_NAME || 'latest',
+  })
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2))
+
+  const catalog = JSON.parse(await readFile(CATALOG_PATH, 'utf-8'))
+  const catalogEvents = catalog.events
+  const guests = await loadRoster(args.fixture)
+  // Checked in and load-bearing: a missing file must fail the sync, or the
+  // whole trip personalization would silently fall out of the index.
+  const keralaResponses = JSON.parse(
+    await readFile(args.kerala ? resolve(root, args.kerala) : KERALA_RESPONSES_PATH, 'utf-8')
+  ).responses
+
+  const knownTags = new Set(guests.flatMap((guest) => [...guest.tags]))
+  assertGatesExist(catalogEvents, knownTags)
+  assertAdminTagExists(knownTags)
+  assertGolkondaColumnsExist(guests)
+  assertGolkondaAnswersRecognized(guests)
+  assertUniversalEventsMatch(catalogEvents, await readFile(BUNDLED_PATH, 'utf-8'))
+
+  const previous = await readPreviousIndex()
+  const sourceHash = await sourceFingerprint(guests, catalogEvents, keralaResponses)
+
+  if (!args.force && !args.dryRun && previous?.sourceHash === sourceHash) {
+    console.log('Roster and catalog unchanged since the last index — nothing to publish.')
+    return
+  }
+
+  const { index, stats } = await buildIndex({ guests, catalogEvents, sourceHash, keralaResponses })
+
+  if (!args.force) {
+    const previousCount = args.fixture ? 0 : Object.keys(previous?.guests ?? {}).length
+    assertRosterPlausible(stats.guests, previousCount)
+  }
+
+  // Counts only — never names.
+  console.log(`Guests resolved:  ${stats.guests}`)
+  console.log(`Lookup keys:      ${stats.lookupKeys} (aliases + collisions)`)
+  console.log(`Admins:           ${stats.admins}`)
+  console.log(`Kerala responses: ${stats.keralaResponses} (all matched)`)
+  console.log(
+    `Golkonda rooms:   ${stats.golkondaCovered} covered, ${stats.golkondaOwn} own ` +
+      `(tagged, attending, and taking the room)`
+  )
+  if (stats.withoutEvents > 0) {
+    console.warn(
+      `\nWarning: ${stats.withoutEvents} guest(s) carry no gating tag and are absent from ` +
+        `the index — they will be told we can't find them. Check their tags in With Joy.\n`
+    )
+  }
+  console.log('Invited per event:')
+  for (const [id, count] of Object.entries(stats.perEvent)) {
+    console.log(`  ${id.padEnd(20)} ${count}`)
+  }
+
+  if (args.dryRun) {
+    console.log('\n--dry-run: nothing written.')
+    return
+  }
+
+  await writeFile(OUTPUT_PATH, `${JSON.stringify(index)}\n`)
+  const bytes = (await readFile(OUTPUT_PATH)).length
+  console.log(`\nWrote public/schedule-index.json (${(bytes / 1024).toFixed(1)} KB)`)
+}
+
+main().catch((error) => {
+  console.error(`\nbuild-schedule-index failed: ${error.message}`)
+
+  // fetch() surfaces every transport problem as a bare 'fetch failed' — the
+  // actionable detail (DNS, TLS, refused connection, proxy) only lives on the
+  // cause chain, so walk it rather than swallowing it.
+  const codes = []
+  for (let cause = error.cause; cause; cause = cause.cause) {
+    codes.push(cause.code)
+    console.error(`  caused by: ${cause.code ? `[${cause.code}] ` : ''}${cause.message}`)
+  }
+
+  if (error.message === 'fetch failed') {
+    console.error(
+      '\nThat is a network failure, not a credentials problem — the request never reached\n' +
+        'Google. Check connectivity to oauth2.googleapis.com and sheets.googleapis.com, and\n' +
+        'whether a VPN or proxy is in the way.'
+    )
+    if (codes.includes('ENOTFOUND') || codes.includes('EAI_AGAIN')) {
+      console.error('DNS could not resolve the host.')
+    }
+    if (codes.some((code) => code?.startsWith?.('ERR_TLS') || code === 'CERT_HAS_EXPIRED')) {
+      console.error('TLS negotiation failed, which usually means an intercepting proxy.')
+    }
+  }
+
+  process.exit(1)
+})

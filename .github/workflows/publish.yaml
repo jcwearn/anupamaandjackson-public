@@ -1,0 +1,31 @@
+name: Publish Public Snapshot
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  publish:
+    uses: jcwearn/workflows/.github/workflows/public-sync.yaml@main
+    with:
+      target-repo: jcwearn/anupamaandjackson-public
+      readme-override: .github/public-README.md
+      # generic, not the usual passthrough, because of what this repo is about.
+      #
+      # Not for the two historical commits that name guests -- a sync only ever
+      # replays messages newer than the last one, so those are already out of
+      # reach. It is for the next one. Room assignments and price exceptions get
+      # worked out in commit messages here, and a subject like "Room <name> with
+      # <name> in Kerala" is a natural thing to write in a wedding repo and the
+      # exact thing being mirrored away. Defaulting to opaque means a careless
+      # subject line cannot undo the filtering.
+      #
+      # The cost is descriptive history on a mirror nobody develops in.
+      message-mode: generic
+      signer-name: Jackson Wearn
+      signer-email: 2472105+jcwearn@users.noreply.github.com
+    secrets:
+      DEPLOY_KEY: ${{ secrets.PUBLIC_SYNC_DEPLOY_KEY }}
+      SIGNING_KEY: ${{ secrets.PUBLIC_SYNC_SIGNING_KEY }}

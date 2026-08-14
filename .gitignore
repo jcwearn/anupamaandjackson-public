@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+dist-server/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary folders
+tmp/
+temp/
+
+# Guest data exports — contain names, addresses, phone numbers and emails.
+# Never commit these, even though the repo is private.
+*.xlsx
+*.xls
+*.csv
+# ...except the synthetic test fixture, which contains no real guests.
+!tests/fixtures/*.csv
+
+# Working material — itineraries, screenshots, drafts. Kept out of the repo
+# root and out of git; drop anything scratch in here.
+working-material/
+
+# Local agent configuration
+.claude/

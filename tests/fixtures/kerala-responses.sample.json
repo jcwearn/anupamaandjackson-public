@@ -1,0 +1,16 @@
+{
+  "_source": "Synthetic fixture paired with guests.sample.csv. Vera's email is uppercased on purpose to pin case-insensitive matching.",
+  "responses": [
+    {
+      "email": "VERA.RUBIN@example.com",
+      "trip": "full",
+      "flight": "rt",
+      "occupancy": "double",
+      "room": 1,
+      "priceOverride": 67440,
+      "priceNote": "Carl heads home a night early, so your last night is single occupancy."
+    },
+    { "email": "carl.sagan@example.com", "trip": "short", "flight": "ow", "occupancy": "double", "room": 1 },
+    { "email": "enrico.fermi@example.com", "trip": "full", "flight": "ow", "occupancy": "single", "room": 2 }
+  ]
+}

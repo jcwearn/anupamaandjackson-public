@@ -1,0 +1,45 @@
+{
+  "name": "anupamaandjackson",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.js",
+    "preview": "vite preview --open",
+    "og": "node scripts/og/build-og-images.js",
+    "sync:schedule": "node scripts/build-schedule-index.js",
+    "sync:schedule:dry": "node scripts/build-schedule-index.js --dry-run",
+    "sync:schedule:local": "node --env-file=.env scripts/build-schedule-index.js",
+    "sync:schedule:local:dry": "node --env-file=.env scripts/build-schedule-index.js --dry-run",
+    "sync:schedule:fixture": "node scripts/build-schedule-index.js --fixture tests/fixtures/guests.sample.csv --kerala tests/fixtures/kerala-responses.sample.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/vite": "^4.1.13",
+    "browser-image-compression": "^2.0.2",
+    "heic2any": "^0.0.4",
+    "jspdf": "^4.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "7.0.0",
+    "@testing-library/react": "16.3.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@types/react-router-dom": "5.3.3",
+    "@vitejs/plugin-react": "6.0.5",
+    "autoprefixer": "10.5.4",
+    "clsx": "2.1.1",
+    "jsdom": "30.0.1",
+    "postcss": "8.5.26",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  }
+}
