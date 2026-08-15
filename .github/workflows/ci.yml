@@ -1,33 +1,38 @@
 name: CI
 
+# Calls the shared Node CI workflow in jcwearn/workflows, replacing a local
+# job that ran only `npm test` and `npm run build`. Format, lint, an explicit
+# typecheck, and a lockfile-drift check are all new here -- this repo had none
+# of them, and it is the largest of the five by some distance.
+#
+# The local `concurrency:` block is deliberately gone rather than moved up: the
+# shared workflow declares its own, and two groups for one logical run means
+# the outer one holds a slot while the inner one queues behind it. Its policy
+# also differs slightly and for the better -- it does not cancel in-flight runs
+# on main, which is the branch Cloudflare Pages deploys from.
+#
+# timeout-minutes is raised from the 10-minute default: the build is four
+# stages (tsc -b, the client bundle, an SSR bundle, then prerender) and the
+# suite is 51 files.
+#
+# refresh-schedule-index.yml and publish.yaml are untouched.
+
 on:
-  pull_request:
   push:
     branches: [main]
-
-# A newer push to the same branch makes an in-flight run redundant.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  pull_request:
+  workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      # Reads .node-version, which Cloudflare Pages also reads -- so the claim
-      # that CI matches the deploy build is now enforced by a shared file
-      # rather than asserted in a comment. Pinned exact, so a new 24.x release
-      # cannot change what either one runs without a commit saying so.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm test
-
-      # Also the only typecheck: the build script starts with `tsc -b`.
-      - run: npm run build
+  ci:
+    # Explicit even though `read` is all node-ci needs and all this account
+    # grants by default. A reusable workflow can only narrow what the caller
+    # granted, so the grant belongs here where it is visible.
+    permissions:
+      contents: read
+    # Renovate pins this to a digest on its next run, leaving `# v1` behind as
+    # the record of what to follow. Written as `@v1` with no trailing comment;
+    # the comment belongs on a digest, where it records which tag it came from.
+    uses: jcwearn/workflows/.github/workflows/node-ci.yaml@v1
+    with:
+      timeout-minutes: 15

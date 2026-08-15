@@ -71,9 +71,7 @@ describe('CopyField', () => {
   it('puts the button on the value’s line, not the label’s', () => {
     // It copies the value, so it has to read as belonging to it — level with the
     // label it looked like a stray corner icon.
-    const { container } = render(
-      <CopyField label="State" value="TELANGANA" hint="Pick from the dropdown." />,
-    )
+    render(<CopyField label="State" value="TELANGANA" hint="Pick from the dropdown." />)
 
     const row = screen.getByRole('button').parentElement!
     expect(row.className).toContain('items-center')

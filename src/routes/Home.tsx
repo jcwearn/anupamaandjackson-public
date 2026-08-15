@@ -3,8 +3,6 @@ import Celebration from '../components/Celebration'
 import Container from '../components/Container'
 import heroSrc from '../assets/sangeet.jpg'
 
-const eventDate = new Date('2025-08-16T09:30:00-04:00')
-
 const Home: React.FC = () => {
   return (
     <>

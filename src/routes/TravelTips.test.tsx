@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import TravelTips from './TravelTips'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
