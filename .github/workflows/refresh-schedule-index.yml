@@ -34,9 +34,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Same .node-version as CI and the Pages build. The generator runs
+      # against Node builtins only, so the exact patch matters less here than
+      # it does in CI -- but a nightly job that commits to main should not be
+      # the one place running a different Node.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version-file: '.node-version'
 
       # No `npm ci`: the generator deliberately uses only Node builtins, so
       # this job needs nothing from node_modules.

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.js",
+    "typecheck": "tsc -b",
     "preview": "vite preview --open",
     "og": "node scripts/og/build-og-images.js",
     "sync:schedule": "node scripts/build-schedule-index.js",
