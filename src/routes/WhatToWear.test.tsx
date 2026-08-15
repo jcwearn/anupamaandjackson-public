@@ -25,7 +25,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
   Element.prototype.scrollIntoView = vi.fn()
 })
@@ -34,7 +34,7 @@ const renderPage = () =>
   render(
     <MemoryRouter>
       <WhatToWear />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 const allOutfits = [...mensOutfits, ...womensOutfits]
@@ -110,7 +110,7 @@ describe('What to Wear', () => {
 
     const { container } = renderPage()
     const internal = [...container.querySelectorAll('a[href^="/"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[0]
+      (a) => a.getAttribute('href')!.split('#')[0],
     )
 
     expect(internal.length).toBeGreaterThan(0)
@@ -207,7 +207,7 @@ describe('What to Wear, for an identified guest', () => {
         <GuestScheduleProvider>
           <WhatToWear />
         </GuestScheduleProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
   }
 
@@ -255,7 +255,7 @@ describe('What to Wear, for an identified guest', () => {
     expect(container.querySelector('#sherwani')!.textContent).not.toContain('Reception')
 
     const chips = [...container.querySelectorAll('#mens li li, #womens li li')].map(
-      (el) => el.textContent
+      (el) => el.textContent,
     )
     expect(chips.length).toBeGreaterThan(0)
     expect(new Set(chips)).toEqual(new Set(['Muhurtham']))

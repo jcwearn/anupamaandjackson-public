@@ -65,7 +65,7 @@ async function loadRoster(fixture) {
   const { GOOGLE_SA_EMAIL, GOOGLE_SA_PRIVATE_KEY, SHEET_ID, SHEET_NAME } = process.env
   if (!GOOGLE_SA_EMAIL || !GOOGLE_SA_PRIVATE_KEY || !SHEET_ID) {
     throw new Error(
-      'Set GOOGLE_SA_EMAIL, GOOGLE_SA_PRIVATE_KEY and SHEET_ID, or pass --fixture <csv>.'
+      'Set GOOGLE_SA_EMAIL, GOOGLE_SA_PRIVATE_KEY and SHEET_ID, or pass --fixture <csv>.',
     )
   }
   return readGoogleSheet({
@@ -85,7 +85,7 @@ async function main() {
   // Checked in and load-bearing: a missing file must fail the sync, or the
   // whole trip personalization would silently fall out of the index.
   const keralaResponses = JSON.parse(
-    await readFile(args.kerala ? resolve(root, args.kerala) : KERALA_RESPONSES_PATH, 'utf-8')
+    await readFile(args.kerala ? resolve(root, args.kerala) : KERALA_RESPONSES_PATH, 'utf-8'),
   ).responses
 
   const knownTags = new Set(guests.flatMap((guest) => [...guest.tags]))
@@ -124,13 +124,13 @@ async function main() {
   console.log(`Kerala responses: ${stats.keralaResponses} (all matched)`)
   console.log(
     `Golkonda rooms:   ${stats.golkondaCovered} covered, ${stats.golkondaOwn} own ` +
-      `(tagged, attending, and taking the room)`
+      `(tagged, attending, and taking the room)`,
   )
   if (stats.unresolvedRows.length > 0) {
     console.warn(
       `\nWarning: ${stats.unresolvedRows.length} guest(s) carry no gating tag and are absent ` +
         `from the index (sheet row(s) ${stats.unresolvedRows.join(', ')}) — they will be told ` +
-        `we can't find them. Check their tags in With Joy.\n`
+        `we can't find them. Check their tags in With Joy.\n`,
     )
   }
   console.log('Invited per event:')
@@ -164,7 +164,7 @@ main().catch((error) => {
     console.error(
       '\nThat is a network failure, not a credentials problem — the request never reached\n' +
         'Google. Check connectivity to oauth2.googleapis.com and sheets.googleapis.com, and\n' +
-        'whether a VPN or proxy is in the way.'
+        'whether a VPN or proxy is in the way.',
     )
     if (codes.includes('ENOTFOUND') || codes.includes('EAI_AGAIN')) {
       console.error('DNS could not resolve the host.')

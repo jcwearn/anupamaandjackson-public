@@ -17,7 +17,7 @@ const tabFor = (item: ShelfItem): ShelfTab => (item.kind === 'book' ? 'books' : 
 const tabClass = (active: boolean) =>
   clsx(
     'whitespace-nowrap rounded-full px-5 py-2 font-body text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 sm:text-base',
-    active ? 'bg-rosewood text-cream shadow-sm' : 'text-zeus/70 hover:bg-lily/40'
+    active ? 'bg-rosewood text-cream shadow-sm' : 'text-zeus/70 hover:bg-lily/40',
   )
 
 /**
@@ -131,9 +131,9 @@ const Bookshelf: React.FC = () => {
         <div className="mx-auto max-w-2xl">
           <h1 className="font-display text-4xl text-rosewood sm:text-5xl">The Bookshelf</h1>
           <p className="mx-auto mt-4 max-w-xl font-body text-lg leading-relaxed text-zeus/80">
-            India is easier to fall for on arrival if you’ve already met it in print and on
-            screen. Here are eight books and eight films we love — start anywhere, and pull one off
-            the shelf to see why it made the cut.
+            India is easier to fall for on arrival if you’ve already met it in print and on screen.
+            Here are eight books and eight films we love — start anywhere, and pull one off the
+            shelf to see why it made the cut.
           </p>
         </div>
       </header>

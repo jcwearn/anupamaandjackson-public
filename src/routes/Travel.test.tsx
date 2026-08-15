@@ -50,7 +50,7 @@ const renderPage = (ui: React.ReactElement) =>
   render(
     <MemoryRouter>
       <GuestScheduleProvider>{ui}</GuestScheduleProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('Travel hub', () => {
@@ -77,7 +77,7 @@ describe('Travel hub', () => {
       expect(heading, `no #${id} on the page`).not.toBeNull()
       expect(
         heading!.querySelector('button[aria-label^="Copy link to "]'),
-        `no copy button for #${id}`
+        `no copy button for #${id}`,
       ).not.toBeNull()
     }
   })
@@ -99,7 +99,7 @@ describe('Travel hub', () => {
 
     const { container } = renderPage(<Travel />)
     const internal = [...container.querySelectorAll('a[href^="/"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[0]
+      (a) => a.getAttribute('href')!.split('#')[0],
     )
 
     expect(internal.length).toBeGreaterThan(0)
@@ -153,13 +153,13 @@ describe('Travel hub', () => {
   it('every /travel/tips deep link resolves to a section on that page', () => {
     const travelTips = renderPage(<TravelTips />)
     const travelTipsIds = new Set(
-      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id)
+      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id),
     )
     travelTips.unmount()
 
     const { container } = renderPage(<Travel />)
     const fragments = [...container.querySelectorAll('a[href^="/travel/tips#"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[1]
+      (a) => a.getAttribute('href')!.split('#')[1],
     )
 
     expect(fragments.length).toBeGreaterThan(0)

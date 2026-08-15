@@ -57,7 +57,7 @@ function concatBytes(a, b) {
 export async function lookupHash(normalizedKey, salt) {
   const digest = await crypto.subtle.digest(
     'SHA-256',
-    concatBytes(salt, encoder.encode(normalizedKey))
+    concatBytes(salt, encoder.encode(normalizedKey)),
   )
   return toBase64Url(new Uint8Array(digest).subarray(0, LOOKUP_HASH_BYTES))
 }
@@ -70,7 +70,7 @@ export async function lookupHash(normalizedKey, salt) {
 export async function emailHash(normalizedEmail, salt) {
   const digest = await crypto.subtle.digest(
     'SHA-256',
-    concatBytes(salt, encoder.encode(`email:${normalizedEmail}`))
+    concatBytes(salt, encoder.encode(`email:${normalizedEmail}`)),
   )
   return toBase64Url(new Uint8Array(digest).subarray(0, LOOKUP_HASH_BYTES))
 }
@@ -82,14 +82,14 @@ export async function deriveGuestKey(normalizedKey, salt, iterations = KDF_ITERA
     encoder.encode(normalizedKey),
     'PBKDF2',
     false,
-    ['deriveKey']
+    ['deriveKey'],
   )
   return crypto.subtle.deriveKey(
     { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
     material,
     { name: 'AES-GCM', length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ['encrypt', 'decrypt'],
   )
 }
 
@@ -106,7 +106,7 @@ export async function encryptJson(key, value) {
   const ciphertext = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
-    encoder.encode(JSON.stringify(value))
+    encoder.encode(JSON.stringify(value)),
   )
   return { iv: bytesToBase64(iv), ct: bytesToBase64(new Uint8Array(ciphertext)) }
 }
@@ -117,7 +117,7 @@ export async function decryptJson(key, envelope) {
     const plaintext = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: base64ToBytes(envelope.iv) },
       key,
-      base64ToBytes(envelope.ct)
+      base64ToBytes(envelope.ct),
     )
     return JSON.parse(decoder.decode(plaintext))
   } catch {

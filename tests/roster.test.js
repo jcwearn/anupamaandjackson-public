@@ -83,7 +83,7 @@ describe('rowsToGuests', () => {
 
   it('numbers rows the way the sheet does, for error messages', () => {
     const [first, second] = guestsFrom(
-      `${HEADER}\nAda,Lovelace,Ada Lovelace,Lovelace,1,0\nAlan,Turing,Alan Turing,Turing,1,1`
+      `${HEADER}\nAda,Lovelace,Ada Lovelace,Lovelace,1,0\nAlan,Turing,Alan Turing,Turing,1,1`,
     )
 
     // Row 1 is the header, so the first guest is row 2.
@@ -92,9 +92,7 @@ describe('rowsToGuests', () => {
   })
 
   it('skips rows with no name at all', () => {
-    const guests = guestsFrom(
-      `${HEADER}\nAda,Lovelace,Ada Lovelace,Lovelace,1,0\n,,,,1,0`
-    )
+    const guests = guestsFrom(`${HEADER}\nAda,Lovelace,Ada Lovelace,Lovelace,1,0\n,,,,1,0`)
 
     expect(guests).toHaveLength(1)
   })
@@ -132,9 +130,7 @@ describe('rowsToGuests', () => {
   it('reads the RSVP columns verbatim, leaving them to be interpreted later', () => {
     const header =
       'first name,last name,muhurtham,golkonda guest covered,golkonda guest own,muhurtam (tag)'
-    const [guest] = guestsFrom(
-      `${header}\nAda,Lovelace,Attending,,I do not need accommodation.,1`
-    )
+    const [guest] = guestsFrom(`${header}\nAda,Lovelace,Attending,,I do not need accommodation.,1`)
 
     expect(guest.muhurthamRsvp).toBe('Attending')
     // '' is an unanswered question, and has to stay distinguishable from the
@@ -157,7 +153,7 @@ describe('rowsToGuests', () => {
 
   it('refuses a roster with no name columns', () => {
     expect(() => guestsFrom('envelope name,party,muhurtam (tag)\nAda Lovelace,Lovelace,1')).toThrow(
-      /first name.*last name/
+      /first name.*last name/,
     )
   })
 

@@ -24,7 +24,7 @@ const renderAt = (path: string) =>
           <Route path="/travel/hyderabad" element={<Hyderabad />} />
         </Route>
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('TravelLayout', () => {
@@ -44,7 +44,7 @@ describe('TravelLayout', () => {
     expect(anchored.length).toBeGreaterThan(0)
     for (const el of anchored) {
       expect(el.className, `#${el.id} sits behind the section nav`).toContain(
-        ANCHOR_SCROLL_MT_UNDER_SECTION_NAV
+        ANCHOR_SCROLL_MT_UNDER_SECTION_NAV,
       )
       expect(el.className).not.toContain(ANCHOR_SCROLL_MT)
     }

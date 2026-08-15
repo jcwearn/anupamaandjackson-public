@@ -50,11 +50,10 @@ const renderPage = () =>
       <GuestScheduleProvider>
         <TravelTips />
       </GuestScheduleProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
-const outfits = (container: HTMLElement) =>
-  container.querySelector<HTMLElement>('details#outfits')!
+const outfits = (container: HTMLElement) => container.querySelector<HTMLElement>('details#outfits')!
 
 // Every group and tip is a <details> carrying its own anchor id.
 const anchorIds = (container: HTMLElement) =>
@@ -81,7 +80,7 @@ describe('Travel Tips anchors', () => {
       // rendered without its summary row.
       expect(
         details.querySelector('button[aria-label^="Copy link to "]'),
-        `no copy button for #${id}`
+        `no copy button for #${id}`,
       ).not.toBeNull()
     }
   })
@@ -173,7 +172,7 @@ describe('Outfits', () => {
     expect(text).not.toContain('Festive & colorful')
     expect(text).not.toContain('For your events')
     expect(
-      within(outfits(container)).queryByRole('button', { name: 'Unlock Your Events' })
+      within(outfits(container)).queryByRole('button', { name: 'Unlock Your Events' }),
     ).toBeNull()
   })
 })
@@ -185,7 +184,7 @@ describe('Antacids', () => {
     // the spice warning stayed behind.
     const { container } = renderPage()
     const mentions = [...container.querySelectorAll('li')].filter((li) =>
-      /Tums|antacid/i.test(li.textContent ?? '')
+      /Tums|antacid/i.test(li.textContent ?? ''),
     )
 
     expect(mentions).toHaveLength(1)
@@ -206,7 +205,7 @@ describe('At the airport', () => {
       // Headings and lists are siblings in the body, so each list belongs to the
       // heading immediately before it.
       bullets: [...(heading.nextElementSibling?.querySelectorAll('li') ?? [])].map(
-        (li) => li.textContent ?? ''
+        (li) => li.textContent ?? '',
       ),
     }))
   }

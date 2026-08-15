@@ -81,9 +81,7 @@ const EatPlaceCard: React.FC<{
     <li
       id={place.slug}
       className={`group/copy card flex flex-col ${
-        place.photo
-          ? `gap-3 sm:gap-4 ${reverse ? 'sm:flex-row-reverse' : 'sm:flex-row'}`
-          : 'gap-2'
+        place.photo ? `gap-3 sm:gap-4 ${reverse ? 'sm:flex-row-reverse' : 'sm:flex-row'}` : 'gap-2'
       } ${scrollMt}`}
     >
       {place.photo && (
@@ -93,11 +91,7 @@ const EatPlaceCard: React.FC<{
           className="shrink-0 self-start sm:w-2/5"
         />
       )}
-      {place.photo ? (
-        <div className="flex min-w-0 flex-1 flex-col gap-2">{body}</div>
-      ) : (
-        body
-      )}
+      {place.photo ? <div className="flex min-w-0 flex-1 flex-col gap-2">{body}</div> : body}
     </li>
   )
 }

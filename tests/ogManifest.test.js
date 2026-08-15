@@ -19,8 +19,7 @@ const NOT_GENERATED = new Set(['og-save-the-date.jpg'])
 // public/og-*.jpg. The invite pages share a cover image and the engagement
 // pages have no OG image at all, so neither matches.
 const generatedRoutes = routes.filter(
-  (route) =>
-    /\/og-[\w-]+\.jpg$/.test(route.ogImage ?? '') && !NOT_GENERATED.has(ogFileName(route))
+  (route) => /\/og-[\w-]+\.jpg$/.test(route.ogImage ?? '') && !NOT_GENERATED.has(ogFileName(route)),
 )
 
 function ogFileName(route) {
@@ -43,7 +42,7 @@ describe('og manifest', () => {
       const route = routes.find((candidate) => candidate.path === entry.route)
       expect(route, `${entry.slug} names a route that does not exist`).toBeDefined()
       expect(ogFileName(route), `${entry.slug} is not the image ${entry.route} uses`).toBe(
-        entry.output
+        entry.output,
       )
     }
   })
@@ -66,7 +65,7 @@ describe('og manifest', () => {
       if (entry.variant === 'centered') continue
       expect(
         Boolean(entry.photo) || Boolean(entry.covers),
-        `${entry.slug} has no photo and is not the centered variant`
+        `${entry.slug} has no photo and is not the centered variant`,
       ).toBe(true)
     }
   })
@@ -76,10 +75,9 @@ describe('og manifest', () => {
     // miss, but that only fires at render time — long after the manifest is
     // read. A typo'd variant should fail here instead.
     for (const entry of manifest) {
-      expect(
-        entry.variant ?? 'split',
-        `${entry.slug} asks for an unknown variant`
-      ).toMatch(/^(split|landscape|centered)$/)
+      expect(entry.variant ?? 'split', `${entry.slug} asks for an unknown variant`).toMatch(
+        /^(split|landscape|centered)$/,
+      )
     }
   })
 })
@@ -92,7 +90,7 @@ describe('og text budgets', () => {
   it('keeps titles short enough for the split layout', () => {
     for (const entry of manifest) {
       expect(entry.title.length, `${entry.slug}: "${entry.title}" is too long`).toBeLessThanOrEqual(
-        22
+        22,
       )
       expect(entry.title.trim()).not.toBe('')
     }
@@ -101,10 +99,9 @@ describe('og text budgets', () => {
   it('gives every entry a date line that fits', () => {
     for (const entry of manifest) {
       expect(entry.date.trim(), `${entry.slug} has no date line`).not.toBe('')
-      expect(
-        entry.date.length,
-        `${entry.slug}: "${entry.date}" will overflow`
-      ).toBeLessThanOrEqual(40)
+      expect(entry.date.length, `${entry.slug}: "${entry.date}" will overflow`).toBeLessThanOrEqual(
+        40,
+      )
     }
   })
 })
@@ -113,7 +110,7 @@ describe('og template', () => {
   it('escapes the ampersands that nearly every title carries', () => {
     const html = renderOgHtml(
       { title: 'Questions & Answers', date: 'A & B', eyebrow: 'R & W' },
-      { photo: 'data:image/jpeg;base64,' }
+      { photo: 'data:image/jpeg;base64,' },
     )
 
     expect(html).toContain('Questions &amp; Answers')
@@ -125,17 +122,14 @@ describe('og template', () => {
   // template because the alternative — cropping a bad photo to fill the panel —
   // is what the last round of review was about.
   it('drops the photo panel for the centered variant', () => {
-    const html = renderOgHtml(
-      { slug: 'test', variant: 'centered', title: 'T', date: 'D' },
-      {}
-    )
+    const html = renderOgHtml({ slug: 'test', variant: 'centered', title: 'T', date: 'D' }, {})
 
     expect(html).not.toContain('class="panel"')
   })
 
   it('refuses a variant it has no type scale for', () => {
     expect(() =>
-      renderOgHtml({ slug: 'test', variant: 'diagonal', title: 'T', date: 'D' }, {})
+      renderOgHtml({ slug: 'test', variant: 'diagonal', title: 'T', date: 'D' }, {}),
     ).toThrow(/unknown variant/)
   })
 
@@ -183,7 +177,7 @@ describe('rendered og images', () => {
       const entry = manifest.find((candidate) => candidate.output === ogFileName(route))
       expect(route.ogImageAlt, `${route.path} has no ogImageAlt`).toBeTruthy()
       expect(route.ogImageAlt, `${route.path}: alt text has drifted from the manifest`).toBe(
-        entry.alt
+        entry.alt,
       )
     }
   })

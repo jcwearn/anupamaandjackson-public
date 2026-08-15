@@ -12,9 +12,7 @@ const box = (container: HTMLElement, title: string) =>
 
 /** A face is identified by the rotation that turns it out of the front board. */
 const face = (item: HTMLElement, rotation: string) =>
-  [...item.querySelectorAll<HTMLElement>('span')].find((s) =>
-    s.style.transform.includes(rotation)
-  )!
+  [...item.querySelectorAll<HTMLElement>('span')].find((s) => s.style.transform.includes(rotation))!
 
 const flat = (value: string) => value.replace(/\s+/g, '')
 

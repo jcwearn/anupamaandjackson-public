@@ -132,13 +132,13 @@ const ShelfPullout: React.FC<{
   const coverW = Math.round(
     item.spine
       ? (coverH * item.cover.width) / item.cover.height
-      : (coverH * CASE_WIDTH_PX) / CASE_HEIGHT_PX
+      : (coverH * CASE_WIDTH_PX) / CASE_HEIGHT_PX,
   )
   // The whole prism travels, so its thickness scales with it.
   const depth = Math.round(
     item.spine
       ? (item.spine.widthPx * coverH) / item.spine.heightPx
-      : (CASE_DEPTH_PX * coverH) / CASE_HEIGHT_PX
+      : (CASE_DEPTH_PX * coverH) / CASE_HEIGHT_PX,
   )
   const centerX = Math.round(window.innerWidth / 2)
   const coverTop = Math.max(Math.round(window.innerHeight * 0.06), 16)
@@ -161,7 +161,7 @@ const ShelfPullout: React.FC<{
   const openTransform = `translate3d(${centerX - Math.round(coverW / 2)}px, ${coverTop}px, 0px) perspective(900px) rotateX(-4deg) rotateY(-16deg) scale3d(1, 1, 1)`
   const closedTransform = fromRect
     ? `translate3d(${Math.round(fromRect.left + fromRect.width / 2 - coverW / 2)}px, ${Math.round(
-        fromRect.top + fromRect.height / 2 - coverH / 2
+        fromRect.top + fromRect.height / 2 - coverH / 2,
       )}px, 0px) perspective(900px) rotateX(-5deg) rotateY(${fromDeg ?? -20}deg) scale3d(${scale}, ${scale}, ${scale})`
     : openTransform
 
@@ -175,7 +175,7 @@ const ShelfPullout: React.FC<{
         className={clsx(
           'absolute inset-0 bg-zeus/70 backdrop-blur-sm',
           animate && 'transition-opacity duration-300',
-          open ? 'opacity-100' : 'opacity-0'
+          open ? 'opacity-100' : 'opacity-0',
         )}
       />
 
@@ -191,7 +191,7 @@ const ShelfPullout: React.FC<{
           className={clsx(
             'absolute top-4 right-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-cream/90 text-zeus transition-colors hover:bg-cream focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2',
             animate && 'transition-opacity duration-300',
-            open ? 'opacity-100' : 'opacity-0'
+            open ? 'opacity-100' : 'opacity-0',
           )}
         >
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" className="h-4 w-4">
@@ -226,7 +226,7 @@ const ShelfPullout: React.FC<{
             'absolute left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 overflow-y-auto',
             animate && 'transition-opacity duration-300',
             open ? 'opacity-100' : 'opacity-0',
-            animate && open && 'delay-300'
+            animate && open && 'delay-300',
           )}
           style={{ top: cardTop, maxHeight: `calc(100vh - ${cardTop + 16}px)` }}
         >

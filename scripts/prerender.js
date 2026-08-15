@@ -43,7 +43,8 @@ export const routes = [
     path: '/evisa',
     outputPath: 'dist/evisa/index.html',
     title: 'India e-Visa Helper - Anupama & Jackson',
-    description: 'A guide to the Indian e-Visa process for our wedding guests, with tools to resize your headshot and passport files to meet the upload limits.',
+    description:
+      'A guide to the Indian e-Visa process for our wedding guests, with tools to resize your headshot and passport files to meet the upload limits.',
     ogImage: 'https://anupamaandjackson.com/og-evisa.jpg',
     ogImageWidth: 1200,
     ogImageHeight: 630,
@@ -53,7 +54,8 @@ export const routes = [
     path: '/kerala-itinerary',
     outputPath: 'dist/kerala-itinerary/index.html',
     title: 'A Lush Kerala Weekend - Anupama & Jackson',
-    description: 'Four days in Kerala after the wedding: Kochi, a Kathakali cultural evening, an Alleppey houseboat on the backwaters, and Fort Kochi sightseeing. October 29 – November 1, 2026.',
+    description:
+      'Four days in Kerala after the wedding: Kochi, a Kathakali cultural evening, an Alleppey houseboat on the backwaters, and Fort Kochi sightseeing. October 29 – November 1, 2026.',
     ogImage: 'https://anupamaandjackson.com/og-kerala-itinerary.jpg',
     ogImageWidth: 1200,
     ogImageHeight: 630,
@@ -63,7 +65,8 @@ export const routes = [
     path: '/hotels',
     outputPath: 'dist/hotels/index.html',
     title: 'Where to Stay - Anupama & Jackson',
-    description: 'Hotel options near our wedding events in Hyderabad — Pellikuthuru at Banjara Hills, and the Edurukolu, Muhurtham & Reception at Golkonda Resorts and Spa. October 28, 2026.',
+    description:
+      'Hotel options near our wedding events in Hyderabad — Pellikuthuru at Banjara Hills, and the Edurukolu, Muhurtham & Reception at Golkonda Resorts and Spa. October 28, 2026.',
     ogImage: 'https://anupamaandjackson.com/og-hotels.jpg',
     ogImageWidth: 1200,
     ogImageHeight: 630,
@@ -99,8 +102,7 @@ export const routes = [
     ogImage: 'https://anupamaandjackson.com/og-hyderabad.jpg',
     ogImageWidth: 1200,
     ogImageHeight: 630,
-    ogImageAlt:
-      'Exploring Hyderabad — Anupama & Jackson, October 28, 2026, Hyderabad, India',
+    ogImageAlt: 'Exploring Hyderabad — Anupama & Jackson, October 28, 2026, Hyderabad, India',
   },
   {
     path: '/travel/food',
@@ -136,8 +138,7 @@ export const routes = [
     ogImage: 'https://anupamaandjackson.com/og-faq.jpg',
     ogImageWidth: 1200,
     ogImageHeight: 630,
-    ogImageAlt:
-      'Questions & Answers — Anupama & Jackson, October 28, 2026, Hyderabad, India',
+    ogImageAlt: 'Questions & Answers — Anupama & Jackson, October 28, 2026, Hyderabad, India',
   },
   {
     path: '/what-to-wear',
@@ -165,14 +166,15 @@ export const routes = [
     path: '/engagement',
     outputPath: 'dist/engagement/index.html',
     title: 'Engagement Weekend - Anupama & Jackson',
-    description: 'Join Anupama & Jackson in Atlanta for their engagement weekend - August 16, 2025.',
+    description:
+      'Join Anupama & Jackson in Atlanta for their engagement weekend - August 16, 2025.',
     ogImage: null,
   },
   {
     path: '/engagement/schedule',
     outputPath: 'dist/engagement/schedule/index.html',
     title: 'Schedule - Anupama & Jackson',
-    description: 'Schedule for Anupama & Jackson\'s engagement weekend in Atlanta.',
+    description: "Schedule for Anupama & Jackson's engagement weekend in Atlanta.",
     ogImage: null,
   },
   {
@@ -270,7 +272,9 @@ function buildMetaTags(route) {
   }
 
   // Twitter tags
-  tags.push(`<meta name="twitter:card" content="${route.ogImage ? 'summary_large_image' : 'summary'}" />`)
+  tags.push(
+    `<meta name="twitter:card" content="${route.ogImage ? 'summary_large_image' : 'summary'}" />`,
+  )
   tags.push(`<meta name="twitter:title" content="${route.title}" />`)
   tags.push(`<meta name="twitter:description" content="${route.description}" />`)
 

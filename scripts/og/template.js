@@ -35,7 +35,12 @@ const SCALE = {
 // preview is scaled down to phone width, which is where these are actually read.
 const TITLE_WEIGHT = 600
 
-const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }
+const MIME = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+}
 
 function escapeHtml(value) {
   return value
@@ -63,7 +68,7 @@ const CORNER_ORNAMENT = `
           ${[15, 30, 45, 60, 75]
             .map(
               (angle) =>
-                `<path d="M31 0 C33.5 -3.4 40.5 -3.4 43 0 C40.5 3.4 33.5 3.4 31 0 Z" transform="rotate(${angle})" fill="#c8a25e" fill-opacity="0.22" stroke="#c8a25e" stroke-width="1.2" />`
+                `<path d="M31 0 C33.5 -3.4 40.5 -3.4 43 0 C40.5 3.4 33.5 3.4 31 0 Z" transform="rotate(${angle})" fill="#c8a25e" fill-opacity="0.22" stroke="#c8a25e" stroke-width="1.2" />`,
             )
             .join('\n          ')}
           <path d="M7 7 C19 2 26 9 23 17 C20.5 24 11 24 9 16.5 C8 12 9 9.5 7 7 Z" fill="#ffcadb" fill-opacity="0.6" stroke="#c8a25e" stroke-width="1.6" />
@@ -115,7 +120,7 @@ export function renderOgHtml(entry, assets = {}) {
     entry.showNames === false
       ? ''
       : `<div class="names">${escapeHtml(NAMES[0])}<span class="amp">&amp;</span>${escapeHtml(
-          NAMES[1]
+          NAMES[1],
         )}</div>`
 
   const panel = centered

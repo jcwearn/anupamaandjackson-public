@@ -28,7 +28,8 @@ const CONFIG: Record<Mode, ModeConfig> = {
   },
   passport: {
     title: 'Passport photo → PDF under 300KB',
-    blurb: 'Upload a clear photo or scan of your passport’s photo page and we’ll turn it into a PDF under the size limit.',
+    blurb:
+      'Upload a clear photo or scan of your passport’s photo page and we’ll turn it into a PDF under the size limit.',
     limitBytes: PASSPORT_MAX_BYTES,
     limitLabel: '300KB',
     process: passportToPdf,
@@ -76,7 +77,12 @@ const FileShrinker: React.FC<{ mode: Mode }> = ({ mode }) => {
     setDownload(null)
     try {
       const out = await config.process(file)
-      setDownload({ url: URL.createObjectURL(out.blob), name: out.name, size: out.size, originalSize: file.size })
+      setDownload({
+        url: URL.createObjectURL(out.blob),
+        name: out.name,
+        size: out.size,
+        originalSize: file.size,
+      })
       setStatus('done')
     } catch (err) {
       const message =
@@ -105,7 +111,11 @@ const FileShrinker: React.FC<{ mode: Mode }> = ({ mode }) => {
       </div>
 
       <label className="btn-primary cursor-pointer self-start">
-        {status === 'processing' ? 'Processing…' : result ? 'Choose a different file' : 'Choose a file'}
+        {status === 'processing'
+          ? 'Processing…'
+          : result
+            ? 'Choose a different file'
+            : 'Choose a file'}
         <input
           ref={inputRef}
           type="file"
@@ -136,7 +146,11 @@ const FileShrinker: React.FC<{ mode: Mode }> = ({ mode }) => {
             <dt className="text-zeus/70">Result</dt>
             <dd className="text-right font-medium">{formatBytes(result.size)}</dd>
           </dl>
-          <p className={meetsLimit ? 'text-sm font-medium text-fern' : 'text-sm font-medium text-red-700'}>
+          <p
+            className={
+              meetsLimit ? 'text-sm font-medium text-fern' : 'text-sm font-medium text-red-700'
+            }
+          >
             {meetsLimit
               ? `✓ Under the ${config.limitLabel} limit`
               : `Still over ${config.limitLabel} — try a tighter crop or a smaller original.`}

@@ -39,8 +39,14 @@ export function render(url: string) {
           <Route path="/save-the-date" element={<SaveTheDateEnvelope />} />
           <Route path="/invites/wearn" element={<Invite variant="wearn" />} />
           <Route path="/invites/tadanki" element={<Invite variant="tadanki" />} />
-          <Route path="/invites/tadanki/reception" element={<Invite variant="tadanki-reception" />} />
-          <Route path="/invites/tadanki/muhurtham" element={<Invite variant="tadanki-muhurtham" />} />
+          <Route
+            path="/invites/tadanki/reception"
+            element={<Invite variant="tadanki-reception" />}
+          />
+          <Route
+            path="/invites/tadanki/muhurtham"
+            element={<Invite variant="tadanki-muhurtham" />}
+          />
         </Route>
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Landing />} />
@@ -62,7 +68,7 @@ export function render(url: string) {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </StaticRouter>
+    </StaticRouter>,
   )
   return html
 }

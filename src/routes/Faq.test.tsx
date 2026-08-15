@@ -53,7 +53,7 @@ describe('FAQ anchors', () => {
       // rendered without its summary row.
       expect(
         details.querySelector('button[aria-label^="Copy link to "]'),
-        `no copy button for #${id}`
+        `no copy button for #${id}`,
       ).not.toBeNull()
     }
   })
@@ -66,13 +66,13 @@ describe('FAQ links', () => {
   it('every /travel/tips deep link resolves to a section on that page', () => {
     const travelTips = renderPage(<TravelTips />)
     const travelTipsIds = new Set(
-      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id)
+      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id),
     )
     travelTips.unmount()
 
     const { container } = renderPage(<Faq />)
     const fragments = [...container.querySelectorAll('a[href^="/travel/tips#"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[1]
+      (a) => a.getAttribute('href')!.split('#')[1],
     )
 
     expect(fragments.length).toBeGreaterThan(0)
@@ -111,7 +111,7 @@ describe('FAQ links', () => {
 
     const { container } = renderPage(<Faq />)
     const internal = [...container.querySelectorAll('a[href^="/"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[0]
+      (a) => a.getAttribute('href')!.split('#')[0],
     )
 
     expect(internal.length).toBeGreaterThan(0)
@@ -177,7 +177,7 @@ describe('FAQ dress code', () => {
         <GuestScheduleProvider>
           <Faq />
         </GuestScheduleProvider>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
 
   const dressCode = (container: HTMLElement) =>

@@ -58,7 +58,7 @@ async function normalizeToJpeg(file: File): Promise<File> {
 async function compressToJpeg(
   file: File,
   maxSizeMB: number,
-  maxWidthOrHeight: number
+  maxWidthOrHeight: number,
 ): Promise<File> {
   const { default: imageCompression } = await import('browser-image-compression')
   return imageCompression(file, {
@@ -90,7 +90,8 @@ function readDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('Could not read the image. Please try a different file.'))
+    reader.onerror = () =>
+      reject(new Error('Could not read the image. Please try a different file.'))
     reader.readAsDataURL(blob)
   })
 }

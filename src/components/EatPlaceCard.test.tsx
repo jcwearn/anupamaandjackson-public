@@ -22,7 +22,7 @@ const renderCard = (p: EatPlace) =>
   render(
     <MemoryRouter>
       <EatPlaceCard place={p} />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('EatPlaceCard', () => {
@@ -80,7 +80,7 @@ describe('EatPlaceCard', () => {
     const name = places.find((p) => p.slug === 'charminar')!.name
     expect(screen.getByRole('link', { name })).toHaveAttribute(
       'href',
-      '/travel/hyderabad#charminar'
+      '/travel/hyderabad#charminar',
     )
   })
 
@@ -90,7 +90,7 @@ describe('EatPlaceCard', () => {
 
     expect(screen.getByRole('link', { name: 'gone-place' })).toHaveAttribute(
       'href',
-      '/travel/hyderabad#gone-place'
+      '/travel/hyderabad#gone-place',
     )
   })
 
@@ -103,7 +103,7 @@ describe('EatPlaceCard', () => {
     render(
       <MemoryRouter>
         <EatPlaceCard place={{ ...place, photo }} reverse />
-      </MemoryRouter>
+      </MemoryRouter>,
     )
     const img = screen.getByAltText('A test photo of the place')
     expect(img).toHaveAttribute('width', '1000')

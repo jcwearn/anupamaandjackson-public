@@ -17,7 +17,7 @@ const tabClass = (active: boolean) =>
     'whitespace-nowrap rounded-full px-5 py-2 font-body text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 sm:text-base',
     // Not StickyChipBar's chipClass: that one is sized for a dense bar of jump
     // links, and its opaque idle fill fights the track this sits in.
-    active ? 'bg-rosewood text-cream shadow-sm' : 'text-zeus/70 hover:bg-lily/40'
+    active ? 'bg-rosewood text-cream shadow-sm' : 'text-zeus/70 hover:bg-lily/40',
   )
 
 // The gold-ruled mat the place and hotel photos already sit in.
@@ -60,7 +60,7 @@ const Figure: React.FC<{
       aria-label={`View full size: ${photo.caption ?? photo.alt}`}
       className={clsx(
         MAT,
-        'block w-full cursor-zoom-in transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2'
+        'block w-full cursor-zoom-in transition-shadow hover:shadow-md focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2',
       )}
     >
       {/* WebP is about a third the weight; the JPEG is there for anything that
@@ -131,7 +131,9 @@ const StorySection: React.FC = () => {
   return (
     <section id="our-story" className={scrollMt}>
       <header className="text-center">
-        <p className="font-body text-xs uppercase tracking-[0.25em] text-zeus/60">How we got here</p>
+        <p className="font-body text-xs uppercase tracking-[0.25em] text-zeus/60">
+          How we got here
+        </p>
         <h2 className="mt-3 font-display text-3xl text-rosewood sm:text-4xl">Our Story</h2>
         <MandalaDivider className="mx-auto mt-5 text-gold" />
         <p className="mx-auto mt-4 max-w-md font-body text-lg text-zeus/70">{STORY_LEDE}</p>
@@ -218,12 +220,7 @@ const StorySection: React.FC = () => {
             faces stopped reading, which is most of why they're here. */}
         <div className="mt-5 grid grid-cols-2 gap-4 sm:gap-6">
           {storyTravelPhotos.map((photo) => (
-            <Figure
-              key={photo.src}
-              photo={photo}
-              imgClassName="aspect-square"
-              onZoom={openZoom}
-            />
+            <Figure key={photo.src} photo={photo} imgClassName="aspect-square" onZoom={openZoom} />
           ))}
         </div>
       </div>

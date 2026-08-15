@@ -24,7 +24,7 @@ describe('HotelCard', () => {
     render(<HotelCard hotel={hotel} />)
 
     expect(
-      screen.getByRole('button', { name: 'Copy link to Taj Krishna Hyderabad' })
+      screen.getByRole('button', { name: 'Copy link to Taj Krishna Hyderabad' }),
     ).toBeInTheDocument()
   })
 

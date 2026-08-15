@@ -70,7 +70,7 @@ describe('aliasesFor', () => {
 
   it('folds accented names so an unaccented spelling still matches', () => {
     expect(aliasesFor({ firstName: 'Ana Sofía', lastName: 'Ruiz' })).toContain(
-      key('ana sofia', 'ruiz')
+      key('ana sofia', 'ruiz'),
     )
   })
 

@@ -20,7 +20,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -53,7 +53,7 @@ const renderPage = () =>
   render(
     <GuestScheduleProvider>
       <Hotels />
-    </GuestScheduleProvider>
+    </GuestScheduleProvider>,
   )
 
 beforeEach(() => {
@@ -67,7 +67,7 @@ describe('Hotels anchors', () => {
     const { container } = render(<Hotels />)
 
     const hrefs = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
-      a.getAttribute('href')!.slice(1)
+      a.getAttribute('href')!.slice(1),
     )
 
     expect(hrefs.length).toBeGreaterThan(0)
@@ -103,11 +103,11 @@ describe('Hotels anchors', () => {
     const bar = screen.getByRole('navigation', { name: 'Jump to section' })
     expect(within(bar).getByRole('link', { name: 'Pre-Wedding' })).toHaveAttribute(
       'href',
-      '#pre-wedding-hotels'
+      '#pre-wedding-hotels',
     )
     expect(within(bar).getByRole('link', { name: 'Wedding' })).toHaveAttribute(
       'href',
-      '#wedding-hotels'
+      '#wedding-hotels',
     )
   })
 
@@ -188,7 +188,7 @@ describe('Hotels room personalization', () => {
       setState(withRoom(stay))
       const { container, unmount } = renderPage()
       expect(
-        golkondaCard(container).getByText(/If you’d rather make your own arrangements/)
+        golkondaCard(container).getByText(/If you’d rather make your own arrangements/),
       ).toBeInTheDocument()
       unmount()
     }
@@ -211,7 +211,7 @@ describe('Hotels room personalization', () => {
 
     expect(header(container).queryByText(RSVP_PUNT)).not.toBeInTheDocument()
     expect(
-      header(container).getByText(/We’ve arranged a room for you at the resort/)
+      header(container).getByText(/We’ve arranged a room for you at the resort/),
     ).toBeInTheDocument()
   })
 

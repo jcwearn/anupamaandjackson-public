@@ -56,7 +56,7 @@ describe('DishCard', () => {
     render(<DishCard dish={{ ...dish, whereSlug: 'paradise' }} />)
     expect(screen.getByRole('link', { name: 'Where to try it' })).toHaveAttribute(
       'href',
-      '#paradise'
+      '#paradise',
     )
   })
 

@@ -90,7 +90,7 @@ const GuestBadge: React.FC<Props> = ({ variant, onAction }) => {
           'cursor-pointer whitespace-nowrap font-body transition-colors focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2',
           bar
             ? 'text-sm text-cream/70 underline decoration-gold/50 underline-offset-4 hover:text-peach'
-            : menuItemClass
+            : menuItemClass,
         )}
       >
         {bar ? 'Unlock' : 'Unlock your details'}

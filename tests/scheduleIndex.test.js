@@ -42,11 +42,11 @@ let stats
 
 beforeAll(async () => {
   catalogEvents = JSON.parse(
-    await readFile(join(root, 'data', 'schedule-events.json'), 'utf-8')
+    await readFile(join(root, 'data', 'schedule-events.json'), 'utf-8'),
   ).events
   guests = await readFixture(join(root, 'tests', 'fixtures', 'guests.sample.csv'))
   keralaResponses = JSON.parse(
-    await readFile(join(root, 'tests', 'fixtures', 'kerala-responses.sample.json'), 'utf-8')
+    await readFile(join(root, 'tests', 'fixtures', 'kerala-responses.sample.json'), 'utf-8'),
   ).responses
   ;({ index, stats } = await buildIndex({
     guests,
@@ -135,8 +135,8 @@ describe('golkonda stay', () => {
           tags: new Set(['hotel-golkonda-covered']),
           golkondaCoveredAnswer: "I'll be staying at Golkonda Resort.",
           golkondaOwnAnswer: '',
-        })
-      )
+        }),
+      ),
     ).toBe('covered')
   })
 
@@ -148,9 +148,13 @@ describe('golkonda stay', () => {
   })
 
   it('drops a guest who declined the room', () => {
-    expect(golkondaStay(guest({ golkondaOwnAnswer: 'I do not need accommodation.' }))).toBeUndefined()
     expect(
-      golkondaStay(guest({ golkondaOwnAnswer: "I'll be arranging my own accommodation separately." }))
+      golkondaStay(guest({ golkondaOwnAnswer: 'I do not need accommodation.' })),
+    ).toBeUndefined()
+    expect(
+      golkondaStay(
+        guest({ golkondaOwnAnswer: "I'll be arranging my own accommodation separately." }),
+      ),
     ).toBeUndefined()
   })
 
@@ -167,7 +171,7 @@ describe('golkonda stay', () => {
 
   it('refuses a guest carrying both tags, who cannot be priced', () => {
     expect(() =>
-      golkondaStay(guest({ tags: new Set(['hotel-golkonda-covered', 'hotel-golkonda-own']) }))
+      golkondaStay(guest({ tags: new Set(['hotel-golkonda-covered', 'hotel-golkonda-own']) })),
     ).toThrow(/both Golkonda tags/)
   })
 
@@ -185,14 +189,14 @@ describe('golkonda stay', () => {
     // The gate turns on four exact strings; a reworded one would otherwise
     // match nobody and take the whole feature dark without a word.
     expect(() =>
-      assertGolkondaAnswersRecognized([guest({ golkondaOwnAnswer: 'Sure, sounds lovely' })])
+      assertGolkondaAnswersRecognized([guest({ golkondaOwnAnswer: 'Sure, sounds lovely' })]),
     ).toThrow(/does not recognize/)
     expect(() => assertGolkondaAnswersRecognized(guests)).not.toThrow()
   })
 
   it('rejects a roster missing the RSVP columns altogether', () => {
     expect(() => assertGolkondaColumnsExist([guest({ muhurthamRsvp: undefined })])).toThrow(
-      /muhurthamRsvp/
+      /muhurthamRsvp/,
     )
     expect(() => assertGolkondaColumnsExist(guests)).not.toThrow()
   })
@@ -228,11 +232,11 @@ describe('collision handling', () => {
     // Silently serving one of these guests the other's schedule is the exact
     // failure this build check exists to prevent.
     expect(() =>
-      resolveBucket([record(1, ['muhurtham'], ''), record(2, ['muhurtham', 'reception'], '')])
+      resolveBucket([record(1, ['muhurtham'], ''), record(2, ['muhurtham', 'reception'], '')]),
     ).toThrow(/distinguishing household hint/)
 
     expect(() =>
-      resolveBucket([record(1, ['muhurtham'], 'Same'), record(2, ['reception'], 'Same')])
+      resolveBucket([record(1, ['muhurtham'], 'Same'), record(2, ['reception'], 'Same')]),
     ).toThrow(/distinguishing household hint/)
   })
 
@@ -268,7 +272,7 @@ describe('build-time guards', () => {
     for (const outfit of [...mensOutfits, ...womensOutfits]) {
       for (const id of outfit.events) {
         expect(ids.has(id), `outfit '${outfit.slug}' names '${id}', which is not an event`).toBe(
-          true
+          true,
         )
       }
     }
@@ -276,7 +280,7 @@ describe('build-time guards', () => {
 
   it('rejects an event gated on a tag the export does not have', () => {
     expect(() => assertGatesExist([{ id: 'x', gate: 'nope' }], new Set(['muhurtam']))).toThrow(
-      /does not exist in the export/
+      /does not exist in the export/,
     )
   })
 
@@ -284,8 +288,8 @@ describe('build-time guards', () => {
     expect(() =>
       assertUniversalEventsMatch(
         [{ id: 'muhurtham', universal: true, title: 'Renamed Ceremony' }],
-        "export const universalEvents = [{ id: 'muhurtham', title: 'Wedding Ceremony' }]"
-      )
+        "export const universalEvents = [{ id: 'muhurtham', title: 'Wedding Ceremony' }]",
+      ),
     ).toThrow(/missing from src\/data\/scheduleEvents.ts/)
   })
 
@@ -296,8 +300,8 @@ describe('build-time guards', () => {
     expect(() =>
       assertUniversalEventsMatch(
         [{ id: 'muhurtham', universal: true, attire: 'Saris and kurtas, newly reworded' }],
-        "export const universalEvents = [{ id: 'muhurtham', attire: 'Saris and kurtas' }]"
-      )
+        "export const universalEvents = [{ id: 'muhurtham', attire: 'Saris and kurtas' }]",
+      ),
     ).toThrow(/has a attire in data\/schedule-events.json/)
   })
 
@@ -311,8 +315,8 @@ describe('build-time guards', () => {
             indianWear: { women: 'Bright saris', men: 'A white kurta and pancha' },
           },
         ],
-        "export const universalEvents = [{ id: 'muhurtham', indianWear: { women: 'Bright saris', men: 'A white kurta' } }]"
-      )
+        "export const universalEvents = [{ id: 'muhurtham', indianWear: { women: 'Bright saris', men: 'A white kurta' } }]",
+      ),
     ).toThrow(/indianWear\.men/)
   })
 
@@ -325,7 +329,7 @@ describe('build-time guards', () => {
     // No event is gated on it, so assertGatesExist never looks — and losing the
     // tag would just quietly make /invites/links unreachable.
     expect(() => assertAdminTagExists(new Set(['muhurtam', 'reception']))).toThrow(
-      /'admin' tag does not exist/
+      /'admin' tag does not exist/,
     )
     expect(() => assertAdminTagExists(new Set(['muhurtam', 'admin']))).not.toThrow()
   })
@@ -388,10 +392,7 @@ describe('encrypted index round trip', () => {
 
     const smiths = await lookup('John', 'Smith')
     expect(smiths).toHaveLength(2)
-    expect(smiths.map((record) => record.hint).sort()).toEqual([
-      'Smith Family',
-      'Smith Household',
-    ])
+    expect(smiths.map((record) => record.hint).sort()).toEqual(['Smith Family', 'Smith Household'])
     expect(smiths[0].eventIds).not.toEqual(smiths[1].eventIds)
   })
 
@@ -432,16 +433,13 @@ describe('encrypted index round trip', () => {
       expect(record.emailHashes).toBeUndefined()
       expect(record.hintLabel).toBeUndefined()
     }
-    expect(prayagas.map((record) => record.hint).sort()).toEqual([
-      'Prayaga North',
-      'Prayaga South',
-    ])
+    expect(prayagas.map((record) => record.hint).sort()).toEqual(['Prayaga North', 'Prayaga South'])
   })
 
   it('republishes when only an email changes', async () => {
     const before = await sourceFingerprint(guests, catalogEvents)
     const edited = guests.map((guest) =>
-      guest.firstName === 'Grace' ? { ...guest, emails: ['grace@example.com'] } : guest
+      guest.firstName === 'Grace' ? { ...guest, emails: ['grace@example.com'] } : guest,
     )
     expect(await sourceFingerprint(edited, catalogEvents)).not.toBe(before)
   })
@@ -453,12 +451,12 @@ describe('encrypted index round trip', () => {
     const declined = guests.map((guest) =>
       guest.firstName === 'Hedy'
         ? { ...guest, golkondaOwnAnswer: 'I do not need accommodation.' }
-        : guest
+        : guest,
     )
     expect(await sourceFingerprint(declined, catalogEvents)).not.toBe(before)
 
     const withdrawn = guests.map((guest) =>
-      guest.firstName === 'Alan' ? { ...guest, muhurthamRsvp: 'Not Attending' } : guest
+      guest.firstName === 'Alan' ? { ...guest, muhurthamRsvp: 'Not Attending' } : guest,
     )
     expect(await sourceFingerprint(withdrawn, catalogEvents)).not.toBe(before)
   })
@@ -469,7 +467,7 @@ describe('encrypted index round trip', () => {
     const wrongKey = await deriveGuestKey(
       normalizedKey('Wrong', 'Person'),
       salt,
-      index.kdf.iterations
+      index.kdf.iterations,
     )
     expect(await decryptJson(wrongKey, target)).toBeNull()
   })
@@ -584,8 +582,8 @@ describe('kerala payload', () => {
     expect(() =>
       resolveKeralaPayloads(
         [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
-        [response('stranger@example.com', { occupancy: 'single' })]
-      )
+        [response('stranger@example.com', { occupancy: 'single' })],
+      ),
     ).toThrow(/stranger@example.com.*matches no roster guest/)
   })
 
@@ -597,8 +595,8 @@ describe('kerala payload', () => {
           rosterGuest(1, 'Vera', 'Rubin', ['shared@example.com']),
           rosterGuest(2, 'Carl', 'Sagan', ['shared@example.com']),
         ],
-        [response('shared@example.com', { occupancy: 'single' })]
-      )
+        [response('shared@example.com', { occupancy: 'single' })],
+      ),
     ).toThrow(/matches 2 roster guests \(row 1, row 2\)/)
   })
 
@@ -618,7 +616,7 @@ describe('kerala payload', () => {
     expect(() =>
       resolveKeralaPayloads(roster, [
         response('vera@example.com', { occupancy: 'single', name: 'Someone Else' }),
-      ])
+      ]),
     ).toThrow(/names 'Someone Else', but no roster guest/)
   })
 
@@ -629,8 +627,8 @@ describe('kerala payload', () => {
         [
           response('vera@example.com', { occupancy: 'single' }),
           response('vr@example.org', { occupancy: 'single', room: 2 }),
-        ]
-      )
+        ],
+      ),
     ).toThrow(/Two Kerala responses resolve to the same roster guest/)
   })
 
@@ -642,15 +640,15 @@ describe('kerala payload', () => {
     ]
     // A double-occupancy respondent alone in a room is the pre-correction
     // spreadsheet mistake this exists to catch.
-    expect(() =>
-      resolveKeralaPayloads(roster, [response('vera@example.com')])
-    ).toThrow(/lone double-occupancy respondent/)
+    expect(() => resolveKeralaPayloads(roster, [response('vera@example.com')])).toThrow(
+      /lone double-occupancy respondent/,
+    )
     expect(() =>
       resolveKeralaPayloads(roster, [
         response('vera@example.com'),
         response('carl@example.com'),
         response('enrico@example.com'),
-      ])
+      ]),
     ).toThrow(/3 occupants/)
   })
 
@@ -673,22 +671,22 @@ describe('kerala payload', () => {
     expect(() =>
       resolveKeralaPayloads(
         [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
-        [response('vera@example.com', { trip: 'medium', occupancy: 'single' })]
-      )
+        [response('vera@example.com', { trip: 'medium', occupancy: 'single' })],
+      ),
     ).toThrow(/invalid fields/)
 
     expect(() =>
       resolveKeralaPayloads(
         [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
-        [response('vera@example.com', { occupancy: 'single', priceOverride: -5 })]
-      )
+        [response('vera@example.com', { occupancy: 'single', priceOverride: -5 })],
+      ),
     ).toThrow(/invalid fields/)
 
     expect(() =>
       resolveKeralaPayloads(
         [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
-        [response('vera@example.com', { occupancy: 'single', roommatePending: 'yes' })]
-      )
+        [response('vera@example.com', { occupancy: 'single', roommatePending: 'yes' })],
+      ),
     ).toThrow(/invalid fields/)
   })
 
@@ -705,12 +703,10 @@ describe('kerala payload', () => {
       kerala,
     })
     const trip = { trip: 'full', flight: 'rt', occupancy: 'double', roommates: ['Carl'] }
-    expect(
-      resolveBucket([record(1, 'North', trip), record(2, 'South', undefined)])
-    ).toHaveLength(2)
-    expect(
-      resolveBucket([record(1, 'North', trip), record(2, 'South', { ...trip })])
-    ).toHaveLength(1)
+    expect(resolveBucket([record(1, 'North', trip), record(2, 'South', undefined)])).toHaveLength(2)
+    expect(resolveBucket([record(1, 'North', trip), record(2, 'South', { ...trip })])).toHaveLength(
+      1,
+    )
   })
 
   it('republishes when a response changes', async () => {
@@ -718,15 +714,15 @@ describe('kerala payload', () => {
     expect(await sourceFingerprint(guests, catalogEvents, null)).not.toBe(before)
 
     const edited = keralaResponses.map((entry) =>
-      entry.email === 'carl.sagan@example.com' ? { ...entry, flight: 'rt' } : entry
+      entry.email === 'carl.sagan@example.com' ? { ...entry, flight: 'rt' } : entry,
     )
     expect(await sourceFingerprint(guests, catalogEvents, edited)).not.toBe(before)
     expect(
       await sourceFingerprint(
         guests,
         catalogEvents,
-        keralaResponses.map((entry) => ({ ...entry }))
-      )
+        keralaResponses.map((entry) => ({ ...entry })),
+      ),
     ).toBe(before)
   })
 })

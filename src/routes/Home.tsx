@@ -30,7 +30,9 @@ const Home: React.FC = () => {
 
       <section className="mt-16">
         <Container className="text-center">
-          <h2 className="text-2xl sm:text-3xl">Join Anupama & Jackson in Atlanta for their engagement weekend.</h2>
+          <h2 className="text-2xl sm:text-3xl">
+            Join Anupama & Jackson in Atlanta for their engagement weekend.
+          </h2>
           <Celebration className="mt-4 text-2xl font-mono tracking-wider" />
         </Container>
       </section>

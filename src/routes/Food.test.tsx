@@ -78,7 +78,7 @@ describe('What to Eat', () => {
 
     expect(
       caveat.compareDocumentPosition(firstDish) & Node.DOCUMENT_POSITION_FOLLOWING,
-      'the caveat has to come before the dishes'
+      'the caveat has to come before the dishes',
     ).toBeTruthy()
   })
 
@@ -96,7 +96,7 @@ describe('What to Eat', () => {
 
       const card = container.querySelector(`#${dish.slug}`)!
       expect(card.textContent, `${dish.slug} shows no ${badges[dish.diet]} badge`).toContain(
-        badges[dish.diet]
+        badges[dish.diet],
       )
     }
 
@@ -123,7 +123,7 @@ describe('What to Eat', () => {
     const { container } = renderPage(<Food />)
     const ids = new Set([...container.querySelectorAll('[id]')].map((el) => el.id))
     const fragments = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
-      a.getAttribute('href')!.slice(1)
+      a.getAttribute('href')!.slice(1),
     )
 
     expect(fragments.length).toBeGreaterThan(0)
@@ -148,7 +148,7 @@ describe('What to Eat', () => {
 
       const { container, unmount } = renderPage(<Food />)
       const fragments = [...container.querySelectorAll(`a[href^="${path}#"]`)].map(
-        (a) => a.getAttribute('href')!.split('#')[1]
+        (a) => a.getAttribute('href')!.split('#')[1],
       )
       unmount()
 
@@ -197,5 +197,4 @@ describe('What to Eat', () => {
       expect(img).toHaveAttribute('height', String(photo.height))
     }
   })
-
 })

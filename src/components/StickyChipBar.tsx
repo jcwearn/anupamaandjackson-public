@@ -33,7 +33,7 @@ const StickyChipBar: React.FC<{
     // than the clipping it would be there to solve.
     className={clsx(
       'sticky z-20 flex h-12 items-center overflow-x-auto overflow-y-hidden border-b border-gold/30 bg-[#ffd7e4] px-2 transition-transform duration-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-      hidden && '-translate-y-full'
+      hidden && '-translate-y-full',
     )}
     style={{ top: SITE_NAV_OFFSET }}
     // Out of the tab order while off screen, so it can't be focused invisibly.
@@ -51,7 +51,7 @@ const StickyChipBar: React.FC<{
 export const chipClass = (active: boolean) =>
   clsx(
     'whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 sm:text-sm',
-    active ? 'bg-rosewood text-cream' : 'bg-lily/60 text-zeus hover:bg-lily'
+    active ? 'bg-rosewood text-cream' : 'bg-lily/60 text-zeus hover:bg-lily',
   )
 
 // How long after a jump a scroll is still that jump arriving rather than the

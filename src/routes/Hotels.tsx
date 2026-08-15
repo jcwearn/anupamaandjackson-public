@@ -53,15 +53,16 @@ const Hotels: React.FC = () => {
             <h1 className="font-display text-4xl text-rosewood sm:text-5xl">Where to Stay</h1>
             <div className="mx-auto mt-4 max-w-xl text-left">
               <p className="font-body text-lg leading-relaxed text-zeus/80">
-                We're lucky to be hosting our wedding at Golkonda Resort, where many of our guests will be staying
-                and celebrating together throughout the week.{' '}
+                We're lucky to be hosting our wedding at Golkonda Resort, where many of our guests
+                will be staying and celebrating together throughout the week.{' '}
                 {golkonda
                   ? 'We’ve arranged a room for you at the resort — the details are with the hotel below.'
                   : 'Accommodation at the resort has been arranged for a number of our guests and will be reflected in your RSVP details.'}
               </p>
               <p className="mt-6 font-body text-lg leading-relaxed text-zeus/80">
-                For those making their own arrangements, there are plenty of wonderful nearby hotels and rentals —
-                we've shared a few of our favorites below to help make your stay easy and comfortable!
+                For those making their own arrangements, there are plenty of wonderful nearby hotels
+                and rentals — we've shared a few of our favorites below to help make your stay easy
+                and comfortable!
               </p>
             </div>
           </div>

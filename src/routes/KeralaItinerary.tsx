@@ -239,7 +239,12 @@ const pricing: {
     title: 'Full itinerary',
     dates: 'October 29 – November 1 · 3 nights',
     rows: [
-      { occ: 'double', occupancy: 'Double occupancy (per person)', roundTrip: 56160, oneWay: 48192 },
+      {
+        occ: 'double',
+        occupancy: 'Double occupancy (per person)',
+        roundTrip: 56160,
+        oneWay: 48192,
+      },
       { occ: 'single', occupancy: 'Single occupancy', roundTrip: 90000, oneWay: 82032 },
     ],
   },
@@ -248,7 +253,12 @@ const pricing: {
     title: 'Shortened itinerary',
     dates: 'October 29 – 31 · 2 nights',
     rows: [
-      { occ: 'double', occupancy: 'Double occupancy (per person)', roundTrip: 41020, oneWay: 33052 },
+      {
+        occ: 'double',
+        occupancy: 'Double occupancy (per person)',
+        roundTrip: 41020,
+        oneWay: 33052,
+      },
       { occ: 'single', occupancy: 'Single occupancy', roundTrip: 60860, oneWay: 52892 },
     ],
   },
@@ -350,7 +360,7 @@ const KeralaItineraryContent: React.FC = () => {
     .filter(
       (flight) =>
         (trip === 'all' || flight.trips.includes(trip)) &&
-        (flightChoice !== 'ow' || flight.leg === 'out')
+        (flightChoice !== 'ow' || flight.leg === 'out'),
     )
     .sort((a, b) => a.date.localeCompare(b.date))
   const visiblePricing = pricing.filter((option) => trip === 'all' || option.trip === trip)
@@ -384,7 +394,9 @@ const KeralaItineraryContent: React.FC = () => {
             <p className="text-xs uppercase tracking-wide text-zeus/60">
               October 29 – November 1, 2026 • Kochi & Alleppey, Kerala
             </p>
-            <h1 className="mt-1 font-display text-4xl text-rosewood sm:text-5xl">A Lush Kerala Weekend</h1>
+            <h1 className="mt-1 font-display text-4xl text-rosewood sm:text-5xl">
+              A Lush Kerala Weekend
+            </h1>
             <div className="mx-auto mt-4 max-w-xl text-left">
               <p className="font-body text-lg leading-relaxed text-zeus/80">
                 After the wedding, join us in enjoying one of South India’s most beautiful states —
@@ -530,35 +542,36 @@ const KeralaItineraryContent: React.FC = () => {
               anchorId="day-1"
             />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <div className="card mt-4">
-              <p className="text-sm text-zeus/80">
-                After breakfast at Golkonda, take your flight from Hyderabad to Cochin. On arrival transfer to the{" "}
-                <a
-                  href="https://share.google/4e3cmevDZLquhnbYf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-rosewood"
-                >
-                  Grand Hyatt Kochi Bolgatty Hotel
-                </a>. Check in,
-                refresh, and prepare for an evening of live entertainment.
-              </p>
-            </div>
-            <div className="card mt-4">
-              <h3 className="font-display text-lg text-rosewood">
-                An immersive cultural evening
-              </h3>
-              <p className="mt-1 text-sm text-zeus/80">
-                Experience three of Kerala’s most iconic traditional art forms in one immersive
-                cultural evening:
-              </p>
-              <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm text-zeus/80">
-                {culturalEvening.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-              <Figure photo={photos.kathakali} />
-            </div>
+              <div className="card mt-4">
+                <p className="text-sm text-zeus/80">
+                  After breakfast at Golkonda, take your flight from Hyderabad to Cochin. On arrival
+                  transfer to the{' '}
+                  <a
+                    href="https://share.google/4e3cmevDZLquhnbYf"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-rosewood"
+                  >
+                    Grand Hyatt Kochi Bolgatty Hotel
+                  </a>
+                  . Check in, refresh, and prepare for an evening of live entertainment.
+                </p>
+              </div>
+              <div className="card mt-4">
+                <h3 className="font-display text-lg text-rosewood">
+                  An immersive cultural evening
+                </h3>
+                <p className="mt-1 text-sm text-zeus/80">
+                  Experience three of Kerala’s most iconic traditional art forms in one immersive
+                  cultural evening:
+                </p>
+                <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm text-zeus/80">
+                  {culturalEvening.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+                <Figure photo={photos.kathakali} />
+              </div>
             </div>
           </section>
 
@@ -569,28 +582,29 @@ const KeralaItineraryContent: React.FC = () => {
               anchorId="day-2"
             />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <div className="card mt-4">
-              <p className="text-sm leading-relaxed text-zeus/80">
-                Today after breakfast depart to Alleppey. Alappuzha, often referred to as Alleppey,
-                is a picturesque city in the state of Kerala, known for its intricate network of
-                canals, backwaters, beaches, and lagoons. Often dubbed the ‘Venice of the East,’
-                Alappuzha is a popular tourist destination, especially famed for its houseboat
-                cruises that offer an immersive experience of Kerala’s enchanting backwaters. This
-                coastal city provides a perfect blend of natural beauty, cultural heritage, and
-                serene water-based activities.
-              </p>
-              <h3 className="mt-4 font-display text-lg text-rosewood">
-                Backwaters and Houseboat Cruises
-              </h3>
-              <p className="mt-1 text-sm leading-relaxed text-zeus/80">
-                The backwaters of Alappuzha are a labyrinthine network of interconnected canals,
-                rivers, lakes, and inlets, stretching over 900 kilometers. These tranquil waterways
-                are fringed with lush greenery, coconut palms, paddy fields, and quaint villages,
-                creating a charming landscape. Exploring these backwaters on a traditional
-                houseboat, known as a ‘kettuvallam,’ is a quintessential Kerala experience.
-              </p>
-              <Figure photo={photos.houseboat} />
-            </div>
+              <div className="card mt-4">
+                <p className="text-sm leading-relaxed text-zeus/80">
+                  Today after breakfast depart to Alleppey. Alappuzha, often referred to as
+                  Alleppey, is a picturesque city in the state of Kerala, known for its intricate
+                  network of canals, backwaters, beaches, and lagoons. Often dubbed the ‘Venice of
+                  the East,’ Alappuzha is a popular tourist destination, especially famed for its
+                  houseboat cruises that offer an immersive experience of Kerala’s enchanting
+                  backwaters. This coastal city provides a perfect blend of natural beauty, cultural
+                  heritage, and serene water-based activities.
+                </p>
+                <h3 className="mt-4 font-display text-lg text-rosewood">
+                  Backwaters and Houseboat Cruises
+                </h3>
+                <p className="mt-1 text-sm leading-relaxed text-zeus/80">
+                  The backwaters of Alappuzha are a labyrinthine network of interconnected canals,
+                  rivers, lakes, and inlets, stretching over 900 kilometers. These tranquil
+                  waterways are fringed with lush greenery, coconut palms, paddy fields, and quaint
+                  villages, creating a charming landscape. Exploring these backwaters on a
+                  traditional houseboat, known as a ‘kettuvallam,’ is a quintessential Kerala
+                  experience.
+                </p>
+                <Figure photo={photos.houseboat} />
+              </div>
             </div>
           </section>
 
@@ -601,176 +615,182 @@ const KeralaItineraryContent: React.FC = () => {
               anchorId="day-3"
             />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <p className="mt-4 text-zeus/80">
-              After your breakfast disembark from you house boat and head back to Kochi. Discover
-              the cultural charm of Kochi.
-            </p>
-            <ol className="mt-4 space-y-4">
-              {sights.map((sight, i) => (
-                <li key={sight.title} className="card flex gap-4">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lily font-medium text-zeus">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="font-display text-lg text-rosewood">{sight.title}</h3>
-                    {sight.paragraphs.map((para, j) => (
-                      <p
-                        key={j}
-                        className={
-                          j === 0
-                            ? 'mt-1 text-sm text-zeus'
-                            : 'mt-3 text-sm leading-relaxed text-zeus/70'
-                        }
-                      >
-                        {para}
-                      </p>
-                    ))}
-                    {sight.photo && <Figure photo={sight.photo} />}
-                  </div>
-                </li>
-              ))}
-            </ol>
+              <p className="mt-4 text-zeus/80">
+                After your breakfast disembark from you house boat and head back to Kochi. Discover
+                the cultural charm of Kochi.
+              </p>
+              <ol className="mt-4 space-y-4">
+                {sights.map((sight, i) => (
+                  <li key={sight.title} className="card flex gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lily font-medium text-zeus">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg text-rosewood">{sight.title}</h3>
+                      {sight.paragraphs.map((para, j) => (
+                        <p
+                          key={j}
+                          className={
+                            j === 0
+                              ? 'mt-1 text-sm text-zeus'
+                              : 'mt-3 text-sm leading-relaxed text-zeus/70'
+                          }
+                        >
+                          {para}
+                        </p>
+                      ))}
+                      {sight.photo && <Figure photo={sight.photo} />}
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           </section>
 
           <section id="departure" className={JUMP_NAV_SCROLL_MT}>
-            <StickySectionHeading eyebrow={departure.eyebrow} title="Departure" anchorId="departure" />
+            <StickySectionHeading
+              eyebrow={departure.eyebrow}
+              title="Departure"
+              anchorId="departure"
+            />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <div className="card mt-4">
-              <p className="text-sm text-zeus/80">{departure.body}</p>
-              {trip === 'all' && (
-                <p className="mt-3 text-xs text-zeus/70">
-                  On the shortened option there’s no final night at the hotel — you head to the
-                  airport on the afternoon of October 31 instead, straight after the Fort Kochi tour.
-                </p>
-              )}
-            </div>
+              <div className="card mt-4">
+                <p className="text-sm text-zeus/80">{departure.body}</p>
+                {trip === 'all' && (
+                  <p className="mt-3 text-xs text-zeus/70">
+                    On the shortened option there’s no final night at the hotel — you head to the
+                    airport on the afternoon of October 31 instead, straight after the Fort Kochi
+                    tour.
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
           <section id="flights" className={JUMP_NAV_SCROLL_MT}>
             <StickySectionHeading title="Flights" anchorId="flights" />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <div className="card mt-4 space-y-3">
-              {visibleFlights.map((flight) => (
-                <div
-                  key={`${flight.date}-${flight.from.code}`}
-                  className="rounded-lg border border-gold/40 bg-lily/20 px-4 py-3"
-                >
-                  {/* The codes, times and cities below carry the route visually, so the
+              <div className="card mt-4 space-y-3">
+                {visibleFlights.map((flight) => (
+                  <div
+                    key={`${flight.date}-${flight.from.code}`}
+                    className="rounded-lg border border-gold/40 bg-lily/20 px-4 py-3"
+                  >
+                    {/* The codes, times and cities below carry the route visually, so the
                       heading is for the outline and for screen readers only. */}
-                  <h3 className="sr-only">
-                    {flight.from.city} ({flight.from.code}) → {flight.to.city} ({flight.to.code})
-                  </h3>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                    <p className="text-xs uppercase tracking-wide text-zeus/60">
-                      {dayLabel(flight.date)}
-                    </p>
-                    {/* text-xs until sm: the longer flight number otherwise wraps on a
+                    <h3 className="sr-only">
+                      {flight.from.city} ({flight.from.code}) → {flight.to.city} ({flight.to.code})
+                    </h3>
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                      <p className="text-xs uppercase tracking-wide text-zeus/60">
+                        {dayLabel(flight.date)}
+                      </p>
+                      {/* text-xs until sm: the longer flight number otherwise wraps on a
                         narrow phone while the shorter one doesn't, and the two cards
                         sitting side by side stop matching. */}
-                    <p className="text-xs text-zeus/80 sm:text-sm">
-                      {flight.number ?? 'Flight to be confirmed'}
-                    </p>
-                  </div>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div>
-                      <p className="font-display text-2xl leading-none text-rosewood">
-                        {flight.from.code}
+                      <p className="text-xs text-zeus/80 sm:text-sm">
+                        {flight.number ?? 'Flight to be confirmed'}
                       </p>
-                      <p className="mt-1.5 text-lg font-medium leading-none text-zeus">
-                        <span className="sr-only">Departs </span>
-                        {flight.from.time ? clock(flight.from.time) : '—'}
-                      </p>
-                      <p className="mt-1 text-xs text-zeus/60">{flight.from.city}</p>
                     </div>
-                    <div className="flex flex-1 flex-col items-center gap-1">
-                      <span className="text-xs text-zeus/60">
-                        {flight.from.time && flight.to.time
-                          ? duration(flight.from.time, flight.to.time)
-                          : ''}
-                      </span>
-                      <span aria-hidden className="h-px w-full bg-gold/60" />
+                    <div className="mt-3 flex items-center gap-3">
+                      <div>
+                        <p className="font-display text-2xl leading-none text-rosewood">
+                          {flight.from.code}
+                        </p>
+                        <p className="mt-1.5 text-lg font-medium leading-none text-zeus">
+                          <span className="sr-only">Departs </span>
+                          {flight.from.time ? clock(flight.from.time) : '—'}
+                        </p>
+                        <p className="mt-1 text-xs text-zeus/60">{flight.from.city}</p>
+                      </div>
+                      <div className="flex flex-1 flex-col items-center gap-1">
+                        <span className="text-xs text-zeus/60">
+                          {flight.from.time && flight.to.time
+                            ? duration(flight.from.time, flight.to.time)
+                            : ''}
+                        </span>
+                        <span aria-hidden className="h-px w-full bg-gold/60" />
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display text-2xl leading-none text-rosewood">
+                          {flight.to.code}
+                        </p>
+                        <p className="mt-1.5 text-lg font-medium leading-none text-zeus">
+                          <span className="sr-only">Arrives </span>
+                          {flight.to.time ? clock(flight.to.time) : '—'}
+                        </p>
+                        <p className="mt-1 text-xs text-zeus/60">{flight.to.city}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-display text-2xl leading-none text-rosewood">
-                        {flight.to.code}
-                      </p>
-                      <p className="mt-1.5 text-lg font-medium leading-none text-zeus">
-                        <span className="sr-only">Arrives </span>
-                        {flight.to.time ? clock(flight.to.time) : '—'}
-                      </p>
-                      <p className="mt-1 text-xs text-zeus/60">{flight.to.city}</p>
-                    </div>
-                  </div>
-                  {/* Which trip this leg belongs to only needs saying while both are
+                    {/* Which trip this leg belongs to only needs saying while both are
                       on screen; once filtered, every card shown is the guest's own. */}
-                  {trip === 'all' && flight.leg === 'return' && (
-                    <p className="mt-2 text-xs text-zeus/60">{flight.scope}</p>
-                  )}
-                  {!flight.number && (
-                    <p className="mt-2 text-xs text-zeus/70">
-                      Your fare covers this leg, but we haven’t booked it yet — we’ll send the
-                      details once it’s confirmed.
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Once filtered, every card on screen is the guest's own and needs no
+                    {trip === 'all' && flight.leg === 'return' && (
+                      <p className="mt-2 text-xs text-zeus/60">{flight.scope}</p>
+                    )}
+                    {!flight.number && (
+                      <p className="mt-2 text-xs text-zeus/70">
+                        Your fare covers this leg, but we haven’t booked it yet — we’ll send the
+                        details once it’s confirmed.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* Once filtered, every card on screen is the guest's own and needs no
                 caveat — except the one-way case, where what's missing is the point. */}
-            {flightChoice === 'ow' ? (
-              <p className="mt-4 text-xs text-zeus/70">
-                Your fare covers the flight out to Kochi only — you’ll book your own departure from
-                there.
-              </p>
-            ) : trip === 'all' ? (
-              <p className="mt-4 text-xs text-zeus/70">
-                The November 1 return is for guests on the full itinerary flying back to Hyderabad.
-                On the shortened option you leave Kochi on the afternoon of October 31, and anyone
-                flying onward from Kochi books their own departure.
-              </p>
-            ) : null}
+              {flightChoice === 'ow' ? (
+                <p className="mt-4 text-xs text-zeus/70">
+                  Your fare covers the flight out to Kochi only — you’ll book your own departure
+                  from there.
+                </p>
+              ) : trip === 'all' ? (
+                <p className="mt-4 text-xs text-zeus/70">
+                  The November 1 return is for guests on the full itinerary flying back to
+                  Hyderabad. On the shortened option you leave Kochi on the afternoon of October 31,
+                  and anyone flying onward from Kochi books their own departure.
+                </p>
+              ) : null}
             </div>
           </section>
 
           <section id="inclusions" className={JUMP_NAV_SCROLL_MT}>
             <StickySectionHeading title="Inclusions" anchorId="inclusions" />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <div className="card mt-4">
-              <ul className="list-disc space-y-1.5 pl-4 text-sm text-zeus/80">
-                {inclusionsFor(trip, flightChoice).map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            </div>
+              <div className="card mt-4">
+                <ul className="list-disc space-y-1.5 pl-4 text-sm text-zeus/80">
+                  {inclusionsFor(trip, flightChoice).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </section>
 
           <section id="pricing" className={JUMP_NAV_SCROLL_MT}>
             <StickySectionHeading title="Pricing" anchorId="pricing" />
             <div className="mx-auto w-full max-w-2xl px-4">
-            <p className="mt-4 text-sm leading-relaxed text-zeus/80">
-              Prices are per person and cover everything in the Inclusions list above.
-              {!filtered && (
-                <>
-                  {' '}Choose <em>round trip</em> if you’re flying back to Hyderabad, or{' '}
-                  <em>one way</em> if you’re heading onward or home from Kochi. The shortened option
-                  skips the final night at the hotel — you do everything through the Fort Kochi tour
-                  on October 31, then head straight to the airport that afternoon.
-                </>
-              )}
-            </p>
-            {visiblePricing.map((option) => {
-              // Their row lights up only inside their own trip's card; the
-              // other card (if shown) stays neutral.
-              const highlightOcc =
-                kerala !== undefined && option.trip === kerala.trip ? kerala.occupancy : null
-              return (
-              <div key={option.title} className="card mt-4">
-                <h3 className="font-display text-lg text-rosewood">{option.title}</h3>
-                <p className="text-xs uppercase tracking-wide text-zeus/60">{option.dates}</p>
-                {/* border-separate, not collapse: collapse discards the cell
+              <p className="mt-4 text-sm leading-relaxed text-zeus/80">
+                Prices are per person and cover everything in the Inclusions list above.
+                {!filtered && (
+                  <>
+                    {' '}
+                    Choose <em>round trip</em> if you’re flying back to Hyderabad, or{' '}
+                    <em>one way</em> if you’re heading onward or home from Kochi. The shortened
+                    option skips the final night at the hotel — you do everything through the Fort
+                    Kochi tour on October 31, then head straight to the airport that afternoon.
+                  </>
+                )}
+              </p>
+              {visiblePricing.map((option) => {
+                // Their row lights up only inside their own trip's card; the
+                // other card (if shown) stays neutral.
+                const highlightOcc =
+                  kerala !== undefined && option.trip === kerala.trip ? kerala.occupancy : null
+                return (
+                  <div key={option.title} className="card mt-4">
+                    <h3 className="font-display text-lg text-rosewood">{option.title}</h3>
+                    <p className="text-xs uppercase tracking-wide text-zeus/60">{option.dates}</p>
+                    {/* border-separate, not collapse: collapse discards the cell
                     border-radius the "Your rate" highlight needs, so the row
                     borders live on the cells here. The table bleeds px-3 past
                     the text columns (and pads them back) so the highlight can
@@ -781,94 +801,100 @@ const KeralaItineraryContent: React.FC = () => {
                     line would normally sit there (the header's underline or a
                     row separator) is dropped. Below the highlight the corners
                     curve down into the ordinary full-width separator. */}
-                <table className="-mx-3 mt-3 w-[calc(100%+1.5rem)] border-separate border-spacing-0 text-sm">
-                  <thead>
-                    <tr>
-                      <th
-                        scope="col"
-                        className={`${
-                          highlightOcc === option.rows[0].occ ? '' : 'border-b border-gold/40 '
-                        }py-2 pl-3 text-left text-xs font-normal uppercase tracking-wide text-zeus/60`}
-                      >
-                        Occupancy
-                      </th>
-                      {showRoundTrip && (
-                        <th
-                          scope="col"
-                          className={`${
-                            highlightOcc === option.rows[0].occ ? '' : 'border-b border-gold/40 '
-                          }py-2 text-right text-xs font-normal uppercase tracking-wide text-zeus/60 ${
-                            showOneWay ? '' : 'pr-3'
-                          }`}
-                        >
-                          Round trip
-                        </th>
-                      )}
-                      {showOneWay && (
-                        <th
-                          scope="col"
-                          className={`${
-                            highlightOcc === option.rows[0].occ ? '' : 'border-b border-gold/40 '
-                          }py-2 pr-3 text-right text-xs font-normal uppercase tracking-wide text-zeus/60`}
-                        >
-                          One way <span className="whitespace-nowrap">HYD→COK</span>
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {option.rows.map((row, rowIndex) => {
-                      const yourRate = row.occ === highlightOcc
-                      const dimmed = highlightOcc !== null && !yourRate
-                      const nextHighlighted =
-                        option.rows[rowIndex + 1] !== undefined &&
-                        option.rows[rowIndex + 1].occ === highlightOcc
-                      // The gold hex is the theme's `gold` at 40%/20% — inlined
-                      // because the shadow utility can't take a theme opacity.
-                      const tintLine =
-                        rowIndex === 0
-                          ? 'shadow-[inset_0_1px_0_0_#c8a25e66] '
-                          : 'shadow-[inset_0_1px_0_0_#c8a25e33] '
-                      const cell = `py-2 ${
-                        rowIndex < option.rows.length - 1 && !nextHighlighted
-                          ? 'border-b border-gold/20 '
-                          : ''
-                      }${yourRate ? `bg-gold/10 ${tintLine}` : ''}`
-                      return (
-                        <tr key={row.occupancy} className={dimmed ? 'opacity-60' : ''}>
+                    <table className="-mx-3 mt-3 w-[calc(100%+1.5rem)] border-separate border-spacing-0 text-sm">
+                      <thead>
+                        <tr>
                           <th
-                            scope="row"
-                            className={`${cell}rounded-l-lg pl-3 pr-3 text-left font-normal text-zeus/80`}
+                            scope="col"
+                            className={`${
+                              highlightOcc === option.rows[0].occ ? '' : 'border-b border-gold/40 '
+                            }py-2 pl-3 text-left text-xs font-normal uppercase tracking-wide text-zeus/60`}
                           >
-                            {row.occupancy}
-                            {yourRate && (
-                              <span className="ml-2 rounded-full bg-rosewood px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cream">
-                                Your rate
-                              </span>
-                            )}
+                            Occupancy
                           </th>
                           {showRoundTrip && (
-                            <td
-                              className={`${cell}text-right font-medium text-zeus ${
-                                showOneWay ? '' : 'rounded-r-lg pr-3'
+                            <th
+                              scope="col"
+                              className={`${
+                                highlightOcc === option.rows[0].occ
+                                  ? ''
+                                  : 'border-b border-gold/40 '
+                              }py-2 text-right text-xs font-normal uppercase tracking-wide text-zeus/60 ${
+                                showOneWay ? '' : 'pr-3'
                               }`}
                             >
-                              {usd(row.roundTrip)}
-                            </td>
+                              Round trip
+                            </th>
                           )}
                           {showOneWay && (
-                            <td className={`${cell}rounded-r-lg pr-3 text-right font-medium text-zeus`}>
-                              {usd(row.oneWay)}
-                            </td>
+                            <th
+                              scope="col"
+                              className={`${
+                                highlightOcc === option.rows[0].occ
+                                  ? ''
+                                  : 'border-b border-gold/40 '
+                              }py-2 pr-3 text-right text-xs font-normal uppercase tracking-wide text-zeus/60`}
+                            >
+                              One way <span className="whitespace-nowrap">HYD→COK</span>
+                            </th>
                           )}
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              )
-            })}
+                      </thead>
+                      <tbody>
+                        {option.rows.map((row, rowIndex) => {
+                          const yourRate = row.occ === highlightOcc
+                          const dimmed = highlightOcc !== null && !yourRate
+                          const nextHighlighted =
+                            option.rows[rowIndex + 1] !== undefined &&
+                            option.rows[rowIndex + 1].occ === highlightOcc
+                          // The gold hex is the theme's `gold` at 40%/20% — inlined
+                          // because the shadow utility can't take a theme opacity.
+                          const tintLine =
+                            rowIndex === 0
+                              ? 'shadow-[inset_0_1px_0_0_#c8a25e66] '
+                              : 'shadow-[inset_0_1px_0_0_#c8a25e33] '
+                          const cell = `py-2 ${
+                            rowIndex < option.rows.length - 1 && !nextHighlighted
+                              ? 'border-b border-gold/20 '
+                              : ''
+                          }${yourRate ? `bg-gold/10 ${tintLine}` : ''}`
+                          return (
+                            <tr key={row.occupancy} className={dimmed ? 'opacity-60' : ''}>
+                              <th
+                                scope="row"
+                                className={`${cell}rounded-l-lg pl-3 pr-3 text-left font-normal text-zeus/80`}
+                              >
+                                {row.occupancy}
+                                {yourRate && (
+                                  <span className="ml-2 rounded-full bg-rosewood px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-cream">
+                                    Your rate
+                                  </span>
+                                )}
+                              </th>
+                              {showRoundTrip && (
+                                <td
+                                  className={`${cell}text-right font-medium text-zeus ${
+                                    showOneWay ? '' : 'rounded-r-lg pr-3'
+                                  }`}
+                                >
+                                  {usd(row.roundTrip)}
+                                </td>
+                              )}
+                              {showOneWay && (
+                                <td
+                                  className={`${cell}rounded-r-lg pr-3 text-right font-medium text-zeus`}
+                                >
+                                  {usd(row.oneWay)}
+                                </td>
+                              )}
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })}
             </div>
           </section>
         </div>
@@ -925,9 +951,9 @@ const KeralaGate: React.FC<{
                   We found you, {displayName}!
                 </p>
                 <p className="mt-3 font-body text-lg leading-relaxed text-zeus/80">
-                  The Kerala trip is a smaller group staying on after the wedding, and it looks
-                  like it isn’t part of your invitation. If you think that’s a mistake, reach out
-                  to us and we’ll take another look.
+                  The Kerala trip is a smaller group staying on after the wedding, and it looks like
+                  it isn’t part of your invitation. If you think that’s a mistake, reach out to us
+                  and we’ll take another look.
                 </p>
                 <Link to="/schedule" className="btn-primary mt-6 inline-block">
                   See your schedule
@@ -961,7 +987,6 @@ const KeralaGate: React.FC<{
           </div>
         </div>
       </header>
-
     </div>
   )
 }

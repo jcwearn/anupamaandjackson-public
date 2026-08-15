@@ -39,7 +39,7 @@ const StickySectionHeading: React.FC<{
         const entry = entries[entries.length - 1]
         setStuck(!entry.isIntersecting && entry.boundingClientRect.top < pinOffsetPx)
       },
-      { rootMargin: `-${pinOffsetPx}px 0px 0px 0px` }
+      { rootMargin: `-${pinOffsetPx}px 0px 0px 0px` },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()

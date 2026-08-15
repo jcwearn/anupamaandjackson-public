@@ -108,9 +108,10 @@ export function rowsToGuests(rows) {
     throw new Error("Roster is missing a 'first name' or 'last name' column.")
   }
 
-  const rsvpColumns = RSVP_COLUMNS.map(([header, field]) => ({ field, index: indexOf(header) })).filter(
-    ({ index }) => index !== -1
-  )
+  const rsvpColumns = RSVP_COLUMNS.map(([header, field]) => ({
+    field,
+    index: indexOf(header),
+  })).filter(({ index }) => index !== -1)
 
   const tagColumns = headers
     .map((header, index) => ({ header, index }))
@@ -128,7 +129,7 @@ export function rowsToGuests(rows) {
     if (!firstName && !lastName) return []
 
     const tags = new Set(
-      tagColumns.filter(({ index }) => Number(cell(index)) === 1).map(({ tag }) => tag)
+      tagColumns.filter(({ index }) => Number(cell(index)) === 1).map(({ tag }) => tag),
     )
 
     return [
@@ -173,7 +174,7 @@ async function fetchAccessToken(clientEmail, privateKey) {
   }
 
   const unsigned = `${base64Url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${base64Url(
-    JSON.stringify(claim)
+    JSON.stringify(claim),
   )}`
   const signature = createSign('RSA-SHA256')
     .update(unsigned)
@@ -199,7 +200,7 @@ export async function readGoogleSheet({ clientEmail, privateKey, sheetId, sheetN
   const range = encodeURIComponent(`${sheetName}!A1:BZ100000`)
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   )
 
   if (!response.ok) {

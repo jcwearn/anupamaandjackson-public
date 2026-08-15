@@ -64,11 +64,7 @@ const CopyButton: React.FC<{ url: string }> = ({ url }) => {
       aria-label={copied ? 'Link copied' : `Copy ${url}`}
       className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-gold/50 px-3 py-1.5 font-body text-sm text-rosewood transition-colors hover:bg-lily/30"
     >
-      {copied ? (
-        <CheckIcon className="h-4 w-4 text-fern" />
-      ) : (
-        <CopyIcon className="h-4 w-4" />
-      )}
+      {copied ? <CheckIcon className="h-4 w-4 text-fern" /> : <CopyIcon className="h-4 w-4" />}
       {copied ? 'Copied' : 'Copy'}
     </button>
   )
@@ -89,9 +85,9 @@ const NotForYouNotice: React.FC<{ displayName?: string; onSignOut: () => void }>
 }) => (
   <div className="card mt-5 text-center">
     <p className="text-sm leading-relaxed text-zeus/80">
-      {displayName ? `We know you as ${displayName}, and this` : 'This'} page isn't one of
-      yours — it's just for the family sharing out the invitations. Everything meant for you
-      is on the rest of the site.
+      {displayName ? `We know you as ${displayName}, and this` : 'This'} page isn't one of yours —
+      it's just for the family sharing out the invitations. Everything meant for you is on the rest
+      of the site.
     </p>
     <p className="mt-3 text-sm text-zeus/80">
       <button

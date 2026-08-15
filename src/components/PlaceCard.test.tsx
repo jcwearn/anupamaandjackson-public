@@ -38,7 +38,7 @@ describe('PlaceCard', () => {
     const { container } = render(
       <AnchorScrollMt.Provider value={ANCHOR_SCROLL_MT_UNDER_SECTION_NAV}>
         <PlaceCard place={charminar} anchored />
-      </AnchorScrollMt.Provider>
+      </AnchorScrollMt.Provider>,
     )
     const anchor = container.querySelector(`#${charminar.slug}`)!
 
@@ -73,8 +73,8 @@ describe('PlaceCard', () => {
 
     for (const place of places) {
       const { container, unmount } = render(<PlaceCard place={place} />)
-      const fragments = [...container.querySelectorAll('a[href^="#"]')].map(
-        (a) => a.getAttribute('href')!.slice(1)
+      const fragments = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
+        a.getAttribute('href')!.slice(1),
       )
 
       expect(fragments).toEqual(place.nearby)
@@ -98,7 +98,7 @@ describe('PlaceCard', () => {
     render(<PlaceCard place={charminar} />)
 
     expect(
-      screen.getByRole('button', { name: `Copy link to ${charminar.name}` })
+      screen.getByRole('button', { name: `Copy link to ${charminar.name}` }),
     ).toBeInTheDocument()
   })
 })

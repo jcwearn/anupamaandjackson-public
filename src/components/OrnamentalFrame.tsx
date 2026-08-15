@@ -21,7 +21,13 @@ const CornerOrnament: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 100 100" aria-hidden="true" className={className}>
     {/* Concentric quarter arcs radiating from the corner */}
     <path d="M0 28 A28 28 0 0 0 28 0" fill="none" stroke="currentColor" strokeWidth="1.25" />
-    <path d="M0 46 A46 46 0 0 0 46 0" fill="none" stroke="currentColor" strokeWidth="0.75" opacity="0.6" />
+    <path
+      d="M0 46 A46 46 0 0 0 46 0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="0.75"
+      opacity="0.6"
+    />
     {/* Lotus-petal fan between the arcs */}
     {PETAL_ANGLES.map((angle) => (
       <path
@@ -70,15 +76,40 @@ export const OrnamentalFrame: React.FC<{
   className?: string
   contentClassName?: string
   cornerClassName?: string
-}> = ({ children, className, contentClassName = CONTENT_PADDING, cornerClassName = CORNER_SIZE }) => (
+}> = ({
+  children,
+  className,
+  contentClassName = CONTENT_PADDING,
+  cornerClassName = CORNER_SIZE,
+}) => (
   <div className={clsx('relative', className)}>
     {/* Double hairline border, echoed by the corner arcs */}
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-sm border border-gold/40" />
-    <div aria-hidden="true" className="pointer-events-none absolute inset-1.5 rounded-sm border border-gold/60" />
-    <CornerOrnament className={clsx('pointer-events-none absolute left-1.5 top-1.5', cornerClassName)} />
-    <CornerOrnament className={clsx('pointer-events-none absolute right-1.5 top-1.5 rotate-90', cornerClassName)} />
-    <CornerOrnament className={clsx('pointer-events-none absolute bottom-1.5 right-1.5 rotate-180', cornerClassName)} />
-    <CornerOrnament className={clsx('pointer-events-none absolute bottom-1.5 left-1.5 -rotate-90', cornerClassName)} />
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-sm border border-gold/40"
+    />
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-1.5 rounded-sm border border-gold/60"
+    />
+    <CornerOrnament
+      className={clsx('pointer-events-none absolute left-1.5 top-1.5', cornerClassName)}
+    />
+    <CornerOrnament
+      className={clsx('pointer-events-none absolute right-1.5 top-1.5 rotate-90', cornerClassName)}
+    />
+    <CornerOrnament
+      className={clsx(
+        'pointer-events-none absolute bottom-1.5 right-1.5 rotate-180',
+        cornerClassName,
+      )}
+    />
+    <CornerOrnament
+      className={clsx(
+        'pointer-events-none absolute bottom-1.5 left-1.5 -rotate-90',
+        cornerClassName,
+      )}
+    />
     <div className={contentClassName}>{children}</div>
   </div>
 )
@@ -86,8 +117,24 @@ export const OrnamentalFrame: React.FC<{
 // Small circular motif flanked by fading rules, for separating headings.
 export const MandalaDivider: React.FC<{ className?: string }> = ({ className }) => (
   <svg viewBox="0 0 160 24" aria-hidden="true" className={clsx('h-6 w-40', className)}>
-    <line x1="6" y1="12" x2="60" y2="12" stroke="currentColor" strokeWidth="0.75" strokeOpacity="0.5" />
-    <line x1="100" y1="12" x2="154" y2="12" stroke="currentColor" strokeWidth="0.75" strokeOpacity="0.5" />
+    <line
+      x1="6"
+      y1="12"
+      x2="60"
+      y2="12"
+      stroke="currentColor"
+      strokeWidth="0.75"
+      strokeOpacity="0.5"
+    />
+    <line
+      x1="100"
+      y1="12"
+      x2="154"
+      y2="12"
+      stroke="currentColor"
+      strokeWidth="0.75"
+      strokeOpacity="0.5"
+    />
     <circle cx="6" cy="12" r="1.4" fill="currentColor" fillOpacity="0.6" />
     <circle cx="154" cy="12" r="1.4" fill="currentColor" fillOpacity="0.6" />
     <circle cx="80" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="0.9" />

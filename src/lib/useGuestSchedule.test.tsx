@@ -32,7 +32,7 @@ beforeAll(async () => {
 const serveIndex = () =>
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => ({ ok: true, json: async () => index }))
+    vi.fn(async () => ({ ok: true, json: async () => index })),
   )
 
 beforeEach(() => {
@@ -64,7 +64,7 @@ describe('useGuestSchedule', () => {
     // main celebrations rather than an empty schedule.
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) }))
+      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })),
     )
     const { result } = renderHook(() => useGuestSchedule())
 
@@ -77,7 +77,7 @@ describe('useGuestSchedule', () => {
       'fetch',
       vi.fn(async () => {
         throw new Error('offline')
-      })
+      }),
     )
     const { result } = renderHook(() => useGuestSchedule())
 
@@ -137,7 +137,7 @@ describe('useGuestSchedule', () => {
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
     // Labeled by party mates, never by the internal party string.
     expect(result.current.candidates).toEqual(
-      expect.arrayContaining(['With Mary Smith', 'With Peter Smith'])
+      expect.arrayContaining(['With Mary Smith', 'With Peter Smith']),
     )
     // Both Smith parties have an email on file, so the email check comes first.
     expect(result.current.emailPrompt).toBe(true)
@@ -209,7 +209,7 @@ describe('useGuestSchedule', () => {
     expect(result.current.emailPrompt).toBe(false)
     // No party mates to label with either — the party hint is the fallback.
     expect(result.current.candidates).toEqual(
-      expect.arrayContaining(['Prayaga North', 'Prayaga South'])
+      expect.arrayContaining(['Prayaga North', 'Prayaga South']),
     )
   })
 

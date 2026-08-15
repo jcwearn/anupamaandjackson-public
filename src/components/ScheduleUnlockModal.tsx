@@ -119,8 +119,8 @@ const ScheduleUnlockModal: React.FC<Props> = ({
         {showEmail ? (
           <>
             <p className="mt-2 font-body text-sm text-zeus/80">
-              We have more than one guest by that name. Enter the email you RSVP’d with and
-              we’ll find your invitation.
+              We have more than one guest by that name. Enter the email you RSVP’d with and we’ll
+              find your invitation.
             </p>
             <form
               onSubmit={(event) => {

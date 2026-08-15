@@ -69,7 +69,7 @@ export function golkondaStay(guest) {
   if (held.length > 1) {
     throw new Error(
       `Guest at row ${guest.row} carries both Golkonda tags, so it cannot be said whether their ` +
-        `room is covered or their own. Clear one in With Joy.`
+        `room is covered or their own. Clear one in With Joy.`,
     )
   }
   if (held.length === 0) return undefined
@@ -92,7 +92,7 @@ export function assertGolkondaColumnsExist(guests) {
   if (missing.length > 0) {
     throw new Error(
       `The roster has no ${missing.join(', ')} column(s), so no guest would resolve to a room ` +
-        `at Golkonda and /hotels would silently lose its personalization. Check the sheet.`
+        `at Golkonda and /hotels would silently lose its personalization. Check the sheet.`,
     )
   }
 }
@@ -111,7 +111,7 @@ export function assertGolkondaAnswersRecognized(guests) {
         `Guest at row ${guest.row} answered the Golkonda accommodation question with ` +
           `'${answer}', which this generator does not recognize. Add it to GOLKONDA_ANSWERS in ` +
           `scripts/lib/scheduleIndex.js — and to GOLKONDA_ACCEPTED_ANSWERS if it means they are ` +
-          `taking the room.`
+          `taking the room.`,
       )
     }
   }
@@ -187,7 +187,7 @@ export function resolveBucket(records) {
     throw new Error(
       `Guests sharing a name have different invite sets but no distinguishing household ` +
         `hint (${who}). Give them distinct 'party' values in With Joy, or they will be ` +
-        `served each other's schedules.`
+        `served each other's schedules.`,
     )
   }
   return records
@@ -219,7 +219,7 @@ export function assertUniversalEventsMatch(catalogEvents, bundledSource) {
     throw new Error(
       `Universal event '${event.id}' has a ${field} in data/schedule-events.json that is ` +
         `missing from src/data/scheduleEvents.ts. Update both — the bundled copy is what ` +
-        `guests see before they identify themselves.`
+        `guests see before they identify themselves.`,
     )
   }
 
@@ -245,7 +245,7 @@ export function assertGatesExist(catalogEvents, knownTags) {
       if (!knownTags.has(gate)) {
         throw new Error(
           `Event '${event.id}' is gated on tag '${gate}', which does not exist in the export. ` +
-            `Known tags: ${[...knownTags].sort().join(', ')}`
+            `Known tags: ${[...knownTags].sort().join(', ')}`,
         )
       }
     }
@@ -261,7 +261,7 @@ export function assertAdminTagExists(knownTags) {
   if (!knownTags.has(ADMIN_TAG)) {
     throw new Error(
       `The '${ADMIN_TAG}' tag does not exist in the export, so /invites/links would be ` +
-        `unreachable. Known tags: ${[...knownTags].sort().join(', ')}`
+        `unreachable. Known tags: ${[...knownTags].sort().join(', ')}`,
     )
   }
 }
@@ -279,7 +279,7 @@ export function assertRosterPlausible(guestCount, previousCount) {
   if (previousCount && guestCount < previousCount * 0.9) {
     throw new Error(
       `Roster dropped from ${previousCount} to ${guestCount} guests (>10%). Refusing to ` +
-        `publish in case the export is broken; re-run with --force if this is real.`
+        `publish in case the export is broken; re-run with --force if this is real.`,
     )
   }
 }
@@ -298,7 +298,7 @@ export function assertEveryGuestResolves(unresolvedRows) {
   throw new Error(
     `${unresolvedRows.length} guest(s) carry no gating tag and would be absent from the ` +
       `index (sheet row(s) ${unresolvedRows.join(', ')}) — they would be told we can't find ` +
-      `them. Tag them in With Joy, or re-run with --force to publish without them.`
+      `them. Tag them in With Joy, or re-run with --force to publish without them.`,
   )
 }
 
@@ -345,14 +345,14 @@ export function resolveKeralaPayloads(guests, responses) {
     ) {
       throw new Error(
         `Kerala response for '${email}' has invalid fields (trip=${trip}, flight=${flight}, ` +
-          `occupancy=${occupancy}, room=${room}). Fix data/kerala-trip-responses.json.`
+          `occupancy=${occupancy}, room=${room}). Fix data/kerala-trip-responses.json.`,
       )
     }
     let owners = byEmail.get(email.trim().toLowerCase()) ?? []
     if (owners.length === 0) {
       throw new Error(
         `Kerala response email '${email}' matches no roster guest. Edit the address in ` +
-          `data/kerala-trip-responses.json to the one With Joy has on file for them.`
+          `data/kerala-trip-responses.json to the one With Joy has on file for them.`,
       )
     }
     // With Joy gives an unnamed plus-one placeholder row the invitee's own
@@ -360,12 +360,12 @@ export function resolveKeralaPayloads(guests, responses) {
     // carry a `name` naming its owner; anything still ambiguous stays fatal.
     if (owners.length > 1 && response.name) {
       owners = owners.filter(
-        (owner) => fold(`${owner.firstName} ${owner.lastName}`.trim()) === fold(response.name)
+        (owner) => fold(`${owner.firstName} ${owner.lastName}`.trim()) === fold(response.name),
       )
       if (owners.length === 0) {
         throw new Error(
           `Kerala response '${email}' names '${response.name}', but no roster guest with ` +
-            `that email is called that. Fix the name in data/kerala-trip-responses.json.`
+            `that email is called that. Fix the name in data/kerala-trip-responses.json.`,
         )
       }
     }
@@ -374,14 +374,14 @@ export function resolveKeralaPayloads(guests, responses) {
       throw new Error(
         `Kerala response email '${email}' matches ${owners.length} roster guests (${rows}) — ` +
           `it cannot say whose trip this is. Add a "name" field to the response in ` +
-          `data/kerala-trip-responses.json naming the guest as With Joy spells them.`
+          `data/kerala-trip-responses.json naming the guest as With Joy spells them.`,
       )
     }
     const guest = owners[0]
     if (matched.has(guest)) {
       throw new Error(
         `Two Kerala responses resolve to the same roster guest (row ${guest.row}, ` +
-          `'${response.email}'). Remove the stale one from data/kerala-trip-responses.json.`
+          `'${response.email}'). Remove the stale one from data/kerala-trip-responses.json.`,
       )
     }
     matched.set(guest, response)
@@ -397,7 +397,7 @@ export function resolveKeralaPayloads(guests, responses) {
     if (occupants.length > 2) {
       throw new Error(
         `Kerala room ${room} has ${occupants.length} occupants — rooms hold at most two. ` +
-          `Fix the room numbers in data/kerala-trip-responses.json.`
+          `Fix the room numbers in data/kerala-trip-responses.json.`,
       )
     }
     // `roommatePending` is the deliberate exception: someone whose roommate has
@@ -411,7 +411,7 @@ export function resolveKeralaPayloads(guests, responses) {
       throw new Error(
         `Kerala room ${room} has a lone double-occupancy respondent ('${
           matched.get(occupants[0]).email
-        }'). Pair them with a roommate, mark them single, or set "roommatePending": true.`
+        }'). Pair them with a roommate, mark them single, or set "roommatePending": true.`,
       )
     }
   }
@@ -517,8 +517,7 @@ export async function sourceFingerprint(guests, catalogEvents, keralaResponses =
           guest.muhurthamRsvp,
           guest.golkondaCoveredAnswer,
           guest.golkondaOwnAnswer,
-        ]
-          .join('')
+        ].join(''),
       )
       .sort(),
     catalog: catalogEvents,
@@ -568,7 +567,7 @@ export async function buildIndex({
         .join(', ')
       throw new Error(
         `${keralaPayloads.size - attached} Kerala respondent(s) have no guest record ` +
-          `(${missing}) — their With Joy rows resolve to no events. Check their tags.`
+          `(${missing}) — their With Joy rows resolve to no events. Check their tags.`,
       )
     }
   }
@@ -613,9 +612,7 @@ export async function buildIndex({
           // The pooled household verifier; omitted when the party has no
           // emails on file so the client can skip the prompt entirely.
           emailHashes:
-            resolved.length > 1 && record.emailHashes.length > 0
-              ? record.emailHashes
-              : undefined,
+            resolved.length > 1 && record.emailHashes.length > 0 ? record.emailHashes : undefined,
           // Omitted rather than false: two guests carry this and 684 records
           // would otherwise each pay for the key. Rides inside the guest's own
           // envelope, so who is an admin is not public either.
@@ -634,8 +631,8 @@ export async function buildIndex({
           // rather than an id-keyed object so event ids aren't repeated a
           // second time in every one of the 684 lookup records.
           keys: record.eventIds.map((id) => eventKeys.get(id) ?? null),
-        })
-      )
+        }),
+      ),
     )
   }
 
@@ -672,7 +669,7 @@ export async function buildIndex({
         catalogEvents.map((event) => [
           event.id,
           records.filter((record) => record.eventIds.includes(event.id)).length,
-        ])
+        ]),
       ),
     },
   }

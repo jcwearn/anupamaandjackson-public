@@ -21,7 +21,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -60,7 +60,7 @@ const renderPage = () =>
       <GuestScheduleProvider>
         <WeddingSchedule />
       </GuestScheduleProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('WeddingSchedule', () => {
@@ -77,7 +77,7 @@ describe('WeddingSchedule', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { name: 'Wedding Ceremony & Muhurtham' })
+      screen.getByRole('heading', { name: 'Wedding Ceremony & Muhurtham' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Wednesday, October 28' })).toBeInTheDocument()
   })
@@ -122,7 +122,9 @@ describe('WeddingSchedule', () => {
 
     expect(screen.getByText(/trouble loading personalized schedules/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Unlock Your Schedule' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'view your full details on Joy' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'view your full details on Joy' }),
+    ).toBeInTheDocument()
   })
 
   it('groups a guest’s events under a heading per day, in date order', () => {
@@ -252,7 +254,11 @@ describe('WeddingSchedule', () => {
     const dialog = screen.getByRole('dialog', { name: 'Unlock your schedule' })
     fireEvent.change(within(dialog).getByLabelText('First name'), { target: { value: 'Alan' } })
     fireEvent.change(within(dialog).getByLabelText('Last name'), { target: { value: 'Turing' } })
-    fireEvent.submit(within(dialog).getByRole('button', { name: /Unlock/ }).closest('form')!)
+    fireEvent.submit(
+      within(dialog)
+        .getByRole('button', { name: /Unlock/ })
+        .closest('form')!,
+    )
 
     expect(lookup).toHaveBeenCalledWith('Alan', 'Turing')
   })

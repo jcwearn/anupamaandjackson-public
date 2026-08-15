@@ -24,7 +24,9 @@ const RsvpLink: React.FC<{ onOpen: () => void }> = ({ onOpen }) => (
 // Anything that /travel/tips or /evisa already answers in depth gets a short
 // answer and a link, never a second copy of the facts — a previous FAQ page was
 // removed from this site for drifting out of step with the travel copy.
-const groups = (openRsvp: () => void): {
+const groups = (
+  openRsvp: () => void,
+): {
   id: string
   title: string
   blurb: string

@@ -16,7 +16,7 @@ const Navbar: React.FC = () => {
     <header
       className={clsx(
         'fixed inset-x-0 top-0 z-50 bg-rosewood border-b border-gold/30 transition-shadow duration-300',
-        scrolled && 'shadow-md shadow-rosewood/30'
+        scrolled && 'shadow-md shadow-rosewood/30',
       )}
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
@@ -45,7 +45,7 @@ const Navbar: React.FC = () => {
                     'text-lg font-body transition-colors focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2',
                     isActive
                       ? 'text-cream underline decoration-gold decoration-2 underline-offset-4'
-                      : 'text-cream/80 hover:text-peach'
+                      : 'text-cream/80 hover:text-peach',
                   )
                 }
               >
@@ -69,7 +69,7 @@ const Navbar: React.FC = () => {
                       'block py-2 text-lg font-body',
                       isActive
                         ? 'text-cream font-semibold underline decoration-gold decoration-2 underline-offset-4'
-                        : 'text-cream/90'
+                        : 'text-cream/90',
                     )
                   }
                 >

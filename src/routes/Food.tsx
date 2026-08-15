@@ -68,8 +68,8 @@ const Food: React.FC = () => {
               Half the reason to come. Here’s what we’d tell you to order in Hyderabad, what you’ll
               meet everywhere else in the South, and the handful of places we’d send you to for it.
               Both of the city’s kitchens cook rich — ghee, cream, long-simmered gravies — so order
-              like a local on the first day and you’ll feel it on the second. Pace yourself; you have
-              a week.
+              like a local on the first day and you’ll feel it on the second. Pace yourself; you
+              have a week.
             </p>
           </div>
           {/* Three arches, one per table below, in the order the page walks
@@ -96,8 +96,8 @@ const Food: React.FC = () => {
                 <Link to="/faq#food" className={linkClass}>
                   every meal across the wedding events
                 </Link>{' '}
-                is vegetarian too. So the non-veg dishes below are the city’s word rather than ours —
-                the rest we can vouch for.
+                is vegetarian too. So the non-veg dishes below are the city’s word rather than ours
+                — the rest we can vouch for.
               </p>
               <p>
                 If you eat the same way, you’ll have an easier time of it here than almost anywhere.

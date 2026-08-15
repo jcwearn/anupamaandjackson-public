@@ -16,7 +16,12 @@ import { VegMarkIcon } from '../icons/VegMarkIcon'
 const LOOKS: Record<Diet, { label: string; tone: string; size: string; Icon: typeof LeafIcon }> = {
   vegan: { label: 'Vegan', tone: 'text-fssai-green', size: 'h-4 w-4', Icon: LeafIcon },
   veg: { label: 'Veg', tone: 'text-fssai-green', size: 'h-3.5 w-3.5', Icon: VegMarkIcon },
-  'non-veg': { label: 'Non-veg', tone: 'text-fssai-brown', size: 'h-3.5 w-3.5', Icon: NonVegMarkIcon },
+  'non-veg': {
+    label: 'Non-veg',
+    tone: 'text-fssai-brown',
+    size: 'h-3.5 w-3.5',
+    Icon: NonVegMarkIcon,
+  },
 }
 
 const DietBadge: React.FC<{ diet: Diet; className?: string }> = ({ diet, className }) => {
@@ -27,7 +32,7 @@ const DietBadge: React.FC<{ diet: Diet; className?: string }> = ({ diet, classNa
       className={clsx(
         'inline-flex shrink-0 items-center gap-1 text-[0.625rem] font-semibold uppercase tracking-[0.1em]',
         tone,
-        className
+        className,
       )}
     >
       <Icon className={size} />

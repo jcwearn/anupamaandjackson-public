@@ -15,7 +15,7 @@ const renderAt = (entry: string) =>
         <Route path="/travel-tips" element={<HashRedirect to="/travel/tips" />} />
         <Route path="/travel/tips" element={<ShowLocation />} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('HashRedirect', () => {

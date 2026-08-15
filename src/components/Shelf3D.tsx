@@ -33,8 +33,7 @@ const MIN_SCALE = 0.7
 // fills: a frame lit from above, a darker back panel with faint vertical
 // grain, and shelf boards whose top edge catches the light.
 const FRAME_WOOD: React.CSSProperties = {
-  background:
-    'linear-gradient(180deg, #8a7154 0%, #6f5638 30%, #5a452c 70%, #4a3823 100%)',
+  background: 'linear-gradient(180deg, #8a7154 0%, #6f5638 30%, #5a452c 70%, #4a3823 100%)',
 }
 const BACK_PANEL: React.CSSProperties = {
   background:
@@ -449,8 +448,9 @@ const Shelf3D: React.FC<{
   const widthFor = (n: number) =>
     Math.max(
       ...chunk(items, n).map(
-        (row) => row.reduce((sum, item) => sum + itemWidth(item), 0) + ROW_GAP_PX * (row.length - 1)
-      )
+        (row) =>
+          row.reduce((sum, item) => sum + itemWidth(item), 0) + ROW_GAP_PX * (row.length - 1),
+      ),
     ) + ROW_PAD_PX
 
   // Narrow screens trade columns for rows (3×2 becomes 2×3) rather than
@@ -468,7 +468,7 @@ const Shelf3D: React.FC<{
           const chrome = ROW_GAP_PX * (row.length - 1) + ROW_PAD_PX
           const sum = row.reduce((total, item) => total + itemWidth(item), 0)
           return (avail - chrome) / sum
-        })
+        }),
       )
       scale = Math.max(MIN_SCALE, Math.min(1, fit))
     }
@@ -491,7 +491,10 @@ const Shelf3D: React.FC<{
             // responsive layout guarantees the row fits, clip instead — on
             // iOS any scroll container can be grabbed and rubber-banded
             // vertically, bouncing the whole bay out of its case.
-            <div key={row[0].slug} className={avail === null ? 'overflow-x-auto' : 'overflow-x-clip'}>
+            <div
+              key={row[0].slug}
+              className={avail === null ? 'overflow-x-auto' : 'overflow-x-clip'}
+            >
               {/* min-w-max + mx-auto: centred while the row fits, scrollable
                   once it doesn't — justify-center on the scroller would clip
                   the left end. */}
@@ -523,8 +526,16 @@ const Shelf3D: React.FC<{
           ))}
           {/* The inner cheeks sit over everything — boards, books' edges — the
               way a cabinet's sides shade whatever stands close to them. */}
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 z-10" style={SIDE_WALL('left')} />
-          <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 z-10" style={SIDE_WALL('right')} />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 z-10"
+            style={SIDE_WALL('left')}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 z-10"
+            style={SIDE_WALL('right')}
+          />
         </div>
       </div>
     </div>

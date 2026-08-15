@@ -22,7 +22,7 @@ const renderCard = (e: ScheduleEvent, dayVenue?: string) => {
       <ul>
         <ScheduleEventCard event={e} dayVenue={dayVenue} />
       </ul>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
   return container.querySelector('li')!
 }
@@ -32,7 +32,7 @@ describe('ScheduleEventCard', () => {
     renderCard(event())
 
     expect(
-      screen.getByRole('heading', { name: 'Wedding Ceremony & Muhurtham' })
+      screen.getByRole('heading', { name: 'Wedding Ceremony & Muhurtham' }),
     ).toBeInTheDocument()
     expect(screen.getByText('9:00 AM to 11:30 AM')).toBeInTheDocument()
     expect(screen.getByText('Golkonda Resorts and Spa')).toBeInTheDocument()
@@ -57,7 +57,10 @@ describe('ScheduleEventCard', () => {
   it('drops the venue once the day heading already names it', () => {
     // Eight of the ten events are at the resort; repeating it on every card is
     // the noise this prop exists to remove.
-    renderCard(event({ mapUrl: 'https://maps.app.goo.gl/SpZipKNxsgTZEywSA' }), 'Golkonda Resorts and Spa')
+    renderCard(
+      event({ mapUrl: 'https://maps.app.goo.gl/SpZipKNxsgTZEywSA' }),
+      'Golkonda Resorts and Spa',
+    )
 
     expect(screen.queryByText('Golkonda Resorts and Spa')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Golkonda Resorts and Spa' })).not.toBeInTheDocument()
@@ -67,12 +70,12 @@ describe('ScheduleEventCard', () => {
     // The Kerala trip shares October 29 with two events at the resort.
     renderCard(
       event({ location: 'Kochi & Alleppey, Kerala', mapUrl: 'https://example.com/kerala' }),
-      'Golkonda Resorts and Spa'
+      'Golkonda Resorts and Spa',
     )
 
     expect(screen.getByRole('link', { name: 'Kochi & Alleppey, Kerala' })).toHaveAttribute(
       'href',
-      'https://example.com/kerala'
+      'https://example.com/kerala',
     )
   })
 
@@ -80,7 +83,7 @@ describe('ScheduleEventCard', () => {
     // Pellikuthuru's blocks. A flex column would suppress the markers, so this
     // checks they really are list items.
     const card = renderCard(
-      event({ agenda: ['9:00 AM — Haldi', '10:30 AM — Mehendi', '12:00 PM — Lunch'] })
+      event({ agenda: ['9:00 AM — Haldi', '10:30 AM — Mehendi', '12:00 PM — Lunch'] }),
     )
 
     const list = within(card).getByRole('list')
@@ -109,7 +112,7 @@ describe('ScheduleEventCard', () => {
       event({
         attire: 'Saris and kurtas encouraged',
         indianWear: { women: 'Bright saris', men: 'A kurta or kurta pajama set' },
-      })
+      }),
     )
     // Deep-linked to this event's own anchor in the guide's dress-code list,
     // not to the top of the section — the fixture's id is 'muhurtham'.
@@ -125,7 +128,7 @@ describe('ScheduleEventCard', () => {
       event({
         description: 'The sacred wedding ceremony.',
         note: 'Come whenever you can.',
-      })
+      }),
     )
 
     expect(screen.getByText('The sacred wedding ceremony.')).toBeInTheDocument()
@@ -144,7 +147,7 @@ describe('ScheduleEventCard', () => {
 
     expect(screen.getByRole('link', { name: 'See the itinerary' })).toHaveAttribute(
       'href',
-      '/kerala-itinerary'
+      '/kerala-itinerary',
     )
   })
 

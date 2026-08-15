@@ -46,7 +46,7 @@ const renderPage = () =>
       <GuestScheduleProvider>
         <InviteLinks />
       </GuestScheduleProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 const paths = [

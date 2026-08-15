@@ -29,7 +29,7 @@ const renderCarousel = () =>
   render(
     <MemoryRouter>
       <PlaceCarousel places={places} />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 // The flip gates further input until it finishes, so a test that turns twice has
@@ -126,7 +126,7 @@ describe('PlaceCarousel', () => {
     expect(status()).toHaveTextContent(`${places[4].name} — 5 of ${places.length}`)
     expect(screen.getByRole('button', { name: places[4].name })).toHaveAttribute(
       'aria-current',
-      'true'
+      'true',
     )
 
     vi.useRealTimers()
@@ -176,7 +176,7 @@ describe('PlaceCarousel', () => {
 
     expect(status()).toHaveTextContent(`${places[1].name} — 2 of ${places.length}`)
     expect(container.querySelector<HTMLElement>('[style*="rotateY"]')!.style.transform).toContain(
-      'rotateY(0deg)'
+      'rotateY(0deg)',
     )
   })
 

@@ -26,7 +26,8 @@ const SaveTheDateEnvelope: React.FC = () => {
   }
 
   const isFlapOpen = animationState !== 'closed'
-  const isRising = animationState === 'rising' || animationState === 'rotating' || animationState === 'complete'
+  const isRising =
+    animationState === 'rising' || animationState === 'rotating' || animationState === 'complete'
   const isRotating = animationState === 'rotating' || animationState === 'complete'
   const isComplete = animationState === 'complete'
 
@@ -222,8 +223,9 @@ const SaveTheDateEnvelope: React.FC = () => {
           {/* Open Button - overlays everything */}
           <button
             onClick={startAnimation}
-            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 cursor-pointer ${isFlapOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
+            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 cursor-pointer ${
+              isFlapOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
             style={{ zIndex: 50 }}
             aria-label="Open envelope"
           >
@@ -236,19 +238,16 @@ const SaveTheDateEnvelope: React.FC = () => {
 
       {/* Details - fade in after animation completes, anchored to the bottom band the page padding reserves */}
       <div
-        className={`absolute inset-x-0 px-4 text-center transition-all duration-500 ${isComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-          }`}
+        className={`absolute inset-x-0 px-4 text-center transition-all duration-500 ${
+          isComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
         style={{ bottom: 'max(2.5dvh, 1rem)' }}
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-display text-rosewood whitespace-nowrap">
           Anupama & Jackson
         </h1>
-        <p className="mt-4 text-lg sm:text-xl text-zeus">
-          October 28, 2026 • Hyderabad, India
-        </p>
-        <p className="mt-4 text-zeus/80 text-lg italic">
-          We can't wait to celebrate with you!
-        </p>
+        <p className="mt-4 text-lg sm:text-xl text-zeus">October 28, 2026 • Hyderabad, India</p>
+        <p className="mt-4 text-zeus/80 text-lg italic">We can't wait to celebrate with you!</p>
         <a
           href="https://forms.gle/2EGLpXGyrbEftjEs9"
           target="_blank"

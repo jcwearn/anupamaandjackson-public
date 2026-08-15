@@ -66,13 +66,7 @@ interface GuestRecord {
 }
 
 export type GuestScheduleStatus =
-  | 'loading'
-  | 'anonymous'
-  | 'resolving'
-  | 'ambiguous'
-  | 'identified'
-  | 'notFound'
-  | 'error'
+  'loading' | 'anonymous' | 'resolving' | 'ambiguous' | 'identified' | 'notFound' | 'error'
 
 export interface GuestScheduleState {
   status: GuestScheduleStatus
@@ -130,7 +124,7 @@ function saveName(guest: SavedGuest) {
 /** Decrypts a guest's events, pulling universal copy from the bundle. */
 async function eventsForRecord(
   record: GuestRecord,
-  index: ScheduleIndex
+  index: ScheduleIndex,
 ): Promise<ScheduleEvent[]> {
   const events: ScheduleEvent[] = []
 
@@ -246,7 +240,7 @@ export function useGuestSchedule(): GuestScheduleState {
       saveName({ first, last })
       await applyRecord(records[0], index)
     },
-    [applyRecord]
+    [applyRecord],
   )
 
   useEffect(() => {
@@ -300,7 +294,7 @@ export function useGuestSchedule(): GuestScheduleState {
         await applyRecord(matches[0], index)
       })()
     },
-    [applyRecord]
+    [applyRecord],
   )
 
   const skipEmail = useCallback(() => {
@@ -318,7 +312,7 @@ export function useGuestSchedule(): GuestScheduleState {
       saveName({ first: pending.first, last: pending.last, hint: record.hint })
       void applyRecord(record, index)
     },
-    [applyRecord]
+    [applyRecord],
   )
 
   const signOut = useCallback(() => {
@@ -345,7 +339,7 @@ export function useGuestSchedule(): GuestScheduleState {
     (first: string, last: string) => {
       void resolve(first, last)
     },
-    [resolve]
+    [resolve],
   )
 
   return {

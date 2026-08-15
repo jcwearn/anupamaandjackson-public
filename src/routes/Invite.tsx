@@ -79,8 +79,7 @@ const InviteImage: React.FC<InviteImageProps> = ({
         boxShadow: isRotating
           ? '0 20px 35px -5px rgb(0 0 0 / 0.18), 0 10px 15px -6px rgb(0 0 0 / 0.12)'
           : undefined,
-        transition:
-          'box-shadow 800ms ease-out, border-radius 900ms cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'box-shadow 800ms ease-out, border-radius 900ms cubic-bezier(0.4, 0, 0.2, 1)',
         ...style,
       }}
     />
@@ -223,7 +222,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
     if (nextIndex < 0 || nextIndex >= cards.length) return
     if (delta > 0 && !nextCardReady) return
 
-    const isAForward = (((rotation % 360) + 360) % 360) === 0
+    const isAForward = ((rotation % 360) + 360) % 360 === 0
     if (isAForward) setFaceBIndex(nextIndex)
     else setFaceAIndex(nextIndex)
 
@@ -266,11 +265,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
         style={{
           top: zoomed ? 0 : `calc(${CARD_TOP_MARGIN} - max(4dvh, 1.5rem))`,
           bottom:
-            !revealed || (zoomed && isDesktop)
-              ? 0
-              : zoomed
-                ? 'var(--nav-top)'
-                : 'var(--card-band)',
+            !revealed || (zoomed && isDesktop) ? 0 : zoomed ? 'var(--nav-top)' : 'var(--card-band)',
           transition:
             'top 900ms cubic-bezier(0.4, 0, 0.2, 1), bottom 900ms cubic-bezier(0.4, 0, 0.2, 1), padding 900ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
@@ -389,11 +384,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
                   tabIndex={revealed ? 0 : -1}
                   aria-pressed={isLastCard ? undefined : zoomed}
                   aria-label={
-                    isLastCard
-                      ? 'RSVP'
-                      : zoomed
-                        ? 'Exit fullscreen card'
-                        : 'View card fullscreen'
+                    isLastCard ? 'RSVP' : zoomed ? 'Exit fullscreen card' : 'View card fullscreen'
                   }
                   aria-haspopup={isLastCard ? 'dialog' : undefined}
                   aria-expanded={isLastCard ? rsvpOpen : undefined}
@@ -418,18 +409,17 @@ const Invite: React.FC<Props> = ({ variant }) => {
                       }
                     }
                   }}
-                  className={
-                    revealed ? '' : 'w-[14rem] sm:w-[16rem] md:w-[17rem]'
-                  }
+                  className={revealed ? '' : 'w-[14rem] sm:w-[16rem] md:w-[17rem]'}
                   style={{
                     perspective: '1400px',
-                    cursor: revealed && !flipping
-                      ? isLastCard
-                        ? 'pointer'
-                        : zoomed
-                          ? 'zoom-out'
-                          : 'zoom-in'
-                      : undefined,
+                    cursor:
+                      revealed && !flipping
+                        ? isLastCard
+                          ? 'pointer'
+                          : zoomed
+                            ? 'zoom-out'
+                            : 'zoom-in'
+                        : undefined,
                     transition: 'width 900ms cubic-bezier(0.4, 0, 0.2, 1)',
                     ...(revealed && {
                       width: zoomed
@@ -450,11 +440,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
                         : 'none',
                     }}
                   >
-                    <InviteImage
-                      card={cards[faceAIndex]}
-                      zoomed={zoomed}
-                      isRotating={isRotating}
-                    />
+                    <InviteImage card={cards[faceAIndex]} zoomed={zoomed} isRotating={isRotating} />
                     <InviteImage
                       card={cards[faceBIndex]}
                       zoomed={zoomed}
@@ -559,8 +545,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
               paddingBottom: '0.5rem',
               paddingLeft: isFirstCard ? 0 : '1.25rem',
               paddingRight: isFirstCard ? 0 : '1.25rem',
-              marginRight:
-                isFirstCard || (isLastCard && !(zoomed && !isDesktop)) ? 0 : '1rem',
+              marginRight: isFirstCard || (isLastCard && !(zoomed && !isDesktop)) ? 0 : '1rem',
               transform: isFirstCard ? 'translateX(8px) scale(0.92)' : 'translateX(0) scale(1)',
               pointerEvents: isFirstCard || (zoomed && isDesktop) ? 'none' : 'auto',
               transition:
@@ -581,9 +566,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
             }}
             aria-hidden={isLastCard && !(zoomed && !isDesktop)}
             aria-busy={isLoadingNext}
-            tabIndex={
-              (isLastCard && !(zoomed && !isDesktop)) || (zoomed && isDesktop) ? -1 : 0
-            }
+            tabIndex={(isLastCard && !(zoomed && !isDesktop)) || (zoomed && isDesktop) ? -1 : 0}
             aria-label={
               isLastCard && zoomed && !isDesktop
                 ? 'RSVP'
@@ -614,9 +597,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
                   ? 'translateX(-8px) scale(0.92)'
                   : 'translateX(0) scale(1)',
               pointerEvents:
-                (isLastCard && !(zoomed && !isDesktop)) || (zoomed && isDesktop)
-                  ? 'none'
-                  : 'auto',
+                (isLastCard && !(zoomed && !isDesktop)) || (zoomed && isDesktop) ? 'none' : 'auto',
               transition:
                 'opacity 400ms ease-out, max-width 500ms cubic-bezier(0.4, 0, 0.2, 1), padding 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 400ms ease-out, background-color 300ms ease-out, color 300ms ease-out',
             }}
@@ -626,13 +607,9 @@ const Invite: React.FC<Props> = ({ variant }) => {
               className="absolute inset-0 flex items-center justify-center gap-1 whitespace-nowrap transition-opacity duration-300"
               style={{
                 opacity:
-                  !(isLastCard && zoomed && !isDesktop) && isFirstCard && !isLoadingNext
-                    ? 1
-                    : 0,
+                  !(isLastCard && zoomed && !isDesktop) && isFirstCard && !isLoadingNext ? 1 : 0,
               }}
-              aria-hidden={
-                (isLastCard && zoomed && !isDesktop) || !isFirstCard || isLoadingNext
-              }
+              aria-hidden={(isLastCard && zoomed && !isDesktop) || !isFirstCard || isLoadingNext}
             >
               See your invite <span className="arrow-nudge">→</span>
             </span>
@@ -640,13 +617,9 @@ const Invite: React.FC<Props> = ({ variant }) => {
               className="absolute inset-0 flex items-center justify-center gap-1 whitespace-nowrap transition-opacity duration-300"
               style={{
                 opacity:
-                  !(isLastCard && zoomed && !isDesktop) && !isFirstCard && !isLoadingNext
-                    ? 1
-                    : 0,
+                  !(isLastCard && zoomed && !isDesktop) && !isFirstCard && !isLoadingNext ? 1 : 0,
               }}
-              aria-hidden={
-                (isLastCard && zoomed && !isDesktop) || isFirstCard || isLoadingNext
-              }
+              aria-hidden={(isLastCard && zoomed && !isDesktop) || isFirstCard || isLoadingNext}
             >
               Next event <span className="arrow-nudge">→</span>
             </span>
@@ -679,9 +652,7 @@ const Invite: React.FC<Props> = ({ variant }) => {
             opacity: zoomed && !isDesktop ? 0 : 1,
             pointerEvents: zoomed && !isDesktop ? 'none' : 'auto',
             transition:
-              zoomed && !isDesktop
-                ? 'opacity 300ms ease-out'
-                : 'opacity 300ms ease-out 600ms',
+              zoomed && !isDesktop ? 'opacity 300ms ease-out' : 'opacity 300ms ease-out 600ms',
           }}
         >
           {cards.map((_, i) => (

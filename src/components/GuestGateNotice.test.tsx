@@ -40,8 +40,11 @@ beforeEach(() => {
 const renderNotice = () =>
   render(
     <GuestScheduleProvider>
-      <GuestGateNotice lockedBlurb="Each event has its own dress code." unlockLabel="Unlock Your Events" />
-    </GuestScheduleProvider>
+      <GuestGateNotice
+        lockedBlurb="Each event has its own dress code."
+        unlockLabel="Unlock Your Events"
+      />
+    </GuestScheduleProvider>,
   )
 
 describe('GuestGateNotice', () => {
@@ -92,7 +95,7 @@ describe('GuestGateNotice', () => {
 
     expect(screen.queryByRole('button', { name: 'Unlock Your Events' })).not.toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'view your full details on Joy' })
+      screen.getByRole('button', { name: 'view your full details on Joy' }),
     ).toBeInTheDocument()
   })
 })

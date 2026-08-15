@@ -7,7 +7,7 @@ describe('Disclosure', () => {
     const { container } = render(
       <Disclosure id="kids-welcome" title="Are kids welcome?">
         <p>Of course!</p>
-      </Disclosure>
+      </Disclosure>,
     )
 
     const details = container.querySelector('details#kids-welcome')
@@ -20,11 +20,11 @@ describe('Disclosure', () => {
     render(
       <Disclosure id="kids-welcome" title="Are kids welcome?">
         <p>Of course!</p>
-      </Disclosure>
+      </Disclosure>,
     )
 
     expect(
-      screen.getByRole('button', { name: 'Copy link to Are kids welcome?' })
+      screen.getByRole('button', { name: 'Copy link to Are kids welcome?' }),
     ).toBeInTheDocument()
   })
 })
@@ -36,7 +36,7 @@ describe('DisclosureGroup', () => {
         <Disclosure id="bring-a-date" title="Can I bring a date?">
           <p>Check your invite.</p>
         </Disclosure>
-      </DisclosureGroup>
+      </DisclosureGroup>,
     )
 
     expect(screen.getByText('RSVP & Guests')).toBeInTheDocument()
@@ -49,7 +49,7 @@ describe('DisclosureGroup', () => {
     render(
       <DisclosureGroup id="rsvp-and-guests" title="RSVP & Guests" blurb="Who’s coming.">
         <p>…</p>
-      </DisclosureGroup>
+      </DisclosureGroup>,
     )
 
     expect(screen.getByRole('button', { name: 'Copy link to RSVP & Guests' })).toBeInTheDocument()

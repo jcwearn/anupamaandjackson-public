@@ -13,7 +13,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -47,7 +47,7 @@ describe('StickySectionHeading', () => {
     const { container } = render(
       <JumpNavOffset.Provider value={{ top: JUMP_NAV_SECTION_TOP, pinPx: 128 }}>
         <StickySectionHeading title="Wedding Hotels" />
-      </JumpNavOffset.Provider>
+      </JumpNavOffset.Provider>,
     )
 
     expect(container.querySelector('.sticky')).toHaveStyle({ top: JUMP_NAV_SECTION_TOP })
@@ -60,12 +60,12 @@ describe('StickySectionHeading', () => {
       <StickySectionHeading
         eyebrow={<a href="https://maps.app.goo.gl/SpZipKNxsgTZEywSA">Golkonda Resorts and Spa</a>}
         title="Wednesday, October 28"
-      />
+      />,
     )
 
     expect(screen.getByRole('link', { name: 'Golkonda Resorts and Spa' })).toHaveAttribute(
       'href',
-      'https://maps.app.goo.gl/SpZipKNxsgTZEywSA'
+      'https://maps.app.goo.gl/SpZipKNxsgTZEywSA',
     )
   })
 
@@ -83,11 +83,11 @@ describe('StickySectionHeading', () => {
         eyebrow="Banjara Hills · October 26"
         title="Pre-Wedding Hotels"
         anchorId="pre-wedding-hotels"
-      />
+      />,
     )
 
     expect(
-      screen.getByRole('button', { name: 'Copy link to Pre-Wedding Hotels' })
+      screen.getByRole('button', { name: 'Copy link to Pre-Wedding Hotels' }),
     ).toBeInTheDocument()
   })
 })

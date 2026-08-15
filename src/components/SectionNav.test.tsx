@@ -45,7 +45,7 @@ const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <SectionNav items={TRAVEL_NAV_ITEMS} label="Travel section" />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 const current = () =>

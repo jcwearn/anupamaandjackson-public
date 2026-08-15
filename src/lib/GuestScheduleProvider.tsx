@@ -1,4 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import ScheduleUnlockModal from '../components/ScheduleUnlockModal'
 import RsvpModal from '../components/RsvpModal'
 import { useGuestSchedule } from './useGuestSchedule'
@@ -106,7 +114,7 @@ export const GuestScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value = useMemo(
     () => ({ ...guest, openUnlock, openJoy, available: true }),
-    [guest, openUnlock, openJoy]
+    [guest, openUnlock, openJoy],
   )
 
   return (

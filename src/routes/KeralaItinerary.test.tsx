@@ -26,7 +26,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
   vi.stubGlobal('performance', { now: () => clock })
   // The bar's scroll listeners are rAF-throttled; run the callback inline so a
@@ -107,7 +107,11 @@ const itinerarySignature = /join us in enjoying one of South India/
 
 describe('KeralaItinerary gating', () => {
   it('shows the itinerary to a guest carrying the kerala event', () => {
-    setState({ status: 'identified', displayName: 'Alan', events: [...universalEvents, keralaEvent] })
+    setState({
+      status: 'identified',
+      displayName: 'Alan',
+      events: [...universalEvents, keralaEvent],
+    })
     renderPage()
 
     expect(screen.getByText(itinerarySignature)).toBeInTheDocument()
@@ -154,7 +158,7 @@ describe('KeralaItinerary gating', () => {
 
       expect(screen.getByRole('link', { name: 'See your schedule' })).toHaveAttribute(
         'href',
-        '/schedule'
+        '/schedule',
       )
     })
 
@@ -188,7 +192,7 @@ describe('KeralaItinerary gating', () => {
     renderPage()
 
     expect(
-      screen.getByRole('heading', { name: 'A Lush Kerala Weekend', level: 1 })
+      screen.getByRole('heading', { name: 'A Lush Kerala Weekend', level: 1 }),
     ).toBeInTheDocument()
   })
 
@@ -205,7 +209,9 @@ describe('KeralaItinerary gating', () => {
 
     expect(screen.getByText(/trouble loading personalized schedules/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Unlock Your Schedule' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'view your full details on Joy' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'view your full details on Joy' }),
+    ).toBeInTheDocument()
   })
 
   it('does not fall open when the index fails', () => {
@@ -223,7 +229,11 @@ describe('KeralaItinerary gating', () => {
     const dialog = screen.getByRole('dialog', { name: 'Unlock your schedule' })
     fireEvent.change(within(dialog).getByLabelText('First name'), { target: { value: 'Alan' } })
     fireEvent.change(within(dialog).getByLabelText('Last name'), { target: { value: 'Turing' } })
-    fireEvent.submit(within(dialog).getByRole('button', { name: /Unlock/ }).closest('form')!)
+    fireEvent.submit(
+      within(dialog)
+        .getByRole('button', { name: /Unlock/ })
+        .closest('form')!,
+    )
 
     expect(lookup).toHaveBeenCalledWith('Alan', 'Turing')
   })
@@ -239,7 +249,9 @@ describe('KeralaItinerary gating', () => {
     setState({ status: 'identified', displayName: 'Ada', events: universalEvents })
     rerender(page())
 
-    expect(screen.getByRole('dialog', { name: 'Unlock your schedule', hidden: true })).not.toBeVisible()
+    expect(
+      screen.getByRole('dialog', { name: 'Unlock your schedule', hidden: true }),
+    ).not.toBeVisible()
   })
 
   it('asks which household from the gate, same as the schedule does', () => {
@@ -278,7 +290,9 @@ function priceRow(title: string, occupancy: string | RegExp) {
   const row = within(card as HTMLElement)
     .getByRole('rowheader', { name: occupancy })
     .closest('tr')
-  return within(row as HTMLElement).getAllByRole('cell').map((cell) => cell.textContent)
+  return within(row as HTMLElement)
+    .getAllByRole('cell')
+    .map((cell) => cell.textContent)
 }
 
 describe('Kerala flights', () => {
@@ -293,7 +307,10 @@ describe('Kerala flights', () => {
     ]) {
       const box = screen.getByText(number).closest('div.rounded-lg')!
       for (const detail of details) {
-        expect(within(box as HTMLElement).getByText(detail), `${number}: ${detail}`).toBeInTheDocument()
+        expect(
+          within(box as HTMLElement).getByText(detail),
+          `${number}: ${detail}`,
+        ).toBeInTheDocument()
       }
     }
   })
@@ -314,21 +331,19 @@ describe('Kerala flights', () => {
     render()
 
     const dates = [...document.querySelectorAll('#flights .rounded-lg > div > p:first-child')].map(
-      (p) => p.textContent
+      (p) => p.textContent,
     )
 
     // Rendered uppercase by CSS; textContent keeps the derived casing.
-    expect(dates).toEqual([
-      'Thursday, October 29',
-      'Saturday, October 31',
-      'Sunday, November 1',
-    ])
+    expect(dates).toEqual(['Thursday, October 29', 'Saturday, October 31', 'Sunday, November 1'])
   })
 
   it('says who the November 1 return is for while both itineraries are on screen', () => {
     render()
 
-    expect(screen.getByText(/November 1 return is for guests on the full itinerary/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/November 1 return is for guests on the full itinerary/),
+    ).toBeInTheDocument()
   })
 })
 
@@ -399,7 +414,7 @@ describe('Kerala section anchors', () => {
       }
 
       const hrefs = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
-        a.getAttribute('href')!.slice(1)
+        a.getAttribute('href')!.slice(1),
       )
 
       expect(hrefs.length).toBeGreaterThan(0)
@@ -435,7 +450,7 @@ describe('Kerala jump bar', () => {
 
     scrollTo(400)
     expect(bar(container).className, 'should return scrolling up').not.toContain(
-      '-translate-y-full'
+      '-translate-y-full',
     )
     expect(bar(container)).not.toHaveAttribute('inert')
   })
@@ -537,7 +552,9 @@ describe('Kerala itinerary filters', () => {
   it('covers both trips in the inclusions when nothing is chosen', () => {
     render()
 
-    expect(screen.getByText(/2 night hotel accommodation.*1 night on the shortened option/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 night hotel accommodation.*1 night on the shortened option/),
+    ).toBeInTheDocument()
   })
 
   it('falls back to the whole page when the link is mangled', () => {
@@ -572,7 +589,7 @@ describe('Kerala personalization', () => {
     expect(screen.getByRole('button', { name: 'Full' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Round trip' })).toHaveAttribute(
       'aria-pressed',
-      'true'
+      'true',
     )
     // The pre-selection actually filters the page, same as clicking would.
     expect(screen.queryByRole('heading', { name: 'Shortened itinerary' })).toBeNull()
@@ -587,7 +604,7 @@ describe('Kerala personalization', () => {
     expect(screen.getByRole('button', { name: 'Full' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Round trip' })).toHaveAttribute(
       'aria-pressed',
-      'true'
+      'true',
     )
   })
 
@@ -689,10 +706,12 @@ describe('Kerala personalization', () => {
     const markers = screen.getAllByText('Your rate')
     expect(markers).toHaveLength(1)
     const card = markers[0].closest('div.card')!
-    expect(within(card as HTMLElement).getByRole('heading', { name: 'Full itinerary' })).toBeInTheDocument()
     expect(
-      markers[0].closest('tr')!.querySelector('th')!.textContent
-    ).toContain('Double occupancy (per person)')
+      within(card as HTMLElement).getByRole('heading', { name: 'Full itinerary' }),
+    ).toBeInTheDocument()
+    expect(markers[0].closest('tr')!.querySelector('th')!.textContent).toContain(
+      'Double occupancy (per person)',
+    )
   })
 
   it('quotes Charles his actual price, with the note explaining the extra', () => {
@@ -733,7 +752,7 @@ describe('Kerala itinerary toggles', () => {
 
     expect(screen.getByRole('button', { name: 'Shortened' })).toHaveAttribute(
       'aria-pressed',
-      'false'
+      'false',
     )
     expect(screen.getByRole('heading', { name: 'Full itinerary' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Shortened itinerary' })).toBeInTheDocument()

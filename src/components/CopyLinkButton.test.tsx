@@ -43,7 +43,7 @@ describe('CopyLinkButton', () => {
     fireEvent.click(screen.getByRole('button'))
 
     expect(writeText).toHaveBeenCalledWith(
-      `${window.location.origin}/kerala-itinerary?trip=short&flights=ow#pricing`
+      `${window.location.origin}/kerala-itinerary?trip=short&flights=ow#pricing`,
     )
   })
 
@@ -71,7 +71,7 @@ describe('CopyLinkButton', () => {
     render(
       <div onClick={onParentClick}>
         <CopyLinkButton id="what-to-pack" label="What to pack" />
-      </div>
+      </div>,
     )
 
     const event = new MouseEvent('click', { bubbles: true, cancelable: true })

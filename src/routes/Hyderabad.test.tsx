@@ -67,8 +67,8 @@ describe('Hyderabad places', () => {
     // so a renamed place would otherwise leave a dead jump behind.
     const { container } = renderPage(<Hyderabad />)
     const slugs = new Set(places.map((place) => place.slug))
-    const fragments = [...container.querySelectorAll('a[href^="#"]')].map(
-      (a) => a.getAttribute('href')!.slice(1)
+    const fragments = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
+      a.getAttribute('href')!.slice(1),
     )
 
     expect(fragments.length).toBeGreaterThan(0)
@@ -80,13 +80,13 @@ describe('Hyderabad places', () => {
   it('every /travel/tips deep link resolves to a section on that page', () => {
     const travelTips = renderPage(<TravelTips />)
     const travelTipsIds = new Set(
-      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id)
+      [...travelTips.container.querySelectorAll('[id]')].map((el) => el.id),
     )
     travelTips.unmount()
 
     const { container } = renderPage(<Hyderabad />)
     const fragments = [...container.querySelectorAll('a[href^="/travel/tips#"]')].map(
-      (a) => a.getAttribute('href')!.split('#')[1]
+      (a) => a.getAttribute('href')!.split('#')[1],
     )
 
     expect(fragments.length).toBeGreaterThan(0)
@@ -106,7 +106,7 @@ describe('Hyderabad places', () => {
           <Route path="/travel/hyderabad" element={<Hyderabad />} />
           <Route path="/travel/food" element={<p>the food guide</p>} />
         </Routes>
-      </MemoryRouter>
+      </MemoryRouter>,
     )
 
     expect(screen.getByText('the food guide')).toBeInTheDocument()

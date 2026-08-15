@@ -14,7 +14,12 @@ import { MapPinIcon } from '../icons/MapPinIcon'
 // The icon carries no text, so it stays out of the link's accessible name.
 const DayVenueEyebrow: React.FC<{ venue: DayVenue }> = ({ venue }) =>
   venue.mapUrl ? (
-    <a href={venue.mapUrl} target="_blank" rel="noopener noreferrer" className="hover:text-rosewood">
+    <a
+      href={venue.mapUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-rosewood"
+    >
       {/* The underline sits on the words, not the anchor: a descendant can't
           cancel an ancestor's text-decoration, so on the anchor it would draw
           straight through the pin. */}

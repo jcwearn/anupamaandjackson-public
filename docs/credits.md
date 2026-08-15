@@ -6,12 +6,12 @@ Most of the site's photographs are our own and need no credit. This file covers
 the ones that aren't, so the obligation is written down somewhere other than a
 comment next to one use of the file.
 
-| File | Source | Author | Licence |
-|---|---|---|---|
-| `src/assets/travel/indigo-a320neo.jpg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:IndiGo_Airbus_A320neo_F-WWDG_(to_VT-ITI)_(28915135713).jpg) — *IndiGo Airbus A320neo F-WWDG* | BriYYZ (Brian Bukowski) | **CC BY-SA 2.0** |
-| `src/assets/travel/india-relief-map.jpg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:India_relief_location_map.jpg) — *India relief location map* | Uwe Dedering | **CC BY-SA 3.0** (also GFDL 1.2+) |
-| `src/assets/kerala/houseboat.jpg` | Wikimedia Commons | RndmCrs | CC0 |
-| `src/assets/travel/passport-stamps.jpg` | `cdn.buttercms.com/KTQVVrU6Q52NyW5ybeq8` — a third-party CMS, not a stock library | **unknown** | **unverified** |
+| File                                     | Source                                                                                                                                                     | Author                  | Licence                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | --------------------------------- |
+| `src/assets/travel/indigo-a320neo.jpg`   | [Wikimedia Commons](<https://commons.wikimedia.org/wiki/File:IndiGo_Airbus_A320neo_F-WWDG_(to_VT-ITI)_(28915135713).jpg>) — _IndiGo Airbus A320neo F-WWDG_ | BriYYZ (Brian Bukowski) | **CC BY-SA 2.0**                  |
+| `src/assets/travel/india-relief-map.jpg` | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:India_relief_location_map.jpg) — _India relief location map_                                   | Uwe Dedering            | **CC BY-SA 3.0** (also GFDL 1.2+) |
+| `src/assets/kerala/houseboat.jpg`        | Wikimedia Commons                                                                                                                                          | RndmCrs                 | CC0                               |
+| `src/assets/travel/passport-stamps.jpg`  | `cdn.buttercms.com/KTQVVrU6Q52NyW5ybeq8` — a third-party CMS, not a stock library                                                                          | **unknown**             | **unverified**                    |
 
 Photo provenance for the food page's images is logged separately, in
 `docs/plans/food-page-redesign/progress.md`.

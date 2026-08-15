@@ -15,11 +15,11 @@ export declare function emailHash(normalizedEmail: string, salt: Uint8Array): Pr
 export declare function deriveGuestKey(
   normalizedKey: string,
   salt: Uint8Array,
-  iterations?: number
+  iterations?: number,
 ): Promise<CryptoKey>
 export declare function importEventKey(rawBytes: Uint8Array): Promise<CryptoKey>
 export declare function encryptJson(key: CryptoKey, value: unknown): Promise<Envelope>
 export declare function decryptJson<T = unknown>(
   key: CryptoKey,
-  envelope: Envelope
+  envelope: Envelope,
 ): Promise<T | null>

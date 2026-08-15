@@ -17,7 +17,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -62,11 +62,6 @@ describe('prerendered routes', () => {
   it('serves the Travel section under one parent path', () => {
     const travel = prerendered.filter((path) => path === '/travel' || path.startsWith('/travel/'))
 
-    expect(travel.sort()).toEqual([
-      '/travel',
-      '/travel/food',
-      '/travel/hyderabad',
-      '/travel/tips',
-    ])
+    expect(travel.sort()).toEqual(['/travel', '/travel/food', '/travel/hyderabad', '/travel/tips'])
   })
 })

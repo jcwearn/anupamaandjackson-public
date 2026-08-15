@@ -35,7 +35,7 @@ const ArrowButton: React.FC<{
       // -mt lifts them by roughly half the control row they left behind.
       'shrink-0',
       'lg:absolute lg:top-1/2 lg:z-10 lg:-mt-8 lg:-translate-y-1/2',
-      direction === 'prev' ? 'lg:left-0 lg:-ml-16' : 'lg:right-0 lg:-mr-16'
+      direction === 'prev' ? 'lg:left-0 lg:-ml-16' : 'lg:right-0 lg:-mr-16',
     )}
   >
     {/* The nudge lives on a wrapper, not on the chevron: Tailwind's rotate-* is
@@ -43,7 +43,9 @@ const ArrowButton: React.FC<{
         animating the rotated element drifts it along the pre-rotation axis —
         left/right motion coming out vertical. */}
     <span className={direction === 'prev' ? 'arrow-nudge-back' : 'arrow-nudge'}>
-      <ChevronDownIcon className={clsx('h-5 w-5', direction === 'prev' ? 'rotate-90' : '-rotate-90')} />
+      <ChevronDownIcon
+        className={clsx('h-5 w-5', direction === 'prev' ? 'rotate-90' : '-rotate-90')}
+      />
     </span>
   </button>
 )
@@ -87,13 +89,13 @@ const Face: React.FC<{
  */
 const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
   const { index, rotation, faceAIndex, faceBIndex, flipping, goTo, jumpTo } = useCardFlip(
-    places.length
+    places.length,
   )
   const swipeStart = React.useRef<{ x: number; y: number } | null>(null)
 
   const select = React.useCallback(
     (next: number) => (prefersReducedMotion() ? jumpTo(next) : goTo(next)),
-    [goTo, jumpTo]
+    [goTo, jumpTo],
   )
 
   // Land on whatever the fragment names, and follow it when it changes.
@@ -127,7 +129,7 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
     }
   }, [index, places])
 
-  const showingA = (((rotation % 360) + 360) % 360) === 0
+  const showingA = ((rotation % 360) + 360) % 360 === 0
   const current = places[index]
 
   return (
@@ -161,7 +163,8 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
         if (!start) return
         const dx = e.clientX - start.x
         // Only a clearly horizontal drag counts, or scrolling the page turns cards.
-        if (Math.abs(dx) < SWIPE_THRESHOLD_PX || Math.abs(dx) < Math.abs(e.clientY - start.y)) return
+        if (Math.abs(dx) < SWIPE_THRESHOLD_PX || Math.abs(dx) < Math.abs(e.clientY - start.y))
+          return
         select(dx < 0 ? index + 1 : index - 1)
       }}
     >
@@ -205,7 +208,11 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
             leave the row and stand beside the card instead — see ArrowButton. */}
         <div className="flex items-center justify-center gap-4">
           {index > 0 ? (
-            <ArrowButton direction="prev" label="Previous place" onClick={() => select(index - 1)} />
+            <ArrowButton
+              direction="prev"
+              label="Previous place"
+              onClick={() => select(index - 1)}
+            />
           ) : (
             // An arrow that points nowhere is noise, but its absence must not
             // shunt the dots sideways.
@@ -222,7 +229,7 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
                   aria-current={i === index ? 'true' : undefined}
                   className={clsx(
                     'block h-2.5 w-2.5 cursor-pointer rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2',
-                    i === index ? 'bg-rosewood' : 'bg-rosewood/25 hover:bg-rosewood/50'
+                    i === index ? 'bg-rosewood' : 'bg-rosewood/25 hover:bg-rosewood/50',
                   )}
                 />
               </li>

@@ -30,7 +30,8 @@ const typeName = (first: string, last: string) => {
   fireEvent.change(screen.getByLabelText('Last name'), { target: { value: last } })
 }
 
-const submit = () => fireEvent.submit(screen.getByRole('button', { name: /Unlock/ }).closest('form')!)
+const submit = () =>
+  fireEvent.submit(screen.getByRole('button', { name: /Unlock/ }).closest('form')!)
 
 describe('ScheduleUnlockModal', () => {
   it('is a labelled modal dialog', () => {
@@ -61,7 +62,7 @@ describe('ScheduleUnlockModal', () => {
       expect(screen.getByRole('dialog')).toHaveAccessibleName('Outfits for your events')
       expect(screen.getByRole('button', { name: 'Show My Events' })).toBeInTheDocument()
       expect(
-        screen.getByText('Add your name and we’ll show you the dress code for each event.')
+        screen.getByText('Add your name and we’ll show you the dress code for each event.'),
       ).toBeInTheDocument()
     })
 
@@ -173,9 +174,7 @@ describe('ScheduleUnlockModal', () => {
       fireEvent.change(screen.getByLabelText('Email'), {
         target: { value: 'mary@example.com' },
       })
-      fireEvent.submit(
-        screen.getByRole('button', { name: 'Find My Invitation' }).closest('form')!
-      )
+      fireEvent.submit(screen.getByRole('button', { name: 'Find My Invitation' }).closest('form')!)
 
       expect(onSubmitEmail).toHaveBeenCalledWith('mary@example.com')
     })
@@ -184,9 +183,7 @@ describe('ScheduleUnlockModal', () => {
       const onSubmitEmail = vi.fn()
       renderModal({ status: 'ambiguous', emailPrompt: true, onSubmitEmail })
 
-      fireEvent.submit(
-        screen.getByRole('button', { name: 'Find My Invitation' }).closest('form')!
-      )
+      fireEvent.submit(screen.getByRole('button', { name: 'Find My Invitation' }).closest('form')!)
 
       expect(onSubmitEmail).not.toHaveBeenCalled()
     })
@@ -254,7 +251,7 @@ describe('ScheduleUnlockModal', () => {
 
     expect(screen.getByRole('dialog', { hidden: true }).closest('[aria-hidden]')).toHaveAttribute(
       'aria-hidden',
-      'true'
+      'true',
     )
   })
 })

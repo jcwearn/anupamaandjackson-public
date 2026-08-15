@@ -55,7 +55,7 @@ const departureSize = (box: HTMLElement) => {
 // transform — the PlaceCarousel technique for testing 3D without a renderer.
 const travellingBox = (container: HTMLElement) =>
   [...container.querySelectorAll<HTMLElement>('[style]')].find((el) =>
-    el.style.transform.includes('rotateY')
+    el.style.transform.includes('rotateY'),
   )!
 
 const reduceMotion = () =>
@@ -68,7 +68,7 @@ const reduceMotion = () =>
 describe('ShelfPullout', () => {
   it('starts in the shelf slot and squares up centred once framed', () => {
     const { container } = render(
-      <ShelfPullout item={book} fromRect={shelfRect} fromDeg={-26} onClose={() => {}} />
+      <ShelfPullout item={book} fromRect={shelfRect} fromDeg={-26} onClose={() => {}} />,
     )
 
     // Before any frame: parked on the shelf slot's centre, shrunk to its
@@ -91,7 +91,9 @@ describe('ShelfPullout', () => {
   })
 
   it('gives films the same travel — every cover already faces the reader', () => {
-    const { container } = render(<ShelfPullout item={film} fromRect={shelfRect} onClose={() => {}} />)
+    const { container } = render(
+      <ShelfPullout item={film} fromRect={shelfRect} onClose={() => {}} />,
+    )
     flushFrames()
 
     expect(travellingBox(container).style.transform).toContain('rotateY(-16deg)')
@@ -110,7 +112,7 @@ describe('ShelfPullout', () => {
 
     for (const [item, rect] of cases) {
       const { container, unmount } = render(
-        <ShelfPullout item={item} fromRect={rect} onClose={() => {}} />
+        <ShelfPullout item={item} fromRect={rect} onClose={() => {}} />,
       )
 
       const { width, height } = departureSize(travellingBox(container))
@@ -132,7 +134,9 @@ describe('ShelfPullout', () => {
 
   it('arrives without travelling under reduced motion', () => {
     reduceMotion()
-    const { container } = render(<ShelfPullout item={book} fromRect={shelfRect} onClose={() => {}} />)
+    const { container } = render(
+      <ShelfPullout item={book} fromRect={shelfRect} onClose={() => {}} />,
+    )
 
     const box = travellingBox(container)
     expect(box.style.transform).toContain('rotateY(-16deg)')
@@ -142,7 +146,7 @@ describe('ShelfPullout', () => {
 
   it('shows the detail panel with a safe YouTube link for the one online item', () => {
     const { container, getByRole } = render(
-      <ShelfPullout item={film} fromRect={null} onClose={() => {}} />
+      <ShelfPullout item={film} fromRect={null} onClose={() => {}} />,
     )
 
     expect(getByRole('dialog')).toHaveAccessibleName(film.title)
@@ -167,7 +171,7 @@ describe('ShelfPullout', () => {
 
   it('sends a film to Letterboxd, with no page count to report', () => {
     const { container } = render(
-      <ShelfPullout item={croppedFilm} fromRect={null} onClose={() => {}} />
+      <ShelfPullout item={croppedFilm} fromRect={null} onClose={() => {}} />,
     )
 
     expect(container.textContent).not.toContain('pages')
@@ -178,7 +182,9 @@ describe('ShelfPullout', () => {
   it('decodes the travelling cover synchronously, with no alt to flash', () => {
     // A fresh img paints before its async decode finishes, so the first-ever
     // pull showed one frame of alt text where the cover should be.
-    const { container } = render(<ShelfPullout item={book} fromRect={shelfRect} onClose={() => {}} />)
+    const { container } = render(
+      <ShelfPullout item={book} fromRect={shelfRect} onClose={() => {}} />,
+    )
 
     const img = travellingBox(container).querySelector('img')!
     expect(img.getAttribute('decoding')).toBe('sync')
@@ -190,7 +196,7 @@ describe('ShelfPullout', () => {
     vi.useFakeTimers()
     const onClose = vi.fn()
     const { container, getByRole } = render(
-      <ShelfPullout item={book} fromRect={shelfRect} onClose={onClose} />
+      <ShelfPullout item={book} fromRect={shelfRect} onClose={onClose} />,
     )
     flushFrames()
 
@@ -207,7 +213,7 @@ describe('ShelfPullout', () => {
   it('closes on Escape and on the backdrop, immediately when nothing animates', () => {
     const onClose = vi.fn()
     const { container, unmount } = render(
-      <ShelfPullout item={book} fromRect={null} onClose={onClose} />
+      <ShelfPullout item={book} fromRect={null} onClose={onClose} />,
     )
 
     fireEvent.keyDown(window, { key: 'Escape' })

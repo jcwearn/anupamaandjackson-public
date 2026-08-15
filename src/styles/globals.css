@@ -1,5 +1,5 @@
 @config "../../tailwind.config.ts";
-@import "tailwindcss";
+@import 'tailwindcss';
 
 html {
   scroll-behavior: smooth;
@@ -85,8 +85,12 @@ body {
 
 /* Envelope Animation */
 @keyframes flap-open {
-  0% { transform: rotateX(0deg); }
-  100% { transform: rotateX(-180deg); }
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-180deg);
+  }
 }
 
 @keyframes card-translate-up {
@@ -152,8 +156,12 @@ body {
 /* Opacity only, and short. The story panels are a tall block of text, and
    sliding one in on every toggle is noise rather than polish. */
 @keyframes story-fade {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .animate-story-fade {
@@ -161,14 +169,24 @@ body {
 }
 
 @keyframes arrow-nudge {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(6px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
 }
 
 /* Mirrors arrow-nudge for a left-pointing arrow, so it drifts the way it points. */
 @keyframes arrow-nudge-back {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(-6px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-6px);
+  }
 }
 
 .arrow-nudge {

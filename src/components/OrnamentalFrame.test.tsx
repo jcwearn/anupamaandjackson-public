@@ -13,7 +13,7 @@ describe('OrnamentalFrame', () => {
     const { container } = render(
       <OrnamentalFrame>
         <p>Anupama & Jackson</p>
-      </OrnamentalFrame>
+      </OrnamentalFrame>,
     )
 
     expect(screen.getByText('Anupama & Jackson').parentElement!.className).toBe(HERO_PADDING)
@@ -26,7 +26,7 @@ describe('OrnamentalFrame', () => {
     const { container } = render(
       <OrnamentalFrame contentClassName="p-5" cornerClassName="h-10 w-10">
         <p>Charminar</p>
-      </OrnamentalFrame>
+      </OrnamentalFrame>,
     )
 
     expect(screen.getByText('Charminar').parentElement!.className).toBe('p-5')
@@ -40,11 +40,11 @@ describe('OrnamentalFrame', () => {
     const { container } = render(
       <OrnamentalFrame>
         <p>…</p>
-      </OrnamentalFrame>
+      </OrnamentalFrame>,
     )
     // Split rather than substring-match: "rotate-90" is inside "-rotate-90".
     const corners = [...container.querySelectorAll('svg')].map(
-      (s) => new Set(s.getAttribute('class')!.split(/\s+/))
+      (s) => new Set(s.getAttribute('class')!.split(/\s+/)),
     )
     const turned = (name: string) => corners.filter((classes) => classes.has(name)).length
 
@@ -53,7 +53,8 @@ describe('OrnamentalFrame', () => {
     expect(turned('rotate-180')).toBe(1)
     expect(turned('-rotate-90')).toBe(1)
     // The fourth is the unrotated original.
-    expect(corners.filter((c) => !c.has('rotate-90') && !c.has('rotate-180') && !c.has('-rotate-90'))
+    expect(
+      corners.filter((c) => !c.has('rotate-90') && !c.has('rotate-180') && !c.has('-rotate-90')),
     ).toHaveLength(1)
   })
 
@@ -64,7 +65,7 @@ describe('OrnamentalFrame', () => {
     const { container } = render(
       <OrnamentalFrame>
         <MandalaDivider />
-      </OrnamentalFrame>
+      </OrnamentalFrame>,
     )
 
     expect(container.querySelectorAll('[id]')).toHaveLength(0)
@@ -75,7 +76,7 @@ describe('OrnamentalFrame', () => {
     const { container } = render(
       <OrnamentalFrame>
         <a href="/hotels">Hotels</a>
-      </OrnamentalFrame>
+      </OrnamentalFrame>,
     )
 
     for (const svg of container.querySelectorAll('svg')) {

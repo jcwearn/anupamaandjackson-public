@@ -13,11 +13,31 @@ const linkClass = 'underline hover:text-rosewood'
 // anyone with one free morning rather than a whole week. Every slug here has to
 // match a place below — Hyderabad.test.tsx checks that.
 const dayPlans: { id: string; title: string; slugs: string[] }[] = [
-  { id: 'a-heritage-morning', title: 'A heritage morning', slugs: ['charminar', 'chowmahalla-palace', 'laad-bazaar'] },
-  { id: 'a-regal-afternoon', title: 'A regal afternoon', slugs: ['golconda-fort', 'qutb-shahi-tombs'] },
-  { id: 'a-leisurely-evening', title: 'A leisurely evening', slugs: ['birla-mandir', 'hussain-sagar'] },
-  { id: 'for-art-and-culture', title: 'For art & culture lovers', slugs: ['salar-jung-museum', 'charminar'] },
-  { id: 'for-craft-and-keepsakes', title: 'For craft & keepsakes', slugs: ['laad-bazaar', 'shilparamam'] },
+  {
+    id: 'a-heritage-morning',
+    title: 'A heritage morning',
+    slugs: ['charminar', 'chowmahalla-palace', 'laad-bazaar'],
+  },
+  {
+    id: 'a-regal-afternoon',
+    title: 'A regal afternoon',
+    slugs: ['golconda-fort', 'qutb-shahi-tombs'],
+  },
+  {
+    id: 'a-leisurely-evening',
+    title: 'A leisurely evening',
+    slugs: ['birla-mandir', 'hussain-sagar'],
+  },
+  {
+    id: 'for-art-and-culture',
+    title: 'For art & culture lovers',
+    slugs: ['salar-jung-museum', 'charminar'],
+  },
+  {
+    id: 'for-craft-and-keepsakes',
+    title: 'For craft & keepsakes',
+    slugs: ['laad-bazaar', 'shilparamam'],
+  },
 ]
 
 const Hyderabad: React.FC = () => {

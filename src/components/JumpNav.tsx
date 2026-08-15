@@ -113,7 +113,7 @@ const JumpNav: React.FC<{
       hidden
         ? { top: SITE_NAV_OFFSET, pinPx: SITE_NAV_HEIGHT_PX }
         : { top: JUMP_NAV_SECTION_TOP, pinPx: JUMP_LINE_PX },
-    [hidden]
+    [hidden],
   )
 
   // How much slack the page needs beneath the last section for a jump target to

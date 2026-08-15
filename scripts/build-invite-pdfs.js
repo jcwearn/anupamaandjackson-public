@@ -32,7 +32,7 @@ async function main() {
         data: `data:image/jpeg;base64,${buffer.toString('base64')}`,
         height: (PAGE_WIDTH * height) / width,
       }
-    })
+    }),
   )
 
   const doc = new jsPDF({ unit: 'pt', format: [PAGE_WIDTH, pages[0].height] })

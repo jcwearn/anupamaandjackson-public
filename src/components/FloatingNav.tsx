@@ -85,9 +85,7 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
           // back in after the un-zoom settles.
           opacity: hidden ? 0 : 1,
           pointerEvents: hidden ? 'none' : undefined,
-          transition: hidden
-            ? 'opacity 300ms ease-out'
-            : 'opacity 300ms ease-out 600ms',
+          transition: hidden ? 'opacity 300ms ease-out' : 'opacity 300ms ease-out 600ms',
         }}
       >
         <button
@@ -104,23 +102,26 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
             // keep the rosewood-on-light look.
             mobileOnly
               ? 'bg-cream text-rosewood hover:bg-white'
-              : 'bg-rosewood/95 text-cream hover:bg-rosewood'
+              : 'bg-rosewood/95 text-cream hover:bg-rosewood',
           )}
         >
           <span className="relative flex h-4 w-5 flex-col justify-between">
             <span
               className={clsx(
                 'block h-0.5 w-full bg-current transition-transform duration-100',
-                open && 'translate-y-[7px] rotate-45'
+                open && 'translate-y-[7px] rotate-45',
               )}
             />
             <span
-              className={clsx('block h-0.5 w-full bg-current transition-opacity duration-100', open && 'opacity-0')}
+              className={clsx(
+                'block h-0.5 w-full bg-current transition-opacity duration-100',
+                open && 'opacity-0',
+              )}
             />
             <span
               className={clsx(
                 'block h-0.5 w-full bg-current transition-transform duration-100',
-                open && '-translate-y-[7px] -rotate-45'
+                open && '-translate-y-[7px] -rotate-45',
               )}
             />
           </span>
@@ -155,7 +156,7 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
                   'block rounded-lg px-3 py-2 font-body text-base transition-colors hover:bg-peach/40',
                   isActive
                     ? 'text-rosewood font-semibold underline decoration-gold decoration-2 underline-offset-4'
-                    : 'text-zeus'
+                    : 'text-zeus',
                 )
               }
             >
@@ -179,11 +180,7 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
           </button>
         </div>
       </div>
-      <RsvpModal
-        open={rsvpOpen}
-        onClose={() => setRsvpOpen(false)}
-        href={WITHJOY_RSVP_URL}
-      />
+      <RsvpModal open={rsvpOpen} onClose={() => setRsvpOpen(false)} href={WITHJOY_RSVP_URL} />
     </>
   )
 }

@@ -54,7 +54,7 @@ describe('StorySection', () => {
       seen.add(letter)
     }
     expect(seen, 'expected the two accounts to open on different letters').toEqual(
-      new Set(['I', 'O'])
+      new Set(['I', 'O']),
     )
   })
 
@@ -172,7 +172,7 @@ describe('StorySection', () => {
     for (const figure of figures) {
       expect(
         figure.querySelector('button[aria-label^="View full size:"]'),
-        `figure "${figure.textContent}" has no zoom trigger`
+        `figure "${figure.textContent}" has no zoom trigger`,
       ).not.toBeNull()
     }
   })

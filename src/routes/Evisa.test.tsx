@@ -12,7 +12,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -35,7 +35,7 @@ describe('Evisa', () => {
     const { container } = render(<Evisa />)
 
     const hrefs = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
-      a.getAttribute('href')!.slice(1)
+      a.getAttribute('href')!.slice(1),
     )
 
     expect(hrefs.length).toBeGreaterThan(0)

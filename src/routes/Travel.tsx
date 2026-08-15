@@ -36,7 +36,11 @@ const Travel: React.FC = () => {
 
       <div className="mx-auto flex max-w-2xl flex-col gap-12 px-4 py-12 font-body text-zeus/80">
         <section className="space-y-4">
-          <IconHeading icon={PlaneIcon} title="Booking your flights" anchorId="booking-your-flights" />
+          <IconHeading
+            icon={PlaneIcon}
+            title="Booking your flights"
+            anchorId="booking-your-flights"
+          />
           <p>
             We recommend flying into{' '}
             <strong className="font-semibold text-zeus">

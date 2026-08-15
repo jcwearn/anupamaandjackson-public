@@ -35,7 +35,7 @@ const renderAt = (path: string) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Page />
-    </MemoryRouter>
+    </MemoryRouter>,
   )
 
 describe('useHashDisclosure', () => {

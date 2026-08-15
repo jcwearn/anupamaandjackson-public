@@ -39,7 +39,7 @@ const renderBadge = (variant: 'bar' | 'menu' = 'bar') =>
   render(
     <GuestScheduleProvider>
       <GuestBadge variant={variant} />
-    </GuestScheduleProvider>
+    </GuestScheduleProvider>,
   )
 
 describe('GuestBadge', () => {
@@ -63,7 +63,7 @@ describe('GuestBadge', () => {
     renderBadge('menu')
 
     expect(screen.getByRole('button', { name: 'Unlock your details' })).toHaveTextContent(
-      'Unlock your details'
+      'Unlock your details',
     )
   })
 

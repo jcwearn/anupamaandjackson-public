@@ -32,7 +32,7 @@ beforeAll(() => {
       observe() {}
       unobserve() {}
       disconnect() {}
-    }
+    },
   )
 })
 
@@ -188,7 +188,7 @@ describe('JumpNav', () => {
 
     expect(container.querySelector('nav')!.className).not.toContain('-translate-y-full')
     expect((container.querySelector('[data-probe]') as HTMLElement).dataset.top).toBe(
-      JUMP_NAV_SECTION_TOP
+      JUMP_NAV_SECTION_TOP,
     )
   })
 

@@ -123,8 +123,8 @@ const steps: {
       'Use the wedding contact above as your reference in India.',
       <strong>
         Double-check each screen before pressing Save and Continue: there’s no back button, and
-        while most fields can be corrected at the final review, some (like your date of birth)
-        can’t be changed later.
+        while most fields can be corrected at the final review, some (like your date of birth) can’t
+        be changed later.
       </strong>,
       <>
         <strong>
@@ -218,8 +218,8 @@ const Evisa: React.FC = () => {
             <div className="mx-auto mt-6 w-full max-w-2xl px-4">
               <p className="text-zeus/80">
                 You’ll upload two things: a clear photo of your passport’s signature and information
-                page, and a recent front-facing headshot. Don’t worry about file size or format — the
-                converters below handle that.
+                page, and a recent front-facing headshot. Don’t worry about file size or format —
+                the converters below handle that.
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <FileShrinker mode="headshot" />

@@ -44,7 +44,7 @@ export function useCardFlip(count: number, initialIndex = 0) {
 
       const forward = next > indexRef.current
       // A shows on even half-turns; load whichever face is facing away.
-      if ((((rotationRef.current % 360) + 360) % 360) === 0) setFaceBIndex(next)
+      if (((rotationRef.current % 360) + 360) % 360 === 0) setFaceBIndex(next)
       else setFaceAIndex(next)
 
       rotationRef.current += forward ? 180 : -180
@@ -60,7 +60,7 @@ export function useCardFlip(count: number, initialIndex = 0) {
         setFlipping(false)
       }, FLIP_MS)
     },
-    [count]
+    [count],
   )
 
   // Used on first paint and for `prefers-reduced-motion`: move without spinning.
@@ -77,7 +77,7 @@ export function useCardFlip(count: number, initialIndex = 0) {
       setRotation(0)
       setFlipping(false)
     },
-    [count]
+    [count],
   )
 
   return { index, rotation, faceAIndex, faceBIndex, flipping, goTo, jumpTo }

@@ -46,7 +46,7 @@ const renderBar = (hidden = false) =>
     <StickyChipBar label="Travel section" hidden={hidden}>
       <a href="/one">One</a>
       <a href="/two">Two</a>
-    </StickyChipBar>
+    </StickyChipBar>,
   )
 
 // The hook and the bar are one unit in practice — both callers pipe `hidden`
@@ -173,7 +173,9 @@ describe('StickyChipBar', () => {
 
     scrollTo(594)
 
-    expect(bar().className, 'six pixels is not a change of direction').toContain('-translate-y-full')
+    expect(bar().className, 'six pixels is not a change of direction').toContain(
+      '-translate-y-full',
+    )
   })
 
   it('sits still for the scroll that lands a deep link, then behaves normally', () => {
@@ -184,7 +186,7 @@ describe('StickyChipBar', () => {
 
     scrollNow(600)
     expect(bar().className, 'that scroll was the arrival, not the reader').not.toContain(
-      '-translate-y-full'
+      '-translate-y-full',
     )
 
     scrollTo(1200)

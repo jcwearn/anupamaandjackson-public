@@ -81,10 +81,15 @@ async function buildOne(entry, workDir) {
   ])
 
   await run('sips', [
-    '-s', 'format', 'jpeg',
-    '-s', 'formatOptions', String(JPEG_QUALITY),
+    '-s',
+    'format',
+    'jpeg',
+    '-s',
+    'formatOptions',
+    String(JPEG_QUALITY),
     pngPath,
-    '--out', outputPath,
+    '--out',
+    outputPath,
   ])
 
   console.log(`  -> public/${entry.output}`)

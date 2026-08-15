@@ -25,7 +25,7 @@ const SiteNav: React.FC = () => {
       <header
         className={clsx(
           'fixed inset-x-0 top-0 z-50 bg-rosewood border-b border-gold/30 transition-shadow duration-300',
-          scrolled && 'shadow-md shadow-rosewood/30'
+          scrolled && 'shadow-md shadow-rosewood/30',
         )}
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)', viewTransitionName: 'site-nav' }}
       >
@@ -62,7 +62,7 @@ const SiteNav: React.FC = () => {
                       'whitespace-nowrap font-body text-base transition-colors focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 xl:text-lg',
                       isActive
                         ? 'text-cream underline decoration-gold decoration-2 underline-offset-4'
-                        : 'text-cream/80 hover:text-peach'
+                        : 'text-cream/80 hover:text-peach',
                     )
                   }
                 >
@@ -92,11 +92,7 @@ const SiteNav: React.FC = () => {
         </nav>
       </header>
       <FloatingNav mobileOnly />
-      <RsvpModal
-        open={rsvpOpen}
-        onClose={() => setRsvpOpen(false)}
-        href={WITHJOY_RSVP_URL}
-      />
+      <RsvpModal open={rsvpOpen} onClose={() => setRsvpOpen(false)} href={WITHJOY_RSVP_URL} />
     </>
   )
 }

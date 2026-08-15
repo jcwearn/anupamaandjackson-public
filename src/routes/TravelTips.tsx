@@ -159,8 +159,8 @@ const groups: {
               items={[
                 'If you can, vote early and in person before you fly. Most states open early voting in the second half of October, and it’s the simplest way to have it handled before you travel.',
                 <>
-                  Your state sets the rules — registration deadlines, early voting windows, and
-                  what to bring all vary. The{' '}
+                  Your state sets the rules — registration deadlines, early voting windows, and what
+                  to bring all vary. The{' '}
                   <a
                     href="https://www.vote.org/polling-place-locator/"
                     target="_blank"
@@ -189,8 +189,8 @@ const groups: {
         body: (
           <>
             <p>
-              An eSIM isn’t essential if your carrier already includes international coverage, but it
-              can give you better, more reliable service.
+              An eSIM isn’t essential if your carrier already includes international coverage, but
+              it can give you better, more reliable service.
             </p>
             <Bullets
               items={[

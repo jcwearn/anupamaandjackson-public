@@ -51,7 +51,7 @@ const renderWithTrigger = () =>
   render(
     <GuestScheduleProvider>
       <Trigger />
-    </GuestScheduleProvider>
+    </GuestScheduleProvider>,
   )
 
 const openDialog = (name: string) => {
@@ -102,7 +102,7 @@ describe('GuestScheduleProvider', () => {
     rerender(
       <GuestScheduleProvider>
         <span>identified</span>
-      </GuestScheduleProvider>
+      </GuestScheduleProvider>,
     )
 
     expect(() => fireEvent.click(screen.getByRole('button', { name: 'Close' }))).not.toThrow()
@@ -119,7 +119,7 @@ describe('GuestScheduleProvider', () => {
     const inside = render(
       <GuestScheduleProvider>
         <Probe />
-      </GuestScheduleProvider>
+      </GuestScheduleProvider>,
     )
     // Scoped to the probe: the provider mounts both dialogs alongside it, so
     // the container's own textContent carries their copy too.

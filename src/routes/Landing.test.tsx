@@ -24,7 +24,7 @@ describe('Landing', () => {
     const story = container.querySelector('#our-story')!
     expect(
       button!.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING,
-      'the story should come after the RSVP button, not before it'
+      'the story should come after the RSVP button, not before it',
     ).toBeTruthy()
   })
 })

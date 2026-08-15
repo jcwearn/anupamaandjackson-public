@@ -53,7 +53,7 @@ describe('CopyField', () => {
     render(
       <CopyField label="Phone No/Mobile No" value="9104035010101">
         <span>91</span>
-      </CopyField>
+      </CopyField>,
     )
 
     fireEvent.click(screen.getByRole('button'))
@@ -72,7 +72,7 @@ describe('CopyField', () => {
     // It copies the value, so it has to read as belonging to it — level with the
     // label it looked like a stray corner icon.
     const { container } = render(
-      <CopyField label="State" value="TELANGANA" hint="Pick from the dropdown." />
+      <CopyField label="State" value="TELANGANA" hint="Pick from the dropdown." />,
     )
 
     const row = screen.getByRole('button').parentElement!

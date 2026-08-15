@@ -45,7 +45,7 @@ describe('the shelves', () => {
       // ratio, so only its derivation is pinned here.
       expect(button.style.height).toBe(`${book.spine!.heightPx}px`)
       expect(button.style.width).toBe(
-        `${Math.round((book.spine!.heightPx * book.cover.width) / book.cover.height)}px`
+        `${Math.round((book.spine!.heightPx * book.cover.width) / book.cover.height)}px`,
       )
     }
   })
@@ -67,9 +67,13 @@ describe('responsive shelving', () => {
     try {
       const { container } = render(<Bookshelf />)
       // Eight books at two across make four bays, each its own row.
-      expect(container.querySelectorAll('#shelf-panel-books [class*="overflow-x-"]')).toHaveLength(4)
+      expect(container.querySelectorAll('#shelf-panel-books [class*="overflow-x-"]')).toHaveLength(
+        4,
+      )
       // Eight films at two across make four.
-      expect(container.querySelectorAll('#shelf-panel-movies [class*="overflow-x-"]')).toHaveLength(4)
+      expect(container.querySelectorAll('#shelf-panel-movies [class*="overflow-x-"]')).toHaveLength(
+        4,
+      )
     } finally {
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: original })
     }
@@ -120,7 +124,7 @@ describe('pulling an item off the shelf', () => {
     // spotlight toggles (animating box-shadow flashed compositing seams).
     const glowing = () =>
       [...button.querySelectorAll('span')].some(
-        (s) => s.style.boxShadow.includes('200, 162, 94') && s.style.opacity === '1'
+        (s) => s.style.boxShadow.includes('200, 162, 94') && s.style.opacity === '1',
       )
 
     fireEvent.pointerEnter(button)

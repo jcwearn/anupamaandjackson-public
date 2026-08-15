@@ -7,7 +7,7 @@ describe('ArchFrame', () => {
     const { container } = render(
       <ArchFrame id="day-plans">
         <h2>A few ways to spend a day</h2>
-      </ArchFrame>
+      </ArchFrame>,
     )
 
     expect(screen.getByRole('heading', { name: 'A few ways to spend a day' })).toBeInTheDocument()
@@ -20,7 +20,7 @@ describe('ArchFrame', () => {
     const { container } = render(
       <ArchFrame>
         <p>…</p>
-      </ArchFrame>
+      </ArchFrame>,
     )
     const paths = container.querySelectorAll('path')
 
@@ -36,7 +36,7 @@ describe('ArchFrame', () => {
     const { container } = render(
       <ArchFrame>
         <p>…</p>
-      </ArchFrame>
+      </ArchFrame>,
     )
     const d = container.querySelector('path')!.getAttribute('d')!
     const width = Number(container.querySelector('svg')!.getAttribute('viewBox')!.split(' ')[2])
@@ -60,7 +60,7 @@ describe('ArchFrame', () => {
     const { container } = render(
       <ArchFrame>
         <p>…</p>
-      </ArchFrame>
+      </ArchFrame>,
     )
 
     for (const path of container.querySelectorAll('path')) {
@@ -72,7 +72,7 @@ describe('ArchFrame', () => {
     const { container } = render(
       <ArchFrame>
         <p>…</p>
-      </ArchFrame>
+      </ArchFrame>,
     )
 
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
@@ -82,7 +82,7 @@ describe('ArchFrame', () => {
     render(
       <ArchFrame contentClassName="px-2">
         <p>Inside</p>
-      </ArchFrame>
+      </ArchFrame>,
     )
 
     expect(screen.getByText('Inside').parentElement!.className).toContain('px-2')

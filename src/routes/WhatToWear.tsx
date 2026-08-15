@@ -73,7 +73,7 @@ function useEventLabels(): Map<string, string> {
       identified
         ? new Map(events.map((event) => [event.id, SHORT_TITLES[event.id] ?? event.title]))
         : new Map(),
-    [identified, events]
+    [identified, events],
   )
 }
 

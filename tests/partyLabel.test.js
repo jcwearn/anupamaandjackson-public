@@ -13,7 +13,7 @@ describe('partyHintLabel', () => {
 
   it('names the one other member of the party', () => {
     expect(partyHintLabel(vidya, [vidya, guest(2, 'Anirudh', 'Tadanki')])).toBe(
-      'With Anirudh Tadanki'
+      'With Anirudh Tadanki',
     )
   })
 
@@ -46,7 +46,7 @@ describe('partyHintLabel', () => {
   it('still says something when the party is only placeholders', () => {
     expect(partyHintLabel(vidya, [vidya, guest(2, "Vidya's Guest", '')])).toBe('With a guest')
     expect(
-      partyHintLabel(vidya, [vidya, guest(2, "Vidya's Guest", ''), guest(3, 'Guest', 'Two')])
+      partyHintLabel(vidya, [vidya, guest(2, "Vidya's Guest", ''), guest(3, 'Guest', 'Two')]),
     ).toBe('With guests')
   })
 
