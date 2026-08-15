@@ -55,7 +55,10 @@ async function readAsset(relativePath) {
   try {
     return dataUri(await readFile(absolute), absolute)
   } catch (error) {
-    if (error.code === 'ENOENT') throw new Error(`${relativePath} is missing.`)
+    // { cause } so the original ENOENT — with its errno and full path — is
+    // still reachable. Without it the friendlier message replaced the only
+    // record of what actually failed.
+    if (error.code === 'ENOENT') throw new Error(`${relativePath} is missing.`, { cause: error })
     throw error
   }
 }

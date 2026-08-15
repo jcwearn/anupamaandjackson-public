@@ -121,6 +121,13 @@ const steps: {
       'When a question doesn’t apply to you, or you’re unsure whether it does, “NA” is a safe answer.',
       'Phone numbers are digits only with the U.S. country code 1 first — no spaces, dashes, or parentheses (for example: 14045551234).',
       'Use the wedding contact above as your reference in India.',
+      // False positive, and worth not "fixing". These entries are a
+      // ReactNode[], not elements React iterates: the render site maps each one
+      // into `<li key={j}>{bullet}</li>`, so the key lives on the <li> and this
+      // <strong> is its child. React never warns at runtime. oxlint flags any
+      // JSX inside an array literal because it cannot see the map that consumes
+      // it. Adding a key here would be dead code.
+      // oxlint-disable-next-line react/jsx-key
       <strong>
         Double-check each screen before pressing Save and Continue: there’s no back button, and
         while most fields can be corrected at the final review, some (like your date of birth) can’t

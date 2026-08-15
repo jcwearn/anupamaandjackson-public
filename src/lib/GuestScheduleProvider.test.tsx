@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { GuestScheduleProvider, useGuestScheduleContext } from './GuestScheduleProvider'
+import { GuestScheduleProvider } from './GuestScheduleProvider'
+import { useGuestScheduleContext } from './guestScheduleContext'
 import { universalEvents } from '../data/scheduleEvents'
 import type { GuestScheduleState } from './useGuestSchedule'
 

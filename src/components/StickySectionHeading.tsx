@@ -1,6 +1,6 @@
 import React from 'react'
 import CopyLinkButton from './CopyLinkButton'
-import { JumpNavOffset } from './JumpNav'
+import { JumpNavOffset } from '../lib/jumpNavOffset'
 
 // `anchorId` is opt-in: pass it only where the surrounding section actually has
 // that id, and a copy-link button appears. `centered` is opt-in too — Hotels and

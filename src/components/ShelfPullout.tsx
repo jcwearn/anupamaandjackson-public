@@ -1,13 +1,8 @@
 import React from 'react'
 import clsx from 'clsx'
 import type { ShelfItem } from '../data/shelf'
-import {
-  prefersReducedMotion,
-  PrismFaces,
-  CASE_DEPTH_PX,
-  CASE_HEIGHT_PX,
-  CASE_WIDTH_PX,
-} from './Shelf3D'
+import { PrismFaces, CASE_DEPTH_PX, CASE_HEIGHT_PX, CASE_WIDTH_PX } from './Shelf3D'
+import { prefersReducedMotion } from '../lib/motion'
 
 /** One turn of the pull-out, matching FLIP_MS so the site's cards agree on pace. */
 export const PULL_MS = 700

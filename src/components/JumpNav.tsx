@@ -1,4 +1,5 @@
 import React from 'react'
+import { JumpNavOffset } from '../lib/jumpNavOffset'
 import { flushSync } from 'react-dom'
 import {
   JUMP_NAV_HEIGHT_PX,
@@ -6,21 +7,9 @@ import {
   SITE_NAV_HEIGHT_PX,
   SITE_NAV_OFFSET,
 } from '../lib/constants'
-import StickyChipBar, { chipClass, useHiddenOnScrollDown } from './StickyChipBar'
-
-/**
- * Where a section heading inside this nav should pin, and the matching px
- * offset for its pinned-background check.
- *
- * It's a context rather than props on each heading because the bar hides itself
- * on the way down the page: when it goes, the headings have to take its slot, or
- * a strip of content shows through where it used to be. Headings outside a
- * JumpNav read the default and pin under SiteNav alone, as they always did.
- */
-export const JumpNavOffset = React.createContext({
-  top: SITE_NAV_OFFSET,
-  pinPx: SITE_NAV_HEIGHT_PX,
-})
+import StickyChipBar from './StickyChipBar'
+import { chipClass } from '../lib/chipClass'
+import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 
 // Clears SiteNav (5rem) plus this bar (3rem). Written out because Tailwind needs
 // the class statically — keep it in step with JUMP_NAV_SECTION_TOP, which the

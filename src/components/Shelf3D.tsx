@@ -1,11 +1,9 @@
 import React from 'react'
+import { restingDeg } from '../lib/motion'
 import type { ShelfItem } from '../data/shelf'
 
 // Same guard PlaceCarousel keeps locally; redeclared rather than lifted so this
 // feature doesn't touch that file.
-export const prefersReducedMotion = () =>
-  typeof window !== 'undefined' &&
-  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 /** How long the spotlight takes to come up over a hovered item. */
 const LEAN_MS = 300
@@ -179,7 +177,6 @@ const SPOTLIGHT_RING = '0 0 0 2px rgba(200, 162, 94, 0.9)'
 // agree. Exported so the pull-out can park its copy at the same angle the
 // shelf box rests at — a fixed departure angle visibly snaps the page block
 // wider or narrower on the first frame.
-export const restingDeg = (index: number) => [-26, -21, -24, -19][index % 4]
 
 // Each item carries its own close-up camera: perspective() inside the item's
 // transform gives every box a genuine vanishing point, so the front face

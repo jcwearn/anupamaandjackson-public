@@ -11,7 +11,9 @@ const Landing: React.FC = () => {
 
   useEffect(() => {
     if (!rsvpOpen) return
-    return () => rsvpTriggerRef.current?.focus()
+    // Captured here rather than read in the cleanup; see SiteNav.
+    const trigger = rsvpTriggerRef.current
+    return () => trigger?.focus()
   }, [rsvpOpen])
 
   return (

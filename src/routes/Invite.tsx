@@ -119,17 +119,20 @@ const Invite: React.FC<Props> = ({ variant }) => {
   // returns focus to whichever trigger opened it.
   useEffect(() => {
     if (!rsvpOpen) return
-    return () => {
-      const target =
-        lastRsvpTriggerRef.current === 'side'
-          ? rsvpSideTriggerRef.current
-          : lastRsvpTriggerRef.current === 'inline'
-            ? rsvpInlineTriggerRef.current
-            : lastRsvpTriggerRef.current === 'card'
-              ? rsvpCardTriggerRef.current
-              : rsvpTriggerRef.current
-      target?.focus()
-    }
+    // Resolved when the modal opens rather than when it closes. Which trigger
+    // was used is already decided by then -- the click handler sets
+    // lastRsvpTriggerRef before flipping rsvpOpen -- and reading four refs in a
+    // cleanup is exactly what react-hooks/exhaustive-deps warns about, since
+    // any of them can point elsewhere by the time it runs.
+    const target =
+      lastRsvpTriggerRef.current === 'side'
+        ? rsvpSideTriggerRef.current
+        : lastRsvpTriggerRef.current === 'inline'
+          ? rsvpInlineTriggerRef.current
+          : lastRsvpTriggerRef.current === 'card'
+            ? rsvpCardTriggerRef.current
+            : rsvpTriggerRef.current
+    return () => target?.focus()
   }, [rsvpOpen])
 
   useEffect(() => {

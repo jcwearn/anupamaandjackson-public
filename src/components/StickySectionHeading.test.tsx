@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import StickySectionHeading from './StickySectionHeading'
-import { JumpNavOffset } from './JumpNav'
+import { JumpNavOffset } from '../lib/jumpNavOffset'
 import { JUMP_NAV_SECTION_TOP } from '../lib/constants'
 
 beforeAll(() => {

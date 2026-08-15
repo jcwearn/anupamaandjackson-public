@@ -1,7 +1,8 @@
 import React from 'react'
 import clsx from 'clsx'
 import { books, films, shelfItems, type ShelfItem } from '../data/shelf'
-import Shelf3D, { restingDeg } from '../components/Shelf3D'
+import Shelf3D from '../components/Shelf3D'
+import { restingDeg } from '../lib/motion'
 import ShelfPullout from '../components/ShelfPullout'
 
 type ShelfTab = 'books' | 'movies'

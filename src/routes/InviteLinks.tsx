@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import GuestGateNotice from '../components/GuestGateNotice'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { SITE_ORIGIN } from '../lib/constants'
 import { CopyIcon, CheckIcon } from '../icons/CopyIcon'
 

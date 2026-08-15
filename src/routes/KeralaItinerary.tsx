@@ -1,9 +1,10 @@
 import React from 'react'
+import { usd } from '../lib/inr'
 import { Link } from 'react-router-dom'
 import StickySectionHeading from '../components/StickySectionHeading'
 import JumpNav, { JUMP_NAV_SCROLL_MT, type JumpTarget } from '../components/JumpNav'
 import { type GuestScheduleState } from '../lib/useGuestSchedule'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { KERALA_EVENT_ID } from '../data/scheduleEvents'
 import kathakaliImg from '../assets/kerala/kathakali.jpg'
 import houseboatImg from '../assets/kerala/houseboat.jpg'
@@ -224,9 +225,6 @@ const inclusionsFor = (trip: Trip, flightChoice: FlightChoice) => [
 
 // Quotes come in rupees, so those are what we store; the dollar figures guests
 // see are derived, and go stale as the rate moves. Update the rate, not the table.
-export const INR_PER_USD = 95.31
-
-export const usd = (inr: number) => `$${Math.round(inr / INR_PER_USD).toLocaleString('en-US')}`
 
 const pricing: {
   trip: Exclude<Trip, 'all'>

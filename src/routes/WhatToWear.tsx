@@ -11,7 +11,7 @@ import PhotoFrame from '../components/PhotoFrame'
 import StickySectionHeading from '../components/StickySectionHeading'
 import CopyLinkButton from '../components/CopyLinkButton'
 import { mensOutfits, womensOutfits, type Outfit } from '../data/attire'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 
 const linkClass = 'underline hover:text-rosewood'
 

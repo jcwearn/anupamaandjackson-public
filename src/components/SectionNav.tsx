@@ -1,7 +1,9 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
 import type { NavItem } from '../lib/navItems'
-import StickyChipBar, { chipClass, useHiddenOnScrollDown } from './StickyChipBar'
+import StickyChipBar from './StickyChipBar'
+import { chipClass } from '../lib/chipClass'
+import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 
 /**
  * A second row of navigation for a section of the site, pinned under SiteNav and

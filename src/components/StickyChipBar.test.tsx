@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import StickyChipBar, { useHiddenOnScrollDown } from './StickyChipBar'
+import StickyChipBar from './StickyChipBar'
+import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 import { JUMP_NAV_HEIGHT_PX, SITE_NAV_OFFSET } from '../lib/constants'
 
 // The bar suppresses hiding for a moment after mount, so a deep link's landing

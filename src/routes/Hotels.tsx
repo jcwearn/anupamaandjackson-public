@@ -3,7 +3,7 @@ import { GOLKONDA_SLUG, hotels } from '../data/hotels'
 import HotelCard from '../components/HotelCard'
 import StickySectionHeading from '../components/StickySectionHeading'
 import JumpNav, { JUMP_NAV_SCROLL_MT, type JumpTarget } from '../components/JumpNav'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 
 // Every hotel on the page is a hotel, so the word earns nothing in a chip and
 // costs width on a phone.

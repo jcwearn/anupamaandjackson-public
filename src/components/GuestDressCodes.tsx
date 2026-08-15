@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import GuestGateNotice from './GuestGateNotice'
 import { HangerIcon } from '../icons/HangerIcon'
 import { formatEventDate, groupByDate } from '../data/scheduleEvents'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 
 /**
  * The dress code for each of an identified guest's events, grouped by day,

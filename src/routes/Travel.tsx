@@ -4,7 +4,7 @@ import IconHeading from '../components/IconHeading'
 import { PlaneIcon } from '../icons/PlaneIcon'
 import { CarIcon } from '../icons/CarIcon'
 import { useHashDisclosure } from '../lib/useHashDisclosure'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { KERALA_EVENT_ID } from '../data/scheduleEvents'
 
 const linkClass = 'underline hover:text-rosewood'

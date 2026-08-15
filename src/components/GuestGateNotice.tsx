@@ -1,6 +1,6 @@
 import React from 'react'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
-import type { UnlockCopy } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
+import type { UnlockCopy } from '../lib/guestScheduleContext'
 
 interface Props {
   /** What the guest gets by unlocking, in the voice of the section it sits in. */

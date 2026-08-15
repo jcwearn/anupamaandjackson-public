@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { formatEventDate, groupByDate, type DayVenue } from '../data/scheduleEvents'
 import ScheduleEventCard from '../components/ScheduleEventCard'
 import StickySectionHeading from '../components/StickySectionHeading'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { MapPinIcon } from '../icons/MapPinIcon'
 
 // The venue used to sit on every card; it rides in the day's sticky heading now

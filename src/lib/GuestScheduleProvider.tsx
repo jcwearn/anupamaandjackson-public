@@ -1,63 +1,11 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ScheduleUnlockModal from '../components/ScheduleUnlockModal'
 import RsvpModal from '../components/RsvpModal'
 import { useGuestSchedule } from './useGuestSchedule'
-import type { GuestScheduleState } from './useGuestSchedule'
-import { universalEvents } from '../data/scheduleEvents'
-
-/** Per-caller wording for the shared unlock dialog. */
-export interface UnlockCopy {
-  heading?: string
-  blurb?: string
-  submitLabel?: string
-}
-
-export interface GuestScheduleContextValue extends GuestScheduleState {
-  openUnlock: (copy?: UnlockCopy) => void
-  /** The Joy fallback offered when the index can't be loaded or the name misses. */
-  openJoy: () => void
-  /**
-   * False outside a provider. FloatingNav is shared with the invite and
-   * save-the-date layouts, which have no guest state — the badge checks this so
-   * it doesn't offer those pages an unlock that would open nothing.
-   */
-  available: boolean
-}
-
-const anonymous: GuestScheduleContextValue = {
-  status: 'anonymous',
-  events: universalEvents,
-  isAdmin: false,
-  candidates: [],
-  emailPrompt: false,
-  emailFailed: false,
-  lookup: () => {},
-  submitEmail: () => {},
-  skipEmail: () => {},
-  chooseCandidate: () => {},
-  signOut: () => {},
-  openUnlock: () => {},
-  openJoy: () => {},
-  available: false,
-}
-
-// Defaults to the anonymous state rather than throwing. Guest state is an
-// enhancement, not a requirement: a component rendered outside the provider —
-// the /engagement tree, a focused unit test — should show its locked view, not
-// take the page down.
-const GuestScheduleContext = createContext<GuestScheduleContextValue>(anonymous)
-
-export function useGuestScheduleContext(): GuestScheduleContextValue {
-  return useContext(GuestScheduleContext)
-}
+// The context, its value type and the hook live in guestScheduleContext.ts so
+// this file exports only the provider component (react/only-export-components).
+import { GuestScheduleContext } from './guestScheduleContext'
+import type { UnlockCopy } from './guestScheduleContext'
 
 /**
  * Owns the single guest lookup for the whole site, plus the dialogs that drive

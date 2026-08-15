@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
-import { useGuestScheduleContext } from '../lib/GuestScheduleProvider'
+import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 
 interface Props {
   /**

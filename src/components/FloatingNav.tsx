@@ -29,7 +29,9 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
   // modal closes, so return focus to the hamburger instead.
   useEffect(() => {
     if (!rsvpOpen) return
-    return () => menuButtonRef.current?.focus()
+    // Captured here rather than read in the cleanup; see SiteNav.
+    const hamburger = menuButtonRef.current
+    return () => hamburger?.focus()
   }, [rsvpOpen])
 
   useEffect(() => {

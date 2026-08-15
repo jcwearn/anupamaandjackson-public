@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { render as rtlRender, screen, within, fireEvent, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import KeralaItinerary, { INR_PER_USD, usd } from './KeralaItinerary'
+import KeralaItinerary from './KeralaItinerary'
+import { INR_PER_USD, usd } from '../lib/inr'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
 import { KERALA_EVENT_ID, universalEvents, type ScheduleEvent } from '../data/scheduleEvents'
 import type { GuestScheduleState, KeralaGuestInfo } from '../lib/useGuestSchedule'
@@ -433,10 +434,13 @@ describe('Kerala jump bar', () => {
     // scrolled past the title and the toggles — and rides up over them getting
     // there. Every other page with a chip bar puts it first.
     const { container } = render()
-    const page = container.firstElementChild!
+    // `root` not `page`: `page` is the render helper defined at the top of this
+    // file, and naming the rendered element after it read as if this were the
+    // helper rather than its output.
+    const root = container.firstElementChild!
 
-    expect(page.firstElementChild!.tagName).toBe('NAV')
-    expect(page.firstElementChild!.nextElementSibling!.tagName).toBe('HEADER')
+    expect(root.firstElementChild!.tagName).toBe('NAV')
+    expect(root.firstElementChild!.nextElementSibling!.tagName).toBe('HEADER')
   })
 
   it('gets out of the way on the way down the page, and comes back on the way up', () => {

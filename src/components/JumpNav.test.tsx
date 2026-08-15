@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import JumpNav, { JumpNavOffset, JUMP_NAV_SCROLL_MT, type JumpTarget } from './JumpNav'
+import JumpNav from './JumpNav'
+import { JUMP_NAV_SCROLL_MT, type JumpTarget } from './JumpNav'
+import { JumpNavOffset } from '../lib/jumpNavOffset'
 import {
   JUMP_NAV_HEIGHT_PX,
   JUMP_NAV_SECTION_TOP,

@@ -3,7 +3,7 @@ import clsx from 'clsx'
 // This bar's own h-12. Named for JumpNav because that's where it started; it is
 // the height of every bar rendered here, and JumpNav's offset math reads the
 // same value.
-import { JUMP_NAV_HEIGHT_PX, SITE_NAV_OFFSET } from '../lib/constants'
+import { SITE_NAV_OFFSET } from '../lib/constants'
 
 /**
  * The bar of chips that pins directly under SiteNav, shared by the two things
@@ -48,17 +48,6 @@ const StickyChipBar: React.FC<{
   </nav>
 )
 
-export const chipClass = (active: boolean) =>
-  clsx(
-    'whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-gold focus-visible:outline-offset-2 sm:text-sm',
-    active ? 'bg-rosewood text-cream' : 'bg-lily/60 text-zeus hover:bg-lily',
-  )
-
-// How long after a jump a scroll is still that jump arriving rather than the
-// reader setting off. Generous: nobody reads and scrolls away inside it, and
-// coming back a frame late is a flicker where staying away is a missing bar.
-const SETTLE_MS = 400
-
 /**
  * The bar is worth its 48px when you want to move around, and not while you're
  * reading — so it goes on the way down and comes back the moment you head up.
@@ -77,46 +66,5 @@ const SETTLE_MS = 400
  *   to a hash themselves, and JumpNav reopens it around its own late jump,
  *   which waits for `load` and so can land well after that.
  */
-export function useHiddenOnScrollDown() {
-  const [hidden, setHidden] = React.useState(false)
-  const settledAt = React.useRef(0)
-
-  const settle = React.useCallback(() => {
-    settledAt.current = performance.now() + SETTLE_MS
-  }, [])
-
-  React.useEffect(() => {
-    settle()
-
-    let frame = 0
-    let lastY = window.scrollY
-
-    const check = () => {
-      frame = 0
-      const y = window.scrollY
-      const moved = y - lastY
-      if (Math.abs(moved) < 8) return
-      // Still track where we are, so the first real scroll after a jump is
-      // measured from where the jump left off rather than from the top.
-      lastY = y
-      if (performance.now() < settledAt.current) return
-      // Nothing has passed under the bar yet until the page has scrolled by its
-      // own height, so leaving early would slide it up off a strip of page
-      // background rather than off content — a pale gap under SiteNav.
-      setHidden(moved > 0 && y >= JUMP_NAV_HEIGHT_PX)
-    }
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(check)
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (frame) cancelAnimationFrame(frame)
-    }
-  }, [settle])
-
-  return [hidden, setHidden, settle] as const
-}
 
 export default StickyChipBar

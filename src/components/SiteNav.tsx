@@ -17,7 +17,11 @@ const SiteNav: React.FC = () => {
 
   useEffect(() => {
     if (!rsvpOpen) return
-    return () => rsvpTriggerRef.current?.focus()
+    // Captured here rather than read in the cleanup. A ref's .current can point
+    // somewhere else by the time cleanup runs, and the button to return focus
+    // to is the one that was on screen when the modal opened.
+    const trigger = rsvpTriggerRef.current
+    return () => trigger?.focus()
   }, [rsvpOpen])
 
   return (
