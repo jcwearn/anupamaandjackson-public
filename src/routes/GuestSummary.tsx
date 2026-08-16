@@ -147,16 +147,20 @@ const GuestSummary: React.FC = () => {
               //
               // A grid, so that every household's outline comes out the same
               // width instead of each one hugging its own longest name and
-              // leaving a ragged right edge down the page. Column one is sized
-              // to the longest name in the list and shared by every row —
+              // leaving a ragged right edge down the page. The middle column is
+              // sized to the longest name in the list and shared by every row —
               // that sharing is the whole reason for the grid, and it is not
               // something separate boxes can work out among themselves.
+              //
+              // The empty 1fr on either side of it is what centres the block in
+              // the card: equal tracks split the leftover width evenly, where a
+              // single trailing filler piled all of it up on the right.
               //
               // minmax(0, …) rather than bare max-content so a freakishly long
               // name wraps instead of pushing the card wider than the screen.
               <ul
                 aria-label="Guests"
-                className="card mt-4 grid grid-cols-[minmax(0,max-content)_1fr] divide-y divide-gold/25"
+                className="card mt-4 grid grid-cols-[1fr_minmax(0,max-content)_1fr] divide-y divide-gold/25"
               >
                 {groups.map((members, index) => (
                   // Names repeat on this list — there are two Jane Does — so
@@ -164,10 +168,10 @@ const GuestSummary: React.FC = () => {
                   // every filter change, so nothing is being preserved across
                   // reorders that a stabler key would protect.
                   //
-                  // Spans both columns so the rule between rows runs the full
-                  // width of the card, as a table's would, while `grid-cols-
-                  // subgrid` hands the row back the parent's columns so its one
-                  // child still lands in the shared column one.
+                  // Spans all three columns so the rule between rows runs the
+                  // full width of the card, as a table's would, while `grid-
+                  // cols-subgrid` hands the row back the parent's tracks so its
+                  // one child still lands in the shared middle column.
                   //
                   // `-mx-4 px-4` cancels the card's padding to get that bleed;
                   // the two cancel out, so the row's tracks still line up with
@@ -175,10 +179,10 @@ const GuestSummary: React.FC = () => {
                   // a second line stacked against the outline below it.
                   <li
                     key={`${members[0].party ?? members[0].name}-${index}`}
-                    className="col-span-2 -mx-4 grid grid-cols-subgrid px-4 py-2"
+                    className="col-span-3 -mx-4 grid grid-cols-subgrid px-4 py-2"
                   >
                     {members.length === 1 ? (
-                      <span className="col-start-1 py-0.5 text-base text-zeus">
+                      <span className="col-start-2 py-0.5 text-base text-zeus">
                         {members[0].name}
                       </span>
                     ) : (
@@ -198,7 +202,7 @@ const GuestSummary: React.FC = () => {
                       // pixel right of everybody else's.
                       <ul
                         aria-label={`Party of ${members.length}`}
-                        className="col-start-1 -mx-3 rounded-lg px-3 outline-1 outline-gold/50"
+                        className="col-start-2 -mx-3 rounded-lg px-3 outline-1 outline-gold/50"
                       >
                         {members.map((member, position) => (
                           <li
