@@ -24,12 +24,22 @@ interface Props {
 // Spelled out as a literal because Tailwind needs the class statically.
 const SCROLL_OFFSET = 'scroll-mt-[calc(env(safe-area-inset-top,0px)+10rem)]'
 
+// The ghost pill, worn by every link that isn't the card's primary call to
+// action.
+const GHOST_PILL =
+  'inline-flex items-center gap-1.5 rounded-full border border-soyabean/40 px-4 py-1.5 text-soyabean transition-colors hover:bg-soyabean/10'
+
 const HotelCard: React.FC<Props> = ({ hotel, reservedForYou = false, description, note }) => {
-  const primaryLink = hotel.trivagoUrl
-    ? { url: hotel.trivagoUrl, label: 'Compare on Trivago' }
-    : hotel.bookingComUrl
-      ? { url: hotel.bookingComUrl, label: 'Book on Booking.com' }
-      : null
+  // A room block we negotiated outranks a price-comparison site; Trivago falls
+  // back to a ghost pill below rather than disappearing, since a guest may
+  // still want to check the block against the open rate.
+  const primaryLink = hotel.roomBlockUrl
+    ? { url: hotel.roomBlockUrl, label: 'Book our room block' }
+    : hotel.trivagoUrl
+      ? { url: hotel.trivagoUrl, label: 'Compare on Trivago' }
+      : hotel.bookingComUrl
+        ? { url: hotel.bookingComUrl, label: 'Book on Booking.com' }
+        : null
 
   return (
     <li
@@ -99,23 +109,28 @@ const HotelCard: React.FC<Props> = ({ hotel, reservedForYou = false, description
               {primaryLink.label} <LinkIcon className="h-3 w-3" />
             </a>
           )}
+          {hotel.trivagoUrl && primaryLink?.url !== hotel.trivagoUrl && (
+            <a
+              href={hotel.trivagoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={GHOST_PILL}
+            >
+              Compare on Trivago <LinkIcon className="h-3 w-3" />
+            </a>
+          )}
           {hotel.bookingUrl && (
             <a
               href={hotel.bookingUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-soyabean/40 px-4 py-1.5 text-soyabean transition-colors hover:bg-soyabean/10"
+              className={GHOST_PILL}
             >
               Hotel website <LinkIcon className="h-3 w-3" />
             </a>
           )}
           {hotel.mapUrl && (
-            <a
-              href={hotel.mapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-soyabean/40 px-4 py-1.5 text-soyabean transition-colors hover:bg-soyabean/10"
-            >
+            <a href={hotel.mapUrl} target="_blank" rel="noopener noreferrer" className={GHOST_PILL}>
               Map <LinkIcon className="h-3 w-3" />
             </a>
           )}

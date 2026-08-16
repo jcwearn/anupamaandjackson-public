@@ -59,6 +59,13 @@ const Hotels: React.FC = () => {
                   ? 'We’ve arranged a room for you at the resort — the details are with the hotel below.'
                   : 'Accommodation at the resort has been arranged for a number of our guests and will be reflected in your RSVP details.'}
               </p>
+              {/* Its own paragraph rather than a clause in the one below: the
+                  block covers the pre-wedding nights, so it is for every guest,
+                  including the ones who already have a room at the resort. */}
+              <p className="mt-6 font-body text-lg leading-relaxed text-zeus/80">
+                We’ve also held a block of rooms at the Taj Krishna for the nights of October 25 and
+                26 — booking details are just below.
+              </p>
               <p className="mt-6 font-body text-lg leading-relaxed text-zeus/80">
                 For those making their own arrangements, there are plenty of wonderful nearby hotels
                 and rentals — we've shared a few of our favorites below to help make your stay easy
