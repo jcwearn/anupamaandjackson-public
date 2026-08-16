@@ -15,7 +15,10 @@ export interface RosterGuest {
    * Verbatim RSVP cells. '' means the guest hasn't answered; absent means the
    * sheet had no such column at all.
    */
+  pellikuthuruRsvp?: string
+  sangeetRsvp?: string
   muhurthamRsvp?: string
+  receptionRsvp?: string
   golkondaCoveredAnswer?: string
   golkondaOwnAnswer?: string
 }

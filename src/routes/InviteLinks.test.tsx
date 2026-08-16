@@ -6,11 +6,20 @@ import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
 import { universalEvents } from '../data/scheduleEvents'
 import { SITE_ORIGIN } from '../lib/constants'
 import type { GuestScheduleState } from '../lib/useGuestSchedule'
+import type { AdminUnlockState, AdminUnlockStatus } from '../lib/adminUnlock'
 
 const state = vi.hoisted(() => ({ current: null as GuestScheduleState | null }))
+const unlockState = vi.hoisted(() => ({ current: null as AdminUnlockState | null }))
 
 vi.mock('../lib/useGuestSchedule', () => ({
   useGuestSchedule: () => state.current,
+}))
+
+// The passphrase layer is stubbed here; its crypto is the subject of
+// adminUnlock.test.tsx. What this file cares about is that the links stay
+// behind it.
+vi.mock('../lib/adminUnlock', () => ({
+  useAdminUnlock: () => unlockState.current,
 }))
 
 const writeText = vi.fn(() => Promise.resolve())
@@ -32,9 +41,23 @@ const setState = (overrides: Partial<GuestScheduleState> = {}) => {
   }
 }
 
+const setUnlock = (
+  status: AdminUnlockStatus = 'locked',
+  overrides: Partial<AdminUnlockState> = {},
+) => {
+  unlockState.current = {
+    status,
+    summary: [],
+    unlock: vi.fn(),
+    forget: vi.fn(),
+    ...overrides,
+  }
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   setState()
+  setUnlock()
   vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
 })
 
@@ -95,11 +118,46 @@ describe('InviteLinks gate', () => {
 
     expect(screen.getByRole('button', { name: 'Unlock This Page' })).toBeInTheDocument()
   })
+
+  it('withholds the links from an admin who has not entered the passphrase', () => {
+    // The admin tag is who you are; the passphrase is the secret. Carrying the
+    // tag alone is not enough, and this is the assertion that says so.
+    setState({ status: 'identified', displayName: 'Anupama', isAdmin: true })
+    setUnlock('locked')
+    renderPage()
+
+    expect(screen.getByLabelText('Admin passphrase')).toBeInTheDocument()
+    expect(screen.queryByText(`${SITE_ORIGIN}/invites/wearn/`)).not.toBeInTheDocument()
+  })
+
+  it('hands a submitted passphrase to the unlock hook', () => {
+    const unlock = vi.fn()
+    setState({ status: 'identified', displayName: 'Anupama', isAdmin: true })
+    setUnlock('locked', { unlock })
+    renderPage()
+
+    fireEvent.change(screen.getByLabelText('Admin passphrase'), {
+      target: { value: 'open sesame' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+    expect(unlock).toHaveBeenCalledWith('open sesame')
+  })
+
+  it('says so when the passphrase was wrong, without showing the links', () => {
+    setState({ status: 'identified', displayName: 'Anupama', isAdmin: true })
+    setUnlock('wrong')
+    renderPage()
+
+    expect(screen.getByRole('alert')).toHaveTextContent('not the passphrase')
+    expect(screen.queryByText(`${SITE_ORIGIN}/invites/wearn/`)).not.toBeInTheDocument()
+  })
 })
 
 describe('InviteLinks contents', () => {
   beforeEach(() => {
     setState({ status: 'identified', displayName: 'Anupama', isAdmin: true })
+    setUnlock('unlocked')
   })
 
   it('lists every invite variant with its scope', () => {
@@ -153,5 +211,14 @@ describe('InviteLinks contents', () => {
     for (const link of screen.getAllByRole('link', { name: 'Download' })) {
       expect(link).toHaveAttribute('download')
     }
+  })
+
+  it('offers a way to re-lock the device', () => {
+    const forget = vi.fn()
+    setUnlock('unlocked', { forget })
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Forget this device' }))
+    expect(forget).toHaveBeenCalled()
   })
 })

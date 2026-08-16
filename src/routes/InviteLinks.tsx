@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import AdminUnlockNotice, { AdminForgetButton } from '../components/AdminUnlockNotice'
 import GuestGateNotice from '../components/GuestGateNotice'
+import NotForYouNotice from '../components/NotForYouNotice'
+import { useAdminUnlock } from '../lib/adminUnlock'
 import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { SITE_ORIGIN } from '../lib/constants'
 import { CopyIcon, CheckIcon } from '../icons/CopyIcon'
@@ -70,39 +73,9 @@ const CopyButton: React.FC<{ url: string }> = ({ url }) => {
   )
 }
 
-/**
- * The one state GuestGateNotice gets wrong here.
- *
- * It treats `identified` as success and prints "Showing your invitation" —
- * true everywhere else on the site, where being known to us is the whole gate.
- * This page's gate is the admin tag, so a guest can be perfectly well
- * identified and still have nothing to see, and the shared notice would tell
- * them their invitation was on screen above an empty page.
- */
-const NotForYouNotice: React.FC<{ displayName?: string; onSignOut: () => void }> = ({
-  displayName,
-  onSignOut,
-}) => (
-  <div className="card mt-5 text-center">
-    <p className="text-sm leading-relaxed text-zeus/80">
-      {displayName ? `We know you as ${displayName}, and this` : 'This'} page isn't one of yours —
-      it's just for the family sharing out the invitations. Everything meant for you is on the rest
-      of the site.
-    </p>
-    <p className="mt-3 text-sm text-zeus/80">
-      <button
-        type="button"
-        onClick={onSignOut}
-        className="underline decoration-rosewood/40 underline-offset-2 hover:text-rosewood"
-      >
-        Not you?
-      </button>
-    </p>
-  </div>
-)
-
 const InviteLinks: React.FC = () => {
   const { isAdmin, status, displayName, signOut } = useGuestScheduleContext()
+  const unlock = useAdminUnlock()
 
   return (
     <div className="min-h-screen bg-peach/20 px-4 pb-16">
@@ -115,7 +88,11 @@ const InviteLinks: React.FC = () => {
         </header>
 
         {status === 'identified' && !isAdmin ? (
-          <NotForYouNotice displayName={displayName} onSignOut={signOut} />
+          <NotForYouNotice
+            displayName={displayName}
+            onSignOut={signOut}
+            audience="the family sharing out the invitations"
+          />
         ) : !isAdmin ? (
           <GuestGateNotice
             lockedBlurb="This page is just for family — unlock it to see the invite links."
@@ -124,6 +101,12 @@ const InviteLinks: React.FC = () => {
               heading: 'Who are you?',
               blurb: 'Enter your name to open the invite links.',
             }}
+          />
+        ) : unlock.status !== 'unlocked' ? (
+          <AdminUnlockNotice
+            status={unlock.status}
+            onUnlock={unlock.unlock}
+            blurb="One more step — enter the admin passphrase to see the invite links."
           />
         ) : (
           <div className="font-body">
@@ -179,6 +162,8 @@ const InviteLinks: React.FC = () => {
                 </li>
               ))}
             </ul>
+
+            <AdminForgetButton onForget={unlock.forget} />
           </div>
         )}
       </div>

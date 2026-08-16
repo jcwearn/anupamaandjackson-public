@@ -10,6 +10,7 @@ import Schedule from './routes/Schedule'
 import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
+import GuestSummary from './routes/GuestSummary'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
 import KeralaItinerary from './routes/KeralaItinerary'
@@ -55,6 +56,7 @@ export function render(url: string) {
           <Route path="/kerala-itinerary" element={<KeralaItinerary />} />
           <Route path="/hotels" element={<Hotels />} />
           <Route path="/invites/links" element={<InviteLinks />} />
+          <Route path="/guest-summary" element={<GuestSummary />} />
           <Route element={<TravelLayout />}>
             <Route path="/travel" element={<Travel />} />
             <Route path="/travel/hyderabad" element={<Hyderabad />} />

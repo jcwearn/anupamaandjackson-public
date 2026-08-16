@@ -1,9 +1,11 @@
 import { aliasesFor, fold } from '../../src/lib/guestName.js'
 import { partyHintLabel } from './partyLabel.js'
 import {
+  ADMIN_KDF_ITERATIONS,
   KDF_ITERATIONS,
   SALT_BYTES,
   bytesToBase64,
+  deriveAdminKeyBytes,
   deriveGuestKey,
   emailHash,
   encryptJson,
@@ -12,10 +14,11 @@ import {
 } from '../../src/lib/guestCrypto.js'
 
 // Bumped to 2 when the guest record gained `golkonda`, to 3 when events gained
-// `indianWear`, and to 4 when the index gained `guestCount`. Feeds
-// sourceFingerprint, so bumping it is what makes a shape change actually
-// republish.
-export const INDEX_VERSION = 4
+// `indianWear`, to 4 when the index gained `guestCount`, to 5 when it gained
+// the passphrase-encrypted `admin` block, and to 6 when that block's entries
+// gained `party`. Feeds sourceFingerprint, so bumping it is what makes a shape
+// change actually republish.
+export const INDEX_VERSION = 6
 
 /**
  * The With Joy tag that admits a guest to the unlinked /invites/links page.
@@ -44,7 +47,13 @@ export const GOLKONDA_STAYS = [
   { tag: 'hotel-golkonda-own', value: 'own', answerField: 'golkondaOwnAnswer' },
 ]
 
-const MUHURTHAM_ATTENDING = 'Attending'
+/** The one affirmative With Joy writes into every per-event RSVP column. */
+const RSVP_ATTENDING = 'Attending'
+
+async function sha256Base64(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return bytesToBase64(new Uint8Array(digest))
+}
 
 /**
  * The answers that mean the guest is taking the room. The second is on the
@@ -73,7 +82,7 @@ export function golkondaStay(guest) {
     )
   }
   if (held.length === 0) return undefined
-  if (guest.muhurthamRsvp !== MUHURTHAM_ATTENDING) return undefined
+  if (guest.muhurthamRsvp !== RSVP_ATTENDING) return undefined
   return GOLKONDA_ACCEPTED_ANSWERS.has(guest[held[0].answerField]) ? held[0].value : undefined
 }
 
@@ -114,6 +123,148 @@ export function assertGolkondaAnswersRecognized(guests) {
           `taking the room.`,
       )
     }
+  }
+}
+
+/**
+ * The two side-of-the-family tags /guest-summary filters on.
+ *
+ * Lowercase because `rowsToGuests` lowercases the whole header row before
+ * stripping ' (tag)' — the sheet spells them 'Vidya (tag)' and 'Venkat (tag)'.
+ * No guest carries both today, and nothing here depends on that staying true.
+ */
+export const SUMMARY_TAGS = ['vidya', 'venkat']
+
+/**
+ * The RSVP columns that count as attendance.
+ *
+ * 'optional trip' is deliberately absent. Its answers include 'I am interested
+ * to learn more about the trip', which is neither an acceptance nor a decline,
+ * and folding it in would file those 23 guests under Not Attending.
+ */
+const SUMMARY_RSVP_FIELDS = ['pellikuthuruRsvp', 'sangeetRsvp', 'muhurthamRsvp', 'receptionRsvp']
+
+/**
+ * 'attending', 'declined' or 'none', from the four wedding RSVP columns.
+ *
+ * The three-way split is the whole point of the page: a guest who has answered
+ * nothing at all is chased differently from one who has answered no. So a blank
+ * is dropped before the verdict rather than counted as a decline — '' is an
+ * unanswered question here, exactly as it is for `assertGolkondaColumnsExist`.
+ */
+export function guestSummaryStatus(guest) {
+  const answers = SUMMARY_RSVP_FIELDS.map((field) => guest[field]).filter(Boolean)
+  if (answers.length === 0) return 'none'
+  return answers.includes(RSVP_ATTENDING) ? 'attending' : 'declined'
+}
+
+/**
+ * Whether a name part is a name at all.
+ *
+ * 13 rows carry a literal '.' as their surname — With Joy's placeholder for a
+ * guest who gave only one name, distinct from the 14 rows that leave the cell
+ * blank. Joined naively those read 'Firstname .' and, worse, all 13 sort to
+ * the head of the list together under '.'.
+ */
+const hasLetter = (part) => /\p{L}/u.test(part ?? '')
+
+/** Surname if there is one, else the whole name — what the list sorts on. */
+const sortName = (name) => name.split(' ').at(-1) ?? ''
+
+const byName = (a, b) =>
+  sortName(a.name).localeCompare(sortName(b.name)) || a.name.localeCompare(b.name)
+
+/**
+ * The roster behind /guest-summary: one entry per guest, name and verdict only.
+ *
+ * Built from the raw roster rather than from `buildGuestRecords`, which drops
+ * every guest carrying no event tag and no admin tag. Those guests are exactly
+ * the ones a "who hasn't responded" list exists to surface, so dropping them
+ * would hide the page's most useful rows.
+ *
+ * Nothing beyond the name reaches the payload — no email, no address, and not
+ * the party's *name* either. `party` below is an opaque integer, enough to draw
+ * the households together and useless for anything else.
+ *
+ * Ordering is load-bearing, not cosmetic: the page groups runs of adjacent
+ * entries sharing a party, so members of one household have to come out of here
+ * next to each other. Households sort to where their alphabetically first
+ * member would have sorted alone, which keeps the whole list readable as the
+ * A–Z it still mostly is.
+ */
+export function buildGuestSummary(guests) {
+  const entries = guests.flatMap((guest) => {
+    const name = [guest.firstName, guest.lastName].filter(hasLetter).join(' ')
+    if (!name) return []
+    const tag = SUMMARY_TAGS.find((candidate) => guest.tags.has(candidate))
+    return [{ name, ...(tag ? { tag } : {}), status: guestSummaryStatus(guest), key: guest.party }]
+  })
+
+  // Households of one are not households. 44 guests carry no party string at
+  // all, and two parties have a single member; both are plain rows.
+  const households = new Map()
+  for (const entry of entries) {
+    if (!entry.key) continue
+    households.set(entry.key, (households.get(entry.key) ?? []).concat(entry))
+  }
+
+  // A unit is one household or one lone guest — whatever moves as a block.
+  const units = []
+  const grouped = new Set()
+  for (const entry of entries) {
+    if (grouped.has(entry)) continue
+    const members = households.get(entry.key)
+    if (!members || members.length < 2) {
+      units.push([entry])
+      continue
+    }
+    members.forEach((member) => grouped.add(member))
+    units.push([...members].sort(byName))
+  }
+
+  units.sort((a, b) => byName(a[0], b[0]))
+
+  let nextParty = 0
+  return units.flatMap((members) => {
+    // Numbered in output order purely so the client can spot a run; the party's
+    // own string never leaves the generator.
+    const party = members.length > 1 ? (nextParty += 1) : undefined
+    // `key` is the raw party string, dropped here: it is the last thing in this
+    // pipeline that is guest data rather than a grouping handle.
+    return members.map(({ key: _key, ...entry }) => (party ? { ...entry, party } : entry))
+  })
+}
+
+/**
+ * The RSVP columns behind the summary, like `assertGolkondaColumnsExist` before
+ * it: renamed or dropped in With Joy, they would leave every guest looking as
+ * though they had never responded, and the page would be confidently wrong
+ * rather than visibly broken.
+ */
+export function assertSummaryRsvpColumnsExist(guests) {
+  const missing = SUMMARY_RSVP_FIELDS.filter((field) =>
+    guests.some((guest) => guest[field] === undefined),
+  )
+  if (missing.length > 0) {
+    throw new Error(
+      `The roster has no ${missing.join(', ')} column(s), so every guest would read as having ` +
+        `not responded on /guest-summary. Check the sheet.`,
+    )
+  }
+}
+
+/**
+ * Both side-of-the-family tags, for the same reason as `assertAdminTagExists`:
+ * a vanished column is not an error anywhere else in the pipeline, it just
+ * silently empties one of the page's two filters.
+ */
+export function assertSummaryTagsExist(knownTags) {
+  const missing = SUMMARY_TAGS.filter((tag) => !knownTags.has(tag))
+  if (missing.length > 0) {
+    throw new Error(
+      `No guest carries the ${missing.join(' or ')} tag, so that filter on /guest-summary would ` +
+        `come up empty. Check the '… (tag)' columns in the sheet.`,
+    )
   }
 }
 
@@ -500,7 +651,12 @@ export function buildGuestRecords(guests, catalogEvents, keralaPayloads = null) 
  * leaves this hash identical, and the sync would report 'nothing to publish'
  * and never ship the new field. Bump the version whenever the payload changes.
  */
-export async function sourceFingerprint(guests, catalogEvents, keralaResponses = null) {
+export async function sourceFingerprint(
+  guests,
+  catalogEvents,
+  keralaResponses = null,
+  adminPassphrase = '',
+) {
   const canonical = JSON.stringify({
     version: INDEX_VERSION,
     guests: guests
@@ -513,8 +669,13 @@ export async function sourceFingerprint(guests, catalogEvents, keralaResponses =
           [...(guest.emails ?? [])].sort(),
           [...guest.tags].sort(),
           // RSVP answers move independently of the tags, and a guest who
-          // declines their room has to stop seeing it on /hotels.
+          // declines their room has to stop seeing it on /hotels. All four wedding
+          // columns are here rather than muhurtham alone, because
+          // /guest-summary reads every one of them.
+          guest.pellikuthuruRsvp,
+          guest.sangeetRsvp,
           guest.muhurthamRsvp,
+          guest.receptionRsvp,
           guest.golkondaCoveredAnswer,
           guest.golkondaOwnAnswer,
         ].join(''),
@@ -522,19 +683,40 @@ export async function sourceFingerprint(guests, catalogEvents, keralaResponses =
       .sort(),
     catalog: catalogEvents,
     kerala: keralaResponses,
+    // Rotating the passphrase changes no roster input, so without this the
+    // fingerprint would match, the sync would report 'nothing to publish', and
+    // the old ciphertext would stay live under the old secret — a rotation that
+    // appears to work and changes nothing.
+    //
+    // Hashed rather than joined in verbatim, so the passphrase never reaches a
+    // string this function builds. The published sourceHash digests a canonical
+    // form containing all 649 guest rows, so it is not an oracle an outsider
+    // can run passphrase guesses against.
+    adminPassphrase: await sha256Base64(adminPassphrase),
   })
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
-  return bytesToBase64(new Uint8Array(digest))
+  return sha256Base64(canonical)
 }
 
 export async function buildIndex({
   guests,
   catalogEvents,
   iterations = KDF_ITERATIONS,
+  adminIterations = ADMIN_KDF_ITERATIONS,
+  adminPassphrase,
   sourceHash,
   keralaResponses = null,
 }) {
+  // Not a default, because there is no safe default. An index built with an
+  // empty or forgotten passphrase would publish the roster under a key anyone
+  // reading this file could derive, and would look exactly like a good one.
+  if (!adminPassphrase) {
+    throw new Error('buildIndex needs an adminPassphrase — the admin payload has no other key.')
+  }
+
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
+  // Its own salt, not the guest one: sharing it would let a single precomputed
+  // table serve both cracking the passphrase and hashing guest names.
+  const adminSalt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
 
   const privateEvents = catalogEvents.filter((event) => !event.universal)
   const eventKeys = new Map()
@@ -636,6 +818,13 @@ export async function buildIndex({
     )
   }
 
+  // Built from `guests`, not `records`: the latter has already dropped everyone
+  // with no event tag, and those are the rows /guest-summary most needs.
+  const summary = buildGuestSummary(guests)
+  const adminKey = await importEventKey(
+    await deriveAdminKeyBytes(adminPassphrase, adminSalt, adminIterations),
+  )
+
   return {
     index: {
       v: INDEX_VERSION,
@@ -653,10 +842,33 @@ export async function buildIndex({
       },
       events,
       guests: guestIndex,
+      // The /guest-summary roster, under the generated passphrase rather than
+      // any guest's name. Unlike everything above it, this envelope is meant to
+      // hold: the key exists in a GitHub secret and a local .env, nowhere the
+      // public mirror can reach, so guessing a name buys nothing here.
+      admin: {
+        kdf: {
+          name: 'PBKDF2',
+          hash: 'SHA-256',
+          iterations: adminIterations,
+          salt: bytesToBase64(adminSalt),
+        },
+        payload: await encryptJson(adminKey, { summary }),
+      },
     },
     stats: {
       guests: records.length,
       admins: records.filter((record) => record.admin).length,
+      summary: summary.length,
+      summaryTagged: Object.fromEntries(
+        SUMMARY_TAGS.map((tag) => [tag, summary.filter((entry) => entry.tag === tag).length]),
+      ),
+      summaryStatus: Object.fromEntries(
+        ['attending', 'declined', 'none'].map((status) => [
+          status,
+          summary.filter((entry) => entry.status === status).length,
+        ]),
+      ),
       keralaResponses: records.filter((record) => record.kerala).length,
       golkondaCovered: records.filter((record) => record.golkonda === 'covered').length,
       golkondaOwn: records.filter((record) => record.golkonda === 'own').length,

@@ -25,6 +25,10 @@ beforeAll(async () => {
     guests: rowsToGuests(parseCsv(guestCsv)),
     catalogEvents: catalog.events,
     iterations: TEST_ITERATIONS,
+    adminIterations: TEST_ITERATIONS,
+    // Required by the generator, and irrelevant here: nothing in this file
+    // touches the admin payload. See adminUnlock.test.tsx for that half.
+    adminPassphrase: 'test-passphrase',
     keralaResponses: keralaFixture.responses,
   }))
 })

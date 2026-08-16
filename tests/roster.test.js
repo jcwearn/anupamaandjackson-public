@@ -145,6 +145,28 @@ describe('rowsToGuests', () => {
     expect(guest.muhurthamRsvp).toBeUndefined()
     expect(guest.golkondaCoveredAnswer).toBeUndefined()
     expect(guest.golkondaOwnAnswer).toBeUndefined()
+    expect(guest.sangeetRsvp).toBeUndefined()
+  })
+
+  it('reads the other three wedding RSVP columns, not just muhurtham', () => {
+    const header = 'first name,last name,pellikuthuru,sangeet,reception,muhurtam (tag)'
+    const [guest] = guestsFrom(`${header}\nAda,Lovelace,Attending,,Not Attending,1`)
+
+    expect(guest.pellikuthuruRsvp).toBe('Attending')
+    expect(guest.sangeetRsvp).toBe('')
+    expect(guest.receptionRsvp).toBe('Not Attending')
+  })
+
+  it('tells an RSVP column from the tag column of the same name', () => {
+    // 'sangeet' and 'sangeet (tag)' sit side by side in the real sheet, and
+    // reading the tag column as the answer would make every tagged guest look
+    // like they had accepted.
+    const header = 'first name,last name,sangeet,sangeet (tag),reception,reception (tag)'
+    const [guest] = guestsFrom(`${header}\nAda,Lovelace,Not Attending,1,,1`)
+
+    expect(guest.sangeetRsvp).toBe('Not Attending')
+    expect(guest.receptionRsvp).toBe('')
+    expect([...guest.tags].sort()).toEqual(['reception', 'sangeet'])
   })
 
   it('refuses an empty roster', () => {

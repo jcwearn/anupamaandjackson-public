@@ -11,10 +11,14 @@ import {
   assertGolkondaAnswersRecognized,
   assertGolkondaColumnsExist,
   assertRosterPlausible,
+  assertSummaryRsvpColumnsExist,
+  assertSummaryTagsExist,
   assertUniversalEventsMatch,
+  buildGuestSummary,
   buildIndex,
   gateMatches,
   golkondaStay,
+  guestSummaryStatus,
   resolveBucket,
   resolveEventIds,
   resolveKeralaPayloads,
@@ -24,6 +28,7 @@ import { normalizedKey } from '../src/lib/guestName.js'
 import {
   base64ToBytes,
   decryptJson,
+  deriveAdminKeyBytes,
   deriveGuestKey,
   emailHash,
   importEventKey,
@@ -33,6 +38,7 @@ import {
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Low iterations keep the suite fast; production uses KDF_ITERATIONS.
 const TEST_ITERATIONS = 1000
+const TEST_PASSPHRASE = 'correct-horse-battery-staple'
 
 let catalogEvents
 let guests
@@ -52,6 +58,8 @@ beforeAll(async () => {
     guests,
     catalogEvents,
     iterations: TEST_ITERATIONS,
+    adminIterations: TEST_ITERATIONS,
+    adminPassphrase: TEST_PASSPHRASE,
     keralaResponses,
   }))
 })
@@ -202,6 +210,177 @@ describe('golkonda stay', () => {
   })
 })
 
+describe('guest summary status', () => {
+  const guest = (overrides) => ({
+    row: 7,
+    tags: new Set(),
+    pellikuthuruRsvp: '',
+    sangeetRsvp: '',
+    muhurthamRsvp: '',
+    receptionRsvp: '',
+    ...overrides,
+  })
+
+  it('files a guest who answered nothing under no response', () => {
+    // The whole reason the page exists. A blank is an unasked question, not a
+    // no, and merging the two would hide everyone still worth chasing.
+    expect(guestSummaryStatus(guest())).toBe('none')
+  })
+
+  it('files a yes to any one event as attending', () => {
+    expect(guestSummaryStatus(guest({ sangeetRsvp: 'Attending' }))).toBe('attending')
+    expect(guestSummaryStatus(guest({ receptionRsvp: 'Attending' }))).toBe('attending')
+    expect(guestSummaryStatus(guest({ pellikuthuruRsvp: 'Attending' }))).toBe('attending')
+  })
+
+  it('lets one yes outweigh any number of nos', () => {
+    // Someone coming to the muhurtham and skipping the rest is attending, and
+    // filing them anywhere else would have their family chasing them for it.
+    expect(
+      guestSummaryStatus(
+        guest({
+          pellikuthuruRsvp: 'Not Attending',
+          sangeetRsvp: 'Not Attending',
+          muhurthamRsvp: 'Attending',
+          receptionRsvp: 'Not Attending',
+        }),
+      ),
+    ).toBe('attending')
+  })
+
+  it('files a guest as declined only when every answer given was a no', () => {
+    expect(
+      guestSummaryStatus(guest({ sangeetRsvp: 'Not Attending', muhurthamRsvp: 'Not Attending' })),
+    ).toBe('declined')
+    // Partly answered and all nos still counts: they have said no to what they
+    // were asked about.
+    expect(guestSummaryStatus(guest({ receptionRsvp: 'Not Attending' }))).toBe('declined')
+  })
+
+  it('ignores the optional trip, whose third answer is neither', () => {
+    // 'I am interested to learn more about the trip' is not a decline, and
+    // reading that column would file those guests as one.
+    expect(
+      guestSummaryStatus(
+        guest({ optionalTripRsvp: 'I am interested to learn more about the trip' }),
+      ),
+    ).toBe('none')
+  })
+})
+
+describe('guest summary roster', () => {
+  let summary
+
+  beforeAll(() => {
+    summary = buildGuestSummary(guests)
+  })
+
+  const named = (name) => summary.find((entry) => entry.name === name)
+
+  it('carries every roster row, including guests with no gating tag', () => {
+    // buildGuestRecords drops the tagless row; this must not. Those guests are
+    // exactly the ones a 'who has not responded' list is for.
+    expect(summary).toHaveLength(guests.length)
+    expect(named('Tagless Guest')).toBeDefined()
+  })
+
+  it('tags each guest with their side, and leaves the rest untagged', () => {
+    expect(named('Ada Lovelace').tag).toBe('vidya')
+    expect(named('Grace Hopper').tag).toBe('venkat')
+    expect(named('Jane Doe').tag).toBeUndefined()
+  })
+
+  it('carries the name, verdict and household, and nothing else', () => {
+    // The page lists names. Anything more here is guest data shipped for no
+    // reason — and this payload leaves the generator. Ada travels alone, so
+    // she does not even carry the household id.
+    expect(Object.keys(named('Ada Lovelace')).sort()).toEqual(['name', 'status', 'tag'])
+    expect(Object.keys(named('John Smith')).sort()).toEqual(['name', 'party', 'status', 'tag'])
+    expect(Object.keys(named('Jane Doe')).sort()).toEqual(['name', 'party', 'status'])
+  })
+
+  it('joins a first name with no last name into just the first', () => {
+    expect(named('Prince')).toBeDefined()
+    expect(named('Prince ')).toBeUndefined()
+  })
+
+  it("drops With Joy's '.' placeholder surname instead of printing it", () => {
+    // 13 rows on the real roster carry it. Joined naively they read
+    // 'Firstname .', and all 13 sort to the head of the list under '.'.
+    expect(named('Cleopatra')).toBeDefined()
+    expect(named('Cleopatra .')).toBeUndefined()
+    expect(summary.map((entry) => entry.name.split(' ').at(-1))).not.toContain('.')
+  })
+
+  it('reads a status for each of the three buckets', () => {
+    expect(named('Ada Lovelace').status).toBe('attending')
+    expect(named('Not Coming').status).toBe('declined')
+    expect(named('Lise Meitner').status).toBe('none')
+  })
+
+  it('sorts by surname, the way a guest list reads', () => {
+    // Households move as a block, so the run of surnames is only sorted once
+    // each household is collapsed to the member it sorts under.
+    const heads = []
+    for (const entry of summary) {
+      if (entry.party !== undefined && entry.party === summary[summary.indexOf(entry) - 1]?.party) {
+        continue
+      }
+      heads.push(entry.name.split(' ').at(-1))
+    }
+    expect(heads).toEqual([...heads].sort((a, b) => a.localeCompare(b)))
+  })
+
+  it('gives everyone in a household the same party, and nobody else theirs', () => {
+    const smiths = summary.filter((entry) => entry.name === 'John Smith')
+    expect(smiths).toHaveLength(2)
+    // Two households, two namesakes: they must not be drawn together.
+    expect(smiths[0].party).not.toBe(smiths[1].party)
+
+    const family = summary.filter((entry) => ['John Smith', 'Mary Smith'].includes(entry.name))
+    expect(new Set(family.map((entry) => entry.party)).size).toBe(2)
+  })
+
+  it('leaves a guest travelling alone with no party at all', () => {
+    // A lone member is not a household, and a bracket around one name says
+    // nothing. 44 real rows carry no party string; two more are parties of one.
+    expect(named('Ada Lovelace').party).toBeUndefined()
+    expect(named('Tycho Brahe').party).toBeUndefined()
+  })
+
+  it('keeps the members of a household adjacent', () => {
+    // The page groups by walking adjacent rows, so this ordering is the
+    // contract it relies on rather than a nicety.
+    const seen = new Set()
+    summary.forEach((entry, position) => {
+      if (entry.party === undefined) return
+      if (seen.has(entry.party)) {
+        expect(summary[position - 1]?.party, `party ${entry.party} is split`).toBe(entry.party)
+      }
+      seen.add(entry.party)
+    })
+  })
+
+  it('never ships the party name, only an opaque id', () => {
+    // 'Smith Family' and 'Prayaga North' are guest data the page has no use
+    // for; all it needs is that two rows belong together.
+    const serialized = JSON.stringify(summary)
+    expect(serialized).not.toContain('Family')
+    expect(serialized).not.toContain('Household')
+    expect(serialized).not.toContain('Prayaga North')
+    for (const entry of summary) {
+      if (entry.party !== undefined) expect(typeof entry.party).toBe('number')
+    }
+  })
+
+  it('sorts a household under its alphabetically first member', () => {
+    // The two Prayaga namesakes are in different parties, so they stay apart;
+    // what matters is that a household does not pull its block out of order.
+    const positionOf = (name) => summary.findIndex((entry) => entry.name === name)
+    expect(positionOf('Ada Lovelace')).toBeLessThan(positionOf('Chien-Shiung Wu'))
+  })
+})
+
 describe('collision handling', () => {
   const record = (row, eventIds, hint, admin = false) => ({
     row,
@@ -282,6 +461,33 @@ describe('build-time guards', () => {
     expect(() => assertGatesExist([{ id: 'x', gate: 'nope' }], new Set(['muhurtam']))).toThrow(
       /does not exist in the export/,
     )
+  })
+
+  it('rejects a roster missing either side-of-the-family tag', () => {
+    // Nothing else in the pipeline looks at these, so a dropped column would
+    // just empty one of the page's two filters with no error anywhere.
+    expect(() => assertSummaryTagsExist(new Set(['admin', 'venkat']))).toThrow(/vidya/)
+    expect(() => assertSummaryTagsExist(new Set(['admin', 'vidya']))).toThrow(/venkat/)
+    expect(() =>
+      assertSummaryTagsExist(new Set(guests.flatMap((guest) => [...guest.tags]))),
+    ).not.toThrow()
+  })
+
+  it('rejects a roster missing the summary RSVP columns', () => {
+    // Absent columns would read as 'nobody has answered anything', which the
+    // page would report with total confidence.
+    expect(() => assertSummaryRsvpColumnsExist([{ ...guests[0], sangeetRsvp: undefined }])).toThrow(
+      /sangeetRsvp/,
+    )
+    expect(() => assertSummaryRsvpColumnsExist(guests)).not.toThrow()
+  })
+
+  it('refuses to build an index with no admin passphrase', () => {
+    // The failure this prevents is invisible: an index built without it looks
+    // entirely normal and publishes the roster under a key nobody chose.
+    return expect(
+      buildIndex({ guests, catalogEvents, iterations: TEST_ITERATIONS, keralaResponses }),
+    ).rejects.toThrow(/adminPassphrase/)
   })
 
   it('rejects universal copy that has drifted from the bundled module', () => {
@@ -461,6 +667,28 @@ describe('encrypted index round trip', () => {
     expect(await sourceFingerprint(withdrawn, catalogEvents)).not.toBe(before)
   })
 
+  it('republishes when any of the four wedding RSVPs changes', async () => {
+    // /guest-summary reads all four. Only muhurtham was ever on this list, so
+    // a sangeet or reception answer used to move nothing the sync could see.
+    const before = await sourceFingerprint(guests, catalogEvents)
+    for (const field of ['pellikuthuruRsvp', 'sangeetRsvp', 'receptionRsvp']) {
+      const edited = guests.map((guest) =>
+        guest.firstName === 'Grace' ? { ...guest, [field]: 'Not Attending' } : guest,
+      )
+      expect(await sourceFingerprint(edited, catalogEvents), field).not.toBe(before)
+    }
+  })
+
+  it('republishes when the admin passphrase is rotated', async () => {
+    // Rotating the secret changes no roster input. Without this the sync would
+    // report 'nothing to publish' and leave the old ciphertext live under the
+    // old passphrase — a rotation that appears to work and changes nothing.
+    const before = await sourceFingerprint(guests, catalogEvents, keralaResponses, 'old-secret')
+    expect(await sourceFingerprint(guests, catalogEvents, keralaResponses, 'new-secret')).not.toBe(
+      before,
+    )
+  })
+
   it('cannot be decrypted with the wrong name', async () => {
     const salt = base64ToBytes(index.kdf.salt)
     const target = index.guests[await lookupHash(normalizedKey('Alan', 'Turing'), salt)][0]
@@ -518,6 +746,59 @@ describe('encrypted index round trip', () => {
 
     const [ada] = await lookup('Ada', 'Lovelace')
     expect(ada.golkonda).toBeUndefined()
+  })
+})
+
+describe('admin payload', () => {
+  /** Mirrors what the browser does in useAdminUnlock. */
+  const open = async (passphrase) => {
+    const key = await importEventKey(
+      await deriveAdminKeyBytes(
+        passphrase,
+        base64ToBytes(index.admin.kdf.salt),
+        index.admin.kdf.iterations,
+      ),
+    )
+    return decryptJson(key, index.admin.payload)
+  }
+
+  it('opens with the passphrase it was built under', async () => {
+    const payload = await open(TEST_PASSPHRASE)
+    expect(payload.summary).toHaveLength(guests.length)
+  })
+
+  it('stays shut for every other passphrase', async () => {
+    // Not a comparison the client makes and could be talked out of — a wrong
+    // key is an AES-GCM tag failure, and there is nothing else to try.
+    expect(await open('wrong')).toBeNull()
+    expect(await open(`${TEST_PASSPHRASE} `)).toBeNull()
+    expect(await open('')).toBeNull()
+  })
+
+  it('salts the passphrase separately from the guest names', () => {
+    // Sharing the salt would let one precomputed table serve both cracking the
+    // passphrase and hashing names.
+    expect(index.admin.kdf.salt).not.toBe(index.kdf.salt)
+  })
+
+  it('puts the key nowhere near a guest record', async () => {
+    // The admin tag says who may see the page. It is not, and must not become,
+    // a way of reading the payload — an admin's name is guessable.
+    const [alan] = await lookup('Alan', 'Turing')
+    expect(alan.admin).toBe(true)
+    expect(JSON.stringify(alan)).not.toContain(index.admin.kdf.salt)
+    expect(Object.keys(alan)).not.toContain('summaryKey')
+  })
+
+  it('leaves no summary name in plaintext', () => {
+    // The rest of the index hides names behind guest-name keys, which its own
+    // header concedes are guessable. This one is the file's only real secret,
+    // and it holds 649 names in one envelope.
+    const serialized = JSON.stringify(index)
+    expect(serialized).not.toContain('Lovelace')
+    expect(serialized).not.toContain('attending')
+    expect(serialized).not.toContain('vidya')
+    expect(serialized).not.toContain('venkat')
   })
 })
 

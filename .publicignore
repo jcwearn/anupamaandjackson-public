@@ -56,9 +56,11 @@ public/schedule-index.json
 *.xls
 *.csv
 
-# Local secrets
-.env
-.env.*
+# Local secrets. The glob rather than the two exact-ish patterns below it used
+# to be, which between them still missed a stray `.envn` -- a full copy of .env,
+# private key and admin passphrase included. Anything starting with .env is a
+# credential until proven otherwise.
+.env*
 
 # Build output and local state
 dist/

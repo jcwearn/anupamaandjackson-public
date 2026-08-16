@@ -1,4 +1,5 @@
 export declare const KDF_ITERATIONS: number
+export declare const ADMIN_KDF_ITERATIONS: number
 export declare const SALT_BYTES: number
 export declare const IV_BYTES: number
 export declare const LOOKUP_HASH_BYTES: number
@@ -17,6 +18,11 @@ export declare function deriveGuestKey(
   salt: Uint8Array,
   iterations?: number,
 ): Promise<CryptoKey>
+export declare function deriveAdminKeyBytes(
+  passphrase: string,
+  salt: Uint8Array,
+  iterations?: number,
+): Promise<Uint8Array>
 export declare function importEventKey(rawBytes: Uint8Array): Promise<CryptoKey>
 export declare function encryptJson(key: CryptoKey, value: unknown): Promise<Envelope>
 export declare function decryptJson<T = unknown>(

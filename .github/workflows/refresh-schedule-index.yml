@@ -49,6 +49,11 @@ jobs:
           GOOGLE_SA_EMAIL: ${{ secrets.GOOGLE_SA_EMAIL }}
           GOOGLE_SA_PRIVATE_KEY: ${{ secrets.GOOGLE_SA_PRIVATE_KEY }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
+          # The only key to the /guest-summary payload. The generator refuses to
+          # run without it rather than publishing an index that looks fine and
+          # is keyed to nothing -- so an unset secret fails this job loudly,
+          # which is the point.
+          ADMIN_PASSPHRASE: ${{ secrets.ADMIN_PASSPHRASE }}
         run: node scripts/build-schedule-index.js
 
       # Commits land as me, SSH-signed, so a nightly refresh reads the same as

@@ -8,6 +8,8 @@ export declare function buildIndex(options: {
   guests: RosterGuest[]
   catalogEvents: unknown[]
   iterations?: number
+  adminIterations?: number
+  adminPassphrase: string
   sourceHash?: string
   keralaResponses?: unknown[] | null
 }): Promise<{ index: unknown; stats: unknown }>

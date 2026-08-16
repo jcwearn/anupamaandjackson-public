@@ -14,7 +14,10 @@ const TOKEN_URL = 'https://oauth2.googleapis.com/token'
  * the wrong sheet.
  */
 const RSVP_COLUMNS = [
+  ['pellikuthuru', 'pellikuthuruRsvp'],
+  ['sangeet', 'sangeetRsvp'],
   ['muhurtham', 'muhurthamRsvp'],
+  ['reception', 'receptionRsvp'],
   ['golkonda guest covered', 'golkondaCoveredAnswer'],
   ['golkonda guest own', 'golkondaOwnAnswer'],
 ]

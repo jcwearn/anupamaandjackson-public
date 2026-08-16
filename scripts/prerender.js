@@ -83,6 +83,18 @@ export const routes = [
     ogImage: null,
   },
   {
+    // Same posture as /invites/links above, and more so: this one is gated on
+    // the `admin` tag *and* a passphrase, and its contents are the guest list.
+    // The prerendered HTML holds only the locked state, and the meta says as
+    // little as the neighbouring page's — the repo is mirrored publicly, so the
+    // path is not a secret and was never asked to be one.
+    path: '/guest-summary',
+    outputPath: 'dist/guest-summary/index.html',
+    title: 'Guest Summary - Anupama & Jackson',
+    description: 'A private page for Anupama & Jackson’s wedding.',
+    ogImage: null,
+  },
+  {
     path: '/travel',
     outputPath: 'dist/travel/index.html',
     title: 'Getting Here - Anupama & Jackson',

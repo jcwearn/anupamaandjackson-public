@@ -7,6 +7,7 @@ import Schedule from './routes/Schedule'
 import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
+import GuestSummary from './routes/GuestSummary'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
 import KeralaItinerary from './routes/KeralaItinerary'
@@ -70,10 +71,12 @@ const router = createBrowserRouter([
           { path: '/kerala-itinerary', element: <KeralaItinerary /> },
           { path: '/hotels', element: <Hotels /> },
 
-          // Unlinked and gated on the `admin` tag. Under SiteLayout rather than
-          // FloatingNavLayout because only SiteLayout mounts the provider the
-          // gate reads — the invite pages themselves have no guest state.
+          // Unlinked, gated on the `admin` tag and then on the admin
+          // passphrase. Under SiteLayout rather than FloatingNavLayout because
+          // only SiteLayout mounts the provider the tag gate reads — the invite
+          // pages themselves have no guest state.
           { path: '/invites/links', element: <InviteLinks /> },
+          { path: '/guest-summary', element: <GuestSummary /> },
 
           // Nested so the Travel pages share a second-level nav bar under SiteNav.
           {
