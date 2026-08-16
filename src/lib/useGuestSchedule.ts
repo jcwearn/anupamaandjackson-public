@@ -29,8 +29,7 @@ export interface KeralaGuestInfo {
   trip: 'full' | 'short'
   flight: 'rt' | 'ow'
   occupancy: 'single' | 'double'
-  /** Full names of whoever shares their room; empty for single occupancy, or
-   *  for a double whose roommate has not RSVPd yet. */
+  /** Full names of whoever shares their room; empty for single occupancy. */
   roommates: string[]
   /** In rupees, like the pricing table; replaces the table-derived price. */
   priceOverride?: number

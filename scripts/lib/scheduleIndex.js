@@ -491,8 +491,7 @@ export function resolveKeralaPayloads(guests, responses) {
       !KERALA_OCCUPANCIES.has(occupancy) ||
       !Number.isInteger(room) ||
       (response.priceOverride !== undefined &&
-        !(Number.isFinite(response.priceOverride) && response.priceOverride > 0)) ||
-      (response.roommatePending !== undefined && typeof response.roommatePending !== 'boolean')
+        !(Number.isFinite(response.priceOverride) && response.priceOverride > 0))
     ) {
       throw new Error(
         `Kerala response for '${email}' has invalid fields (trip=${trip}, flight=${flight}, ` +
@@ -551,18 +550,11 @@ export function resolveKeralaPayloads(guests, responses) {
           `Fix the room numbers in data/kerala-trip-responses.json.`,
       )
     }
-    // `roommatePending` is the deliberate exception: someone whose roommate has
-    // not RSVPd yet is knowingly booked double and quoted the double rate, and
-    // must not be mistaken for the typo this check exists to catch.
-    if (
-      occupants.length === 1 &&
-      matched.get(occupants[0]).occupancy === 'double' &&
-      !matched.get(occupants[0]).roommatePending
-    ) {
+    if (occupants.length === 1 && matched.get(occupants[0]).occupancy === 'double') {
       throw new Error(
         `Kerala room ${room} has a lone double-occupancy respondent ('${
           matched.get(occupants[0]).email
-        }'). Pair them with a roommate, mark them single, or set "roommatePending": true.`,
+        }'). Pair them with a roommate, or mark them single.`,
       )
     }
   }

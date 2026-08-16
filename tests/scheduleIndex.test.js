@@ -933,21 +933,6 @@ describe('kerala payload', () => {
     ).toThrow(/3 occupants/)
   })
 
-  it('lets a pending roommate hold a double room alone', () => {
-    // Someone whose roommate has not RSVPd yet is knowingly booked double and
-    // quoted the double rate — the guest sees no roommate rather than a name.
-    const roster = [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])]
-    const payloads = resolveKeralaPayloads(roster, [
-      response('vera@example.com', { roommatePending: true }),
-    ])
-    expect(payloads.get(roster[0])).toEqual({
-      trip: 'full',
-      flight: 'rt',
-      occupancy: 'double',
-      roommates: [],
-    })
-  })
-
   it('refuses malformed response fields', () => {
     expect(() =>
       resolveKeralaPayloads(
@@ -960,13 +945,6 @@ describe('kerala payload', () => {
       resolveKeralaPayloads(
         [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
         [response('vera@example.com', { occupancy: 'single', priceOverride: -5 })],
-      ),
-    ).toThrow(/invalid fields/)
-
-    expect(() =>
-      resolveKeralaPayloads(
-        [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
-        [response('vera@example.com', { occupancy: 'single', roommatePending: 'yes' })],
       ),
     ).toThrow(/invalid fields/)
   })

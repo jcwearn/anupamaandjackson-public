@@ -689,18 +689,6 @@ describe('Kerala personalization', () => {
     expect(within(card).getByText(usd(52892))).toBeInTheDocument()
   })
 
-  it('says a double roommate is still to be confirmed', () => {
-    // Booked double while the other half of the room has yet to RSVP: the copy
-    // has to name the gap, not trail off after 'with'.
-    renderAs({ trip: 'full', flight: 'ow', occupancy: 'double', roommates: [] })
-
-    const card = yourTripCard()
-    expect(within(card).getByText('Double')).toBeInTheDocument()
-    expect(within(card).getByText('with a roommate to be confirmed')).toBeInTheDocument()
-    // Full, double, one way — the double rate, not the single one.
-    expect(within(card).getByText(usd(48192))).toBeInTheDocument()
-  })
-
   it('marks the guest’s own pricing row, and only that one', () => {
     // Cleared filters put both trip cards on screen; the marker must stay on
     // the full-trip double row rather than following every card.

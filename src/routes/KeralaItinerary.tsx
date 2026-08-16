@@ -499,9 +499,7 @@ const KeralaItineraryContent: React.FC = () => {
                           <p className="mt-1.5 text-sm font-medium text-zeus">
                             {kerala.occupancy === 'single'
                               ? 'a room of your own'
-                              : kerala.roommates.length > 0
-                                ? `with ${kerala.roommates.join(' and ')}`
-                                : 'with a roommate to be confirmed'}
+                              : `with ${kerala.roommates.join(' and ')}`}
                           </p>
                         </dd>
                       </div>
