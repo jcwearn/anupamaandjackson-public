@@ -3,7 +3,11 @@ import clsx from 'clsx'
 import FileShrinker from '../components/evisa/FileShrinker'
 import CopyField from '../components/evisa/CopyField'
 import StickySectionHeading from '../components/StickySectionHeading'
-import JumpNav, { JUMP_NAV_SCROLL_MT, type JumpTarget } from '../components/JumpNav'
+import JumpNav, {
+  JUMP_NAV_INNER_SCROLL_MT,
+  JUMP_NAV_SCROLL_MT,
+  type JumpTarget,
+} from '../components/JumpNav'
 
 const PORTAL_URL = 'https://indianvisaonline.gov.in/evisa/Registration'
 const PORTAL_HOME = 'https://indianvisaonline.gov.in/evisa'
@@ -120,7 +124,13 @@ const steps: {
       'Enter everything exactly as it appears on your passport.',
       'When a question doesn’t apply to you, or you’re unsure whether it does, “NA” is a safe answer.',
       'Phone numbers are digits only with the U.S. country code 1 first — no spaces, dashes, or parentheses (for example: 14045551234).',
-      'Use the wedding contact above as your reference in India.',
+      <>
+        Use the{' '}
+        <a href="#reference" className="underline hover:text-rosewood">
+          wedding contact
+        </a>{' '}
+        above as your reference in India.
+      </>,
       // False positive, and worth not "fixing". These entries are a
       // ReactNode[], not elements React iterates: the render site maps each one
       // into `<li key={j}>{bullet}</li>`, so the key lives on the <li> and this
@@ -154,11 +164,20 @@ const steps: {
   },
   {
     title: 'Receive your approval (ETA)',
-    body: 'Your Electronic Travel Authorization arrives by email, usually within a few business days.',
+    // "Application Status :-Granted" is verbatim, odd spacing and all, for the
+    // same reason the dropdown option above is: the guest is matching it against
+    // what's on their screen.
+    body: (
+      <>
+        Your Electronic Travel Authorization arrives by email, usually within a few business days.
+        It’s a plain text email — there’s no attachment and no PDF — so the line to look for is{' '}
+        <strong>Application Status :-Granted</strong>.
+      </>
+    ),
   },
   {
     title: 'Print your e-Visa',
-    body: 'Print a copy of your ETA and pack it with your passport — you’ll need to show it on arrival in India.',
+    body: 'Print the approval email itself — there’s nothing separate to download — and pack it with your passport. You’ll need to show it when you check in for your flight to India, and again on arrival.',
   },
 ]
 
@@ -198,7 +217,9 @@ const Evisa: React.FC = () => {
               </p>
               <ul className="mt-4 flex flex-col gap-4">
                 {checklist.map((item) => (
-                  <li key={item.id} className="card">
+                  // The ids are anchor targets: step 3 of the walkthrough links
+                  // back up to the reference card.
+                  <li key={item.id} id={item.id} className={clsx('card', JUMP_NAV_INNER_SCROLL_MT)}>
                     <h3 className="font-display text-lg text-rosewood">{item.title}</h3>
                     <p className="mt-1 text-sm text-zeus/80">{item.body}</p>
                     {item.id === 'reference' && (

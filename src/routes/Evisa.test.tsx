@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { render, screen, within, fireEvent } from '@testing-library/react'
 import Evisa from './Evisa'
 import { NAV_ITEMS } from '../lib/navItems'
-import { JUMP_NAV_SCROLL_MT } from '../components/JumpNav'
+import { JUMP_NAV_INNER_SCROLL_MT, JUMP_NAV_SCROLL_MT } from '../components/JumpNav'
 
 beforeAll(() => {
   // StickySectionHeading pins itself with an IntersectionObserver, absent in jsdom.
@@ -55,6 +55,29 @@ describe('Evisa', () => {
     ]) {
       expect(within(bar).getByRole('link', { name: label })).toHaveAttribute('href', `#${id}`)
     }
+  })
+
+  it('sends the walkthrough back up to the reference card', () => {
+    // The contact is five screens above the step that tells you to use it.
+    const { container } = render(<Evisa />)
+
+    expect(screen.getByRole('link', { name: 'wedding contact' })).toHaveAttribute(
+      'href',
+      '#reference',
+    )
+
+    const card = container.querySelector('#reference')!
+    expect(within(card as HTMLElement).getByText('Reference Name in India')).toBeInTheDocument()
+    // Clears the pinned section heading as well as both bars, or the card lands
+    // behind it.
+    expect(card.className).toContain(JUMP_NAV_INNER_SCROLL_MT)
+  })
+
+  it('names the exact status line the approval email carries', () => {
+    // Verbatim, spacing and all — the guest matches it against their inbox.
+    render(<Evisa />)
+
+    expect(screen.getByText('Application Status :-Granted')).toBeInTheDocument()
   })
 
   it('clears both bars when a section is jumped to', () => {
