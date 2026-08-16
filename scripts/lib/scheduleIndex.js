@@ -21,7 +21,7 @@ import {
 export const INDEX_VERSION = 6
 
 /**
- * The With Joy tag that admits a guest to the unlinked /invites/links page.
+ * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
  *
  * Not a gate in the catalog: it admits nobody to an event, so it resolves to a
  * flag on the guest record rather than an entry in `eventIds`.
@@ -127,7 +127,7 @@ export function assertGolkondaAnswersRecognized(guests) {
 }
 
 /**
- * The two side-of-the-family tags /guest-summary filters on.
+ * The two side-of-the-family tags /admin/guest-summary filters on.
  *
  * Lowercase because `rowsToGuests` lowercases the whole header row before
  * stripping ' (tag)' — the sheet spells them 'Vidya (tag)' and 'Venkat (tag)'.
@@ -175,7 +175,7 @@ const byName = (a, b) =>
   sortName(a.name).localeCompare(sortName(b.name)) || a.name.localeCompare(b.name)
 
 /**
- * The roster behind /guest-summary: one entry per guest, name and verdict only.
+ * The roster behind /admin/guest-summary: one entry per guest, name and verdict only.
  *
  * Built from the raw roster rather than from `buildGuestRecords`, which drops
  * every guest carrying no event tag and no admin tag. Those guests are exactly
@@ -248,7 +248,7 @@ export function assertSummaryRsvpColumnsExist(guests) {
   if (missing.length > 0) {
     throw new Error(
       `The roster has no ${missing.join(', ')} column(s), so every guest would read as having ` +
-        `not responded on /guest-summary. Check the sheet.`,
+        `not responded on /admin/guest-summary. Check the sheet.`,
     )
   }
 }
@@ -262,7 +262,7 @@ export function assertSummaryTagsExist(knownTags) {
   const missing = SUMMARY_TAGS.filter((tag) => !knownTags.has(tag))
   if (missing.length > 0) {
     throw new Error(
-      `No guest carries the ${missing.join(' or ')} tag, so that filter on /guest-summary would ` +
+      `No guest carries the ${missing.join(' or ')} tag, so that filter on /admin/guest-summary would ` +
         `come up empty. Check the '… (tag)' columns in the sheet.`,
     )
   }
@@ -406,12 +406,12 @@ export function assertGatesExist(catalogEvents, knownTags) {
 /**
  * No event is gated on the admin tag, so `assertGatesExist` never looks at it —
  * and a tag renamed or dropped in With Joy would otherwise just mean nobody can
- * open /invites/links, with nothing in the sync output saying why.
+ * open /admin/invite-links, with nothing in the sync output saying why.
  */
 export function assertAdminTagExists(knownTags) {
   if (!knownTags.has(ADMIN_TAG)) {
     throw new Error(
-      `The '${ADMIN_TAG}' tag does not exist in the export, so /invites/links would be ` +
+      `The '${ADMIN_TAG}' tag does not exist in the export, so /admin/invite-links would be ` +
         `unreachable. Known tags: ${[...knownTags].sort().join(', ')}`,
     )
   }
@@ -596,7 +596,7 @@ export function buildGuestRecords(guests, catalogEvents, keralaPayloads = null) 
     const admin = guest.tags.has(ADMIN_TAG)
     const eventIds = resolveEventIds(guest.tags, catalogEvents)
     // An admin carrying no event tag is still owed a record — otherwise a
-    // missing gate on their own row would lock them out of /invites/links.
+    // missing gate on their own row would lock them out of /admin/invite-links.
     if (eventIds.length === 0 && !admin) return []
 
     const party = guest.party ? (parties.get(guest.party) ?? [guest]) : [guest]
@@ -663,7 +663,7 @@ export async function sourceFingerprint(
           // RSVP answers move independently of the tags, and a guest who
           // declines their room has to stop seeing it on /hotels. All four wedding
           // columns are here rather than muhurtham alone, because
-          // /guest-summary reads every one of them.
+          // /admin/guest-summary reads every one of them.
           guest.pellikuthuruRsvp,
           guest.sangeetRsvp,
           guest.muhurthamRsvp,
@@ -811,7 +811,7 @@ export async function buildIndex({
   }
 
   // Built from `guests`, not `records`: the latter has already dropped everyone
-  // with no event tag, and those are the rows /guest-summary most needs.
+  // with no event tag, and those are the rows /admin/guest-summary most needs.
   const summary = buildGuestSummary(guests)
   const adminKey = await importEventKey(
     await deriveAdminKeyBytes(adminPassphrase, adminSalt, adminIterations),
@@ -834,7 +834,7 @@ export async function buildIndex({
       },
       events,
       guests: guestIndex,
-      // The /guest-summary roster, under the generated passphrase rather than
+      // The /admin/guest-summary roster, under the generated passphrase rather than
       // any guest's name. Unlike everything above it, this envelope is meant to
       // hold: the key exists in a GitHub secret and a local .env, nowhere the
       // public mirror can reach, so guessing a name buys nothing here.

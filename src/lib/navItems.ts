@@ -30,3 +30,16 @@ export const TRAVEL_NAV_ITEMS: NavItem[] = [
   { to: '/travel/hyderabad', label: 'Things to Do' },
   { to: '/travel/food', label: 'Food' },
 ]
+
+// The row AdminLayout pins under SiteNav, and only once the passphrase is in —
+// these are never shown to a guest.
+//
+// Unlike the Travel row above, this one has room to spare: measured at 390px it
+// fills 216 of the 374px inside the bar's padding, so there is space for a
+// fourth chip and then some. The labels are short anyway because "Invites" and
+// "Guests" are what these are called out loud.
+export const ADMIN_NAV_ITEMS: NavItem[] = [
+  { to: '/admin', label: 'Overview' },
+  { to: '/admin/invite-links', label: 'Invites' },
+  { to: '/admin/guest-summary', label: 'Guests' },
+]

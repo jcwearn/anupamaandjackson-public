@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import GuestSummary from './GuestSummary'
+import AdminLayout from '../layouts/AdminLayout'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
 import { universalEvents } from '../data/scheduleEvents'
 import type { GuestScheduleState } from '../lib/useGuestSchedule'
@@ -72,11 +73,18 @@ beforeEach(() => {
   setUnlock()
 })
 
+// Through the real layout, which is what supplies the roster on the outlet.
+// The gate is AdminLayout's and is tested in AdminLayout.test.tsx; mounting it
+// here is what puts this page past it.
 const renderPage = () =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/admin/guest-summary']}>
       <GuestScheduleProvider>
-        <GuestSummary />
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="guest-summary" element={<GuestSummary />} />
+          </Route>
+        </Routes>
       </GuestScheduleProvider>
     </MemoryRouter>,
   )
@@ -104,57 +112,6 @@ const households = () =>
     const nested = [...item.querySelectorAll('li')]
     return nested.length > 0 ? nested.map((member) => member.textContent) : [item.textContent]
   })
-
-describe('GuestSummary gate', () => {
-  it('shows an anonymous visitor the way in, not the guest list', () => {
-    renderPage()
-
-    expect(screen.getByRole('button', { name: 'Unlock This Page' })).toBeInTheDocument()
-    expect(screen.queryByText('Vidya Yes')).not.toBeInTheDocument()
-  })
-
-  it('withholds the list from an identified guest who is not an admin', () => {
-    const signOut = vi.fn()
-    setState({ status: 'identified', displayName: 'Ada', isAdmin: false, signOut })
-    renderPage()
-
-    expect(screen.getByText(/We know you as Ada/)).toBeInTheDocument()
-    expect(screen.queryByText('Vidya Yes')).not.toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Not you?' }))
-    expect(signOut).toHaveBeenCalled()
-  })
-
-  it('withholds the list from an admin who has not entered the passphrase', () => {
-    // Carrying the admin tag is who you are. The passphrase is the secret, and
-    // this page is 649 people's names, so the tag alone is not enough.
-    asAdmin()
-    setUnlock('locked')
-    renderPage()
-
-    expect(screen.getByLabelText('Admin passphrase')).toBeInTheDocument()
-    expect(screen.queryByText('Vidya Yes')).not.toBeInTheDocument()
-  })
-
-  it('says so when the passphrase was wrong, without showing the list', () => {
-    asAdmin()
-    setUnlock('wrong')
-    renderPage()
-
-    expect(screen.getByRole('alert')).toHaveTextContent('not the passphrase')
-    expect(screen.queryByText('Vidya Yes')).not.toBeInTheDocument()
-  })
-
-  it('shows nothing at all while the index is still loading', () => {
-    // Rather than flashing a password field at an admin who unlocked months ago.
-    asAdmin()
-    setUnlock('loading')
-    renderPage()
-
-    expect(screen.queryByLabelText('Admin passphrase')).not.toBeInTheDocument()
-    expect(screen.queryByText('Vidya Yes')).not.toBeInTheDocument()
-  })
-})
 
 describe('GuestSummary filters', () => {
   beforeEach(() => {
@@ -323,14 +280,5 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     expect(screen.getByText('3 guests')).toBeInTheDocument()
-  })
-
-  it('offers a way to re-lock the device', () => {
-    const forget = vi.fn()
-    setUnlock('unlocked', { forget })
-    renderPage()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Forget this device' }))
-    expect(forget).toHaveBeenCalled()
   })
 })

@@ -11,6 +11,7 @@ import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
 import GuestSummary from './routes/GuestSummary'
+import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
 import KeralaItinerary from './routes/KeralaItinerary'
@@ -24,6 +25,7 @@ import Bookshelf from './routes/Bookshelf'
 import WhatToWear from './routes/WhatToWear'
 import WeddingSchedule from './routes/WeddingSchedule'
 import SiteLayout from './layouts/SiteLayout'
+import AdminLayout from './layouts/AdminLayout'
 import TravelLayout from './layouts/TravelLayout'
 import FloatingNavLayout from './layouts/FloatingNavLayout'
 import HashRedirect from './components/HashRedirect'
@@ -55,8 +57,13 @@ export function render(url: string) {
           <Route path="/evisa" element={<Evisa />} />
           <Route path="/kerala-itinerary" element={<KeralaItinerary />} />
           <Route path="/hotels" element={<Hotels />} />
-          <Route path="/invites/links" element={<InviteLinks />} />
-          <Route path="/guest-summary" element={<GuestSummary />} />
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminIndex />} />
+            <Route path="invite-links" element={<InviteLinks />} />
+            <Route path="guest-summary" element={<GuestSummary />} />
+          </Route>
+          <Route path="/invites/links" element={<HashRedirect to="/admin/invite-links" />} />
+          <Route path="/guest-summary" element={<HashRedirect to="/admin/guest-summary" />} />
           <Route element={<TravelLayout />}>
             <Route path="/travel" element={<Travel />} />
             <Route path="/travel/hyderabad" element={<Hyderabad />} />

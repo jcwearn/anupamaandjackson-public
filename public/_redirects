@@ -1,3 +1,13 @@
 # Travel Tips moved under /travel. The browser reattaches the #fragment across a
 # 301 on its own, so deep links like /travel-tips#what-to-pack survive.
 /travel-tips  /travel/tips  301
+
+# The two admin tools moved under /admin, which is now the one place they and
+# anything added later live. Neither was ever linked from a nav, but both URLs
+# have been passed around the family by hand, so they keep working.
+#
+# Neither path may be prerendered again — a matching static file would shadow
+# these rules. scripts/prerender.js and prerenderRoutes.test.tsx both hold that
+# line.
+/invites/links   /admin/invite-links    301
+/guest-summary   /admin/guest-summary   301

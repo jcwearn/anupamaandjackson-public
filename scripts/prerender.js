@@ -72,24 +72,34 @@ export const routes = [
     ogImageHeight: 630,
     ogImageAlt: 'Where to Stay — Anupama & Jackson, October 28, 2026, Hyderabad, India',
   },
+  // The admin section. Unlinked from every nav, gated on the `admin` tag and
+  // then on a passphrase, so each prerendered file holds only the locked state.
+  //
+  // The meta on all three is deliberately uninformative and deliberately
+  // identical: the repo is mirrored publicly, so these paths are not secrets and
+  // were never asked to be. What the pages hold is protected by the key, not by
+  // the URL being hard to find — but there is no reason to describe the guest
+  // list in a <meta> tag either.
+  //
+  // /invites/links and /guest-summary used to be prerendered here and must not
+  // be again — see the note on /travel-tips below.
   {
-    // Unlinked, and its contents are gated on the `admin` tag at runtime — so
-    // the prerendered HTML holds only the locked state. Meta is deliberately
-    // uninformative: this file is fetchable by anyone who guesses the path.
-    path: '/invites/links',
-    outputPath: 'dist/invites/links/index.html',
-    title: 'Invite Links - Anupama & Jackson',
-    description: 'Invitation links for Anupama & Jackson’s wedding.',
+    path: '/admin',
+    outputPath: 'dist/admin/index.html',
+    title: 'Admin - Anupama & Jackson',
+    description: 'A private page for Anupama & Jackson’s wedding.',
     ogImage: null,
   },
   {
-    // Same posture as /invites/links above, and more so: this one is gated on
-    // the `admin` tag *and* a passphrase, and its contents are the guest list.
-    // The prerendered HTML holds only the locked state, and the meta says as
-    // little as the neighbouring page's — the repo is mirrored publicly, so the
-    // path is not a secret and was never asked to be one.
-    path: '/guest-summary',
-    outputPath: 'dist/guest-summary/index.html',
+    path: '/admin/invite-links',
+    outputPath: 'dist/admin/invite-links/index.html',
+    title: 'Invite Links - Anupama & Jackson',
+    description: 'A private page for Anupama & Jackson’s wedding.',
+    ogImage: null,
+  },
+  {
+    path: '/admin/guest-summary',
+    outputPath: 'dist/admin/guest-summary/index.html',
     title: 'Guest Summary - Anupama & Jackson',
     description: 'A private page for Anupama & Jackson’s wedding.',
     ogImage: null,

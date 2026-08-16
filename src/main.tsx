@@ -8,6 +8,7 @@ import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
 import GuestSummary from './routes/GuestSummary'
+import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
 import KeralaItinerary from './routes/KeralaItinerary'
@@ -21,6 +22,7 @@ import Bookshelf from './routes/Bookshelf'
 import WhatToWear from './routes/WhatToWear'
 import WeddingSchedule from './routes/WeddingSchedule'
 import SiteLayout from './layouts/SiteLayout'
+import AdminLayout from './layouts/AdminLayout'
 import TravelLayout from './layouts/TravelLayout'
 import FloatingNavLayout from './layouts/FloatingNavLayout'
 import ScrollToTop from './components/ScrollToTop'
@@ -72,11 +74,24 @@ const router = createBrowserRouter([
           { path: '/hotels', element: <Hotels /> },
 
           // Unlinked, gated on the `admin` tag and then on the admin
-          // passphrase. Under SiteLayout rather than FloatingNavLayout because
-          // only SiteLayout mounts the provider the tag gate reads — the invite
-          // pages themselves have no guest state.
-          { path: '/invites/links', element: <InviteLinks /> },
-          { path: '/guest-summary', element: <GuestSummary /> },
+          // passphrase — AdminLayout owns both gates so a tool added here
+          // inherits them. Under SiteLayout rather than FloatingNavLayout
+          // because only SiteLayout mounts the provider the tag gate reads.
+          {
+            path: '/admin',
+            element: <AdminLayout />,
+            children: [
+              { index: true, element: <AdminIndex /> },
+              { path: 'invite-links', element: <InviteLinks /> },
+              { path: 'guest-summary', element: <GuestSummary /> },
+            ],
+          },
+
+          // Both tools used to have their own top-level paths, and those links
+          // are already out in the world. public/_redirects handles hard
+          // navigations; these cover anything routed client-side.
+          { path: '/invites/links', element: <HashRedirect to="/admin/invite-links" /> },
+          { path: '/guest-summary', element: <HashRedirect to="/admin/guest-summary" /> },
 
           // Nested so the Travel pages share a second-level nav bar under SiteNav.
           {

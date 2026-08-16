@@ -1,9 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import AdminUnlockNotice, { AdminForgetButton } from '../components/AdminUnlockNotice'
-import GuestGateNotice from '../components/GuestGateNotice'
-import NotForYouNotice from '../components/NotForYouNotice'
-import { useAdminUnlock } from '../lib/adminUnlock'
-import { useGuestScheduleContext } from '../lib/guestScheduleContext'
 import { SITE_ORIGIN } from '../lib/constants'
 import { CopyIcon, CheckIcon } from '../icons/CopyIcon'
 
@@ -73,102 +68,67 @@ const CopyButton: React.FC<{ url: string }> = ({ url }) => {
   )
 }
 
-const InviteLinks: React.FC = () => {
-  const { isAdmin, status, displayName, signOut } = useGuestScheduleContext()
-  const unlock = useAdminUnlock()
+// The gate, the page chrome and "Forget this device" all live in AdminLayout;
+// this renders only what is behind them.
+const InviteLinks: React.FC = () => (
+  <>
+    <h2 className="font-display text-2xl text-rosewood">The Invitation as a Web Page</h2>
+    <p className="mt-2 text-sm text-zeus/70">
+      Every version of the invitation, and who each one is for.
+    </p>
+    <ul className="mt-4 flex flex-col gap-4">
+      {inviteLinks.map(({ path, side, scope }) => {
+        const url = `${SITE_ORIGIN}${path}`
+        return (
+          <li key={path} className="card">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-medium text-zeus">{side}</span>
+              <span className="text-sm text-zeus/70">{scope}</span>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              {/* Wraps rather than truncates: every one of these URLs
+                  shares the first 29 characters, so an ellipsis at the
+                  right edge renders all four identical on a phone. */}
+              <a
+                href={path}
+                className="min-w-0 grow break-all text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
+              >
+                {url}
+              </a>
+              <CopyButton url={url} />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
 
-  return (
-    <div className="min-h-screen bg-peach/20 px-4 pb-16">
-      <div className="mx-auto max-w-2xl">
-        <header className="py-12 text-center">
-          <h1 className="font-display text-4xl text-rosewood sm:text-5xl">Invite Links</h1>
-          <p className="mt-4 font-body text-lg leading-relaxed text-zeus/80">
-            Every version of the invitation, and who each one is for.
-          </p>
-        </header>
-
-        {status === 'identified' && !isAdmin ? (
-          <NotForYouNotice
-            displayName={displayName}
-            onSignOut={signOut}
-            audience="the family sharing out the invitations"
-          />
-        ) : !isAdmin ? (
-          <GuestGateNotice
-            lockedBlurb="This page is just for family — unlock it to see the invite links."
-            unlockLabel="Unlock This Page"
-            unlockCopy={{
-              heading: 'Who are you?',
-              blurb: 'Enter your name to open the invite links.',
-            }}
-          />
-        ) : unlock.status !== 'unlocked' ? (
-          <AdminUnlockNotice
-            status={unlock.status}
-            onUnlock={unlock.unlock}
-            blurb="One more step — enter the admin passphrase to see the invite links."
-          />
-        ) : (
-          <div className="font-body">
-            <ul className="flex flex-col gap-4">
-              {inviteLinks.map(({ path, side, scope }) => {
-                const url = `${SITE_ORIGIN}${path}`
-                return (
-                  <li key={path} className="card">
-                    <div className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="font-medium text-zeus">{side}</span>
-                      <span className="text-sm text-zeus/70">{scope}</span>
-                    </div>
-                    <div className="mt-3 flex items-center gap-3">
-                      {/* Wraps rather than truncates: every one of these URLs
-                          shares the first 29 characters, so an ellipsis at the
-                          right edge renders all four identical on a phone. */}
-                      <a
-                        href={path}
-                        className="min-w-0 grow break-all text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
-                      >
-                        {url}
-                      </a>
-                      <CopyButton url={url} />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-
-            <h2 className="mt-12 font-display text-2xl text-rosewood">The Invitation as a PDF</h2>
-            <p className="mt-2 text-sm text-zeus/70">
-              The same six pages the links above show, for sending to anyone who'd rather have a
-              file than a web page.
-            </p>
-            <ul className="mt-4 flex flex-col gap-4">
-              {invitePdfs.map(({ file, label }) => (
-                <li key={file} className="card flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <span className="grow font-medium text-zeus">{label}</span>
-                  <a
-                    href={file}
-                    className="text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
-                  >
-                    View
-                  </a>
-                  <a
-                    href={file}
-                    download
-                    className="text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
-                  >
-                    Download
-                  </a>
-                  <CopyButton url={`${SITE_ORIGIN}${file}`} />
-                </li>
-              ))}
-            </ul>
-
-            <AdminForgetButton onForget={unlock.forget} />
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+    <h2 className="mt-12 font-display text-2xl text-rosewood">The Invitation as a PDF</h2>
+    <p className="mt-2 text-sm text-zeus/70">
+      The same six pages the links above show, for sending to anyone who'd rather have a file than a
+      web page.
+    </p>
+    <ul className="mt-4 flex flex-col gap-4">
+      {invitePdfs.map(({ file, label }) => (
+        <li key={file} className="card flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="grow font-medium text-zeus">{label}</span>
+          <a
+            href={file}
+            className="text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
+          >
+            View
+          </a>
+          <a
+            href={file}
+            download
+            className="text-sm text-rosewood underline decoration-rosewood/40 underline-offset-2"
+          >
+            Download
+          </a>
+          <CopyButton url={`${SITE_ORIGIN}${file}`} />
+        </li>
+      ))}
+    </ul>
+  </>
+)
 
 export default InviteLinks

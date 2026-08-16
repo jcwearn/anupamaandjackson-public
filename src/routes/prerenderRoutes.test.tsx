@@ -51,12 +51,23 @@ describe('prerendered routes', () => {
     }
   })
 
-  it('does not prerender the old Travel Tips path', () => {
-    // public/_redirects 301s /travel-tips to /travel/tips. Cloudflare Pages
-    // serves a matching static file in preference to a redirect rule, so
-    // emitting this path would silently shadow the redirect.
-    expect(prerendered).not.toContain('/travel-tips')
-    expect(prerendered).toContain('/travel/tips')
+  // public/_redirects 301s each of these to its new home. Cloudflare Pages
+  // serves a matching static file in preference to a redirect rule, so emitting
+  // an old path would silently shadow its redirect — the page would still work,
+  // and every link out in the world would keep landing on the stale copy.
+  it.each([
+    ['/travel-tips', '/travel/tips'],
+    ['/invites/links', '/admin/invite-links'],
+    ['/guest-summary', '/admin/guest-summary'],
+  ])('redirects %s without prerendering it', (from, to) => {
+    expect(prerendered).not.toContain(from)
+    expect(prerendered).toContain(to)
+  })
+
+  it('serves the admin tools under one parent path', () => {
+    const admin = prerendered.filter((path) => path === '/admin' || path.startsWith('/admin/'))
+
+    expect(admin.sort()).toEqual(['/admin', '/admin/guest-summary', '/admin/invite-links'])
   })
 
   it('serves the Travel section under one parent path', () => {
