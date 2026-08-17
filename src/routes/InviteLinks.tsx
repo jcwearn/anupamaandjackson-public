@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { SITE_ORIGIN } from '../lib/constants'
-import { CopyIcon, CheckIcon } from '../icons/CopyIcon'
+import CopyButton from '../components/CopyButton'
 
 /**
  * The share links for the four printed-invite pages, with what each one covers.
@@ -38,35 +38,6 @@ const invitePdfs = [
   { file: '/invites/invite-tadanki.pdf', label: "Anupama's side" },
   { file: '/invites/invite-wearn.pdf', label: "Jackson's side" },
 ]
-
-/**
- * Always visible, unlike the hover-revealed CopyLinkButton the content pages
- * use for heading anchors — copying is the entire point of this page.
- */
-const CopyButton: React.FC<{ url: string }> = ({ url }) => {
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    if (!copied) return
-    const timer = setTimeout(() => setCopied(false), 1500)
-    return () => clearTimeout(timer)
-  }, [copied])
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        void navigator.clipboard.writeText(url)
-        setCopied(true)
-      }}
-      aria-label={copied ? 'Link copied' : `Copy ${url}`}
-      className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-gold/50 px-3 py-1.5 font-body text-sm text-rosewood transition-colors hover:bg-lily/30"
-    >
-      {copied ? <CheckIcon className="h-4 w-4 text-fern" /> : <CopyIcon className="h-4 w-4" />}
-      {copied ? 'Copied' : 'Copy'}
-    </button>
-  )
-}
 
 // The gate, the page chrome and "Forget this device" all live in AdminLayout;
 // this renders only what is behind them.

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Envelope } from './guestCrypto'
+import type { InviteSide } from './inviteLink'
 import {
   base64ToBytes,
   bytesToBase64,
@@ -17,6 +18,26 @@ export type GuestSummaryStatus = 'attending' | 'declined' | 'none'
 export interface GuestSummaryEntry {
   name: string
   tag?: 'vidya' | 'venkat'
+  /**
+   * Which side of the wedding, and so which family of invite pages is theirs.
+   * A different axis from `tag` above, which splits Anupama's side between her
+   * parents' lists — a guest can and usually does carry one of each.
+   *
+   * Optional only because the fixture roster carries deliberately untagged rows
+   * and can build an index for local dev; every guest on the real roster has
+   * one, and the sync fails rather than publish a guest who doesn't.
+   */
+  side?: InviteSide
+  /**
+   * The guest's events as letters in INVITE_EVENTS order: 'SMR', 'MR', 'M'.
+   * With `side`, this is what names their invitation — see `inviteLinkFor`.
+   *
+   * Optional for the same reason as `side`, plus one the page has to survive:
+   * this bundle and schedule-index.json deploy separately, so between shipping
+   * the JS and the next sync the index in front of it is a version behind and
+   * has neither field. An empty column beats a blank page.
+   */
+  events?: string
   status: GuestSummaryStatus
   /**
    * Opaque household id, absent for guests who travel alone. Not the party's

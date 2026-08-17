@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import GuestSummary from './GuestSummary'
 import AdminLayout from '../layouts/AdminLayout'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
 import { universalEvents } from '../data/scheduleEvents'
+import { SITE_ORIGIN } from '../lib/constants'
 import type { GuestScheduleState } from '../lib/useGuestSchedule'
 import type { AdminUnlockState, AdminUnlockStatus, GuestSummaryEntry } from '../lib/adminUnlock'
 
@@ -43,15 +44,15 @@ const setState = (overrides: Partial<GuestScheduleState> = {}) => {
  * combination of the two chip rows has exactly one expected name.
  */
 const summary: GuestSummaryEntry[] = [
-  { name: 'Vidya Yes', tag: 'vidya', status: 'attending' },
-  { name: 'Vidya No', tag: 'vidya', status: 'declined' },
-  { name: 'Vidya Silent', tag: 'vidya', status: 'none' },
-  { name: 'Venkat Yes', tag: 'venkat', status: 'attending' },
-  { name: 'Venkat No', tag: 'venkat', status: 'declined' },
-  { name: 'Venkat Silent', tag: 'venkat', status: 'none' },
-  { name: 'Neither Yes', status: 'attending' },
-  { name: 'Neither No', status: 'declined' },
-  { name: 'Neither Silent', status: 'none' },
+  { name: 'Vidya Yes', tag: 'vidya', side: 'anupama', events: 'SMR', status: 'attending' },
+  { name: 'Vidya No', tag: 'vidya', side: 'anupama', events: 'MR', status: 'declined' },
+  { name: 'Vidya Silent', tag: 'vidya', side: 'anupama', events: 'M', status: 'none' },
+  { name: 'Venkat Yes', tag: 'venkat', side: 'anupama', events: 'SMR', status: 'attending' },
+  { name: 'Venkat No', tag: 'venkat', side: 'anupama', events: 'MR', status: 'declined' },
+  { name: 'Venkat Silent', tag: 'venkat', side: 'anupama', events: 'M', status: 'none' },
+  { name: 'Neither Yes', side: 'jackson', events: 'SMR', status: 'attending' },
+  { name: 'Neither No', side: 'jackson', events: 'SMR', status: 'declined' },
+  { name: 'Neither Silent', side: 'jackson', events: 'SMR', status: 'none' },
 ]
 
 const setUnlock = (
@@ -91,27 +92,47 @@ const renderPage = () =>
 
 const asAdmin = () => setState({ status: 'identified', displayName: 'Anupama', isAdmin: true })
 
-/** By name, because each household renders as a list of its own inside it. */
-const guestList = () => screen.getByRole('list', { name: 'Guests' })
+const guestTable = () => screen.getByRole('table')
 
 /**
  * The names on screen, in order.
  *
- * Scoped to the leaf items: a household renders as a nested list inside one
- * outer item, so collecting every `li` would return the wrapper and its
- * members both, and read the household's names twice.
+ * The name is each row's header cell, so this reads the column without having
+ * to know anything about the three event cells and the button beside it.
  */
-const listed = () =>
-  [...guestList().querySelectorAll('li')]
-    .filter((item) => item.querySelector('li') === null)
-    .map((item) => item.textContent)
+const listed = () => [...guestTable().querySelectorAll('tbody th')].map((cell) => cell.textContent)
 
-/** Names grouped as the page draws them: one array per row, households nested. */
+/** Names grouped as the page draws them: one array per household, in order. */
 const households = () =>
-  [...guestList().children].map((item) => {
-    const nested = [...item.querySelectorAll('li')]
-    return nested.length > 0 ? nested.map((member) => member.textContent) : [item.textContent]
-  })
+  [...guestTable().querySelectorAll('tbody')].map((group) =>
+    [...group.querySelectorAll('th')].map((cell) => cell.textContent),
+  )
+
+/** The row for a guest, found by the name in its header cell. */
+const rowFor = (name: string) =>
+  [...guestTable().querySelectorAll<HTMLTableRowElement>('tbody tr')].find(
+    (row) => row.querySelector('th')?.textContent === name,
+  )!
+
+/**
+ * The classes on the box drawn around a guest's name — how a household is
+ * outlined. An absolutely positioned span inside the header cell, so it can
+ * stop short of the row's top and bottom edges without moving the name.
+ */
+const boxOf = (name: string) => rowFor(name).querySelector('th span[aria-hidden]')?.className ?? ''
+
+/**
+ * Which of the three event columns a row reads as invited to.
+ *
+ * Both states render the letter — a blank cell reads as missing data where a
+ * faint one reads as a no — so this goes by the screen-reader text, which is
+ * the row's actual claim rather than its opacity.
+ */
+const invitedTo = (name: string) =>
+  [...rowFor(name).querySelectorAll('td')]
+    .map((cell) => cell.querySelector('.sr-only')?.textContent ?? '')
+    .filter((label) => label.startsWith('Invited to'))
+    .map((label) => label.replace('Invited to ', ''))
 
 describe('GuestSummary filters', () => {
   beforeEach(() => {
@@ -156,6 +177,20 @@ describe('GuestSummary filters', () => {
     expect(screen.getByText('1 guest')).toBeInTheDocument()
   })
 
+  it('says what each row of chips filters on', () => {
+    // Six chips in a heap said nothing about which three answered which
+    // question. The label names the group, and names it to a screen reader too.
+    renderPage()
+
+    const rows = screen.getAllByRole('group')
+    expect(rows.map((row) => row.getAttribute('aria-label') ?? row.textContent)).toEqual([
+      'Guest listEveryoneVidyaVenkat',
+      'RSVPAttendingNot AttendingNo Response',
+    ])
+    expect(screen.getByRole('group', { name: 'Guest list' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'RSVP' })).toBeInTheDocument()
+  })
+
   it('marks the active chip in each row', () => {
     renderPage()
 
@@ -185,7 +220,7 @@ describe('GuestSummary filters', () => {
 
     expect(screen.getByText('0 guests')).toBeInTheDocument()
     expect(screen.getByText('Nobody on this list right now.')).toBeInTheDocument()
-    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   it('lists both of two guests who share a name', () => {
@@ -202,7 +237,7 @@ describe('GuestSummary filters', () => {
     expect(listed()).toEqual(['Jane Doe', 'Jane Doe'])
   })
 
-  it('draws a household as one bracketed block, and a lone guest as a plain row', () => {
+  it('draws a household as one tinted block, and a lone guest as a plain row', () => {
     setUnlock('unlocked', {
       summary: [
         { name: 'Solo Traveller', status: 'none' },
@@ -217,7 +252,22 @@ describe('GuestSummary filters', () => {
       ['Solo Traveller'],
       ['Ama Household', 'Bo Household', 'Cy Household'],
     ])
-    expect(screen.getByRole('list', { name: 'Party of 3' })).toBeInTheDocument()
+    // The grouping is a box drawn around the name cells, so the box-shadow is
+    // the only thing there is to assert on.
+    // Ends inset and rounded; the middle runs edge to edge so the sides join up
+    // into one box rather than three stacked ones.
+    expect(boxOf('Ama Household')).toContain('top-1.5 rounded-t-xl')
+    expect(boxOf('Ama Household')).toContain('bottom-0 border-b-0')
+    expect(boxOf('Bo Household')).toContain('top-0 border-t-0')
+    expect(boxOf('Bo Household')).toContain('bottom-0 border-b-0')
+    expect(boxOf('Cy Household')).toContain('bottom-1.5 rounded-b-xl')
+    expect(boxOf('Solo Traveller')).toBe('')
+
+    // Only the names are boxed. Around the whole row it read as a banded table.
+    const rest = [...rowFor('Ama Household').querySelectorAll('td')].map(
+      (cell) => (cell as HTMLElement).style.boxShadow,
+    )
+    expect(rest).toEqual(['', '', '', ''])
   })
 
   it('keeps two adjacent households apart', () => {
@@ -252,11 +302,11 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     expect(households()).toEqual([['Ama Split', 'Cy Split']])
-    expect(screen.getByRole('list', { name: 'Party of 2' })).toBeInTheDocument()
+    expect(boxOf('Ama Split')).toContain('border-gold/50')
   })
 
-  it('drops the bracket when a filter leaves one member of a household', () => {
-    // A bracket around a single name says nothing.
+  it('drops the tint when a filter leaves one member of a household', () => {
+    // A block around a single name says nothing.
     setUnlock('unlocked', {
       summary: [
         { name: 'Ama Alone', status: 'none', party: 9 },
@@ -266,7 +316,7 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     expect(households()).toEqual([['Ama Alone']])
-    expect(screen.queryByRole('list', { name: /^Party of/ })).not.toBeInTheDocument()
+    expect(boxOf('Ama Alone')).toBe('')
   })
 
   it('counts guests, not households', () => {
@@ -280,5 +330,135 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     expect(screen.getByText('3 guests')).toBeInTheDocument()
+  })
+})
+
+describe('GuestSummary invitations', () => {
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked', {
+      summary: [
+        { name: 'Full Tadanki', side: 'anupama', events: 'SMR', status: 'none' },
+        { name: 'Reception Tadanki', side: 'anupama', events: 'MR', status: 'none' },
+        { name: 'Muhurtham Tadanki', side: 'anupama', events: 'M', status: 'none' },
+        { name: 'Full Wearn', side: 'jackson', events: 'SMR', status: 'none' },
+      ],
+    })
+  })
+
+  it('pins the column headings under the bars above them', () => {
+    // 352 rows: without this the headings are gone by the third screenful and
+    // the S/M/R columns stop meaning anything.
+    renderPage()
+
+    const head = guestTable().querySelector('thead')!
+    expect(head.className).toContain('sticky')
+    // Under SiteNav *and* SectionNav, until SectionNav hides on the way down.
+    expect(head.getAttribute('style')).toContain('8rem')
+    for (const cell of head.querySelectorAll('th')) expect(cell.className).toContain('sticky')
+  })
+
+  it('keeps the copy button the same width once it says Copied', () => {
+    // The button sits in a table column; re-widthing it shunts every other
+    // column sideways for the 1.5s the confirmation is up.
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: vi.fn() } })
+    renderPage()
+
+    const button = within(rowFor('Full Tadanki')).getByRole('button')
+    expect(button.textContent).toBe('CopiedCopy')
+
+    fireEvent.click(button)
+
+    expect(button.textContent).toBe('CopiedCopied')
+  })
+
+  it('names the three events in both widths', () => {
+    // The letters are the mobile column headings and the words are the desktop
+    // ones; both are always in the DOM, and CSS picks.
+    renderPage()
+
+    const headers = [...guestTable().querySelectorAll('thead th')].map((cell) => cell.textContent)
+    expect(headers).toEqual(['Name', 'SSangeet', 'MMuhurtham', 'RReception', 'Invite'])
+  })
+
+  it('says which events each guest is invited to', () => {
+    renderPage()
+
+    expect(invitedTo('Full Tadanki')).toEqual(['Sangeet', 'Muhurtham', 'Reception'])
+    expect(invitedTo('Reception Tadanki')).toEqual(['Muhurtham', 'Reception'])
+    expect(invitedTo('Muhurtham Tadanki')).toEqual(['Muhurtham'])
+  })
+
+  it('lights up the row under the pointer, and the one holding focus', () => {
+    // CSS-only, so the class is all there is to assert on here; the rendered
+    // colour is checked in the browser.
+    renderPage()
+
+    expect(rowFor('Full Tadanki').className).toContain('hover:bg-lily/15')
+    expect(rowFor('Full Tadanki').className).toContain('focus-within:bg-lily/15')
+    // Not the heading row — it is pinned and opaque, and has nothing to select.
+    expect(guestTable().querySelector('thead tr')!.className).toBe('')
+  })
+
+  it('marks the events with a dot rather than repeating the letter', () => {
+    // The heading already says which event the column is; 352 rows spelling it
+    // out again is noise. Filled for yes, hollow for no.
+    renderPage()
+
+    // The three event cells, not the Invite one beside them — its copy button
+    // has an aria-hidden span of its own.
+    const eventCells = (name: string) => [...rowFor(name).querySelectorAll('td')].slice(0, 3)
+    const dots = (name: string) =>
+      eventCells(name).map((cell) =>
+        cell.querySelector('[aria-hidden]')!.className.includes('bg-fern') ? 'filled' : 'hollow',
+      )
+
+    expect(dots('Reception Tadanki')).toEqual(['hollow', 'filled', 'filled'])
+    expect(dots('Full Tadanki')).toEqual(['filled', 'filled', 'filled'])
+    // The dot carries no text; the letter survives only in the column heading.
+    for (const cell of eventCells('Full Tadanki'))
+      expect(cell.querySelector('[aria-hidden]')!.textContent).toBe('')
+  })
+
+  it.each([
+    ['Full Tadanki', '/invites/tadanki/'],
+    ['Reception Tadanki', '/invites/tadanki/reception/'],
+    ['Muhurtham Tadanki', '/invites/tadanki/muhurtham/'],
+    ['Full Wearn', '/invites/wearn/'],
+  ])('offers %s their own invitation', (name, path) => {
+    renderPage()
+
+    // The absolute URL, not the relative path: this is copied to be pasted
+    // into a message, where a relative path means nothing.
+    expect(within(rowFor(name)).getByRole('button')).toHaveAttribute(
+      'aria-label',
+      `Copy ${SITE_ORIGIN}${path}`,
+    )
+  })
+
+  it('copies the invitation to the clipboard', () => {
+    const writeText = vi.fn()
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } })
+    renderPage()
+
+    fireEvent.click(within(rowFor('Reception Tadanki')).getByRole('button'))
+
+    expect(writeText).toHaveBeenCalledWith(`${SITE_ORIGIN}/invites/tadanki/reception/`)
+    expect(within(rowFor('Reception Tadanki')).getByRole('button')).toHaveAttribute(
+      'aria-label',
+      'Link copied',
+    )
+  })
+
+  it('shows a dash rather than a link for a guest the index cannot place', () => {
+    // The sync fails rather than publish one of these, but this bundle and
+    // schedule-index.json deploy separately — so between the two the page is
+    // reading entries that have neither field, and it has to render something.
+    setUnlock('unlocked', { summary: [{ name: 'Unsynced Guest', status: 'none' }] })
+    renderPage()
+
+    expect(within(rowFor('Unsynced Guest')).queryByRole('button')).not.toBeInTheDocument()
+    expect(invitedTo('Unsynced Guest')).toEqual([])
+    expect(rowFor('Unsynced Guest').textContent).toContain('—')
   })
 })

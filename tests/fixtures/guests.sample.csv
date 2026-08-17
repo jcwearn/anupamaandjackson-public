@@ -1,31 +1,31 @@
-first name,last name,envelope name,party,email,tags,pellikuthuru,sangeet,muhurtham,reception,golkonda guest covered,golkonda guest own,muhurtam (tag),reception (tag),sangeet (tag),pellikuthuru (tag),optional-trip (tag),hotel-golkonda-covered (tag),hotel-golkonda-own (tag),admin (tag),vidya (tag),venkat (tag)
-Ada,Lovelace,Ada Lovelace,Lovelace,#N/A,"muhurtam, reception, Vidya",,,Attending,Attending,,,1,1,0,0,0,0,0,0,1,0
-Grace,Hopper,Grace Hopper,Hopper,,"muhurtam, reception, sangeet, Venkat",,Attending,Attending,Attending,,,1,1,1,0,0,0,0,0,0,1
-Alan,Turing,Alan Turing,Turing,,"muhurtam, reception, sangeet, pellikuthuru, optional-trip, hotel-golkonda-covered, admin, Vidya",Attending,Attending,Attending,Attending,I'll be staying at Golkonda Resort.,,1,1,1,1,1,1,0,1,1,0
-Mary Ann,Evans,Mary Ann Evans,Evans,,"muhurtam, reception, Vidya",,,Attending,Not Attending,,,1,1,0,0,0,0,0,0,1,0
-Ana Sofía,Ruiz,Ana Sofía Ruiz,Ruiz,,"muhurtam, reception, pellikuthuru, Venkat",,,Attending,Attending,,,1,1,0,1,0,0,0,0,0,1
-Prince,,Prince,,,"muhurtam, Vidya",,,Attending,,,,1,0,0,0,0,0,0,0,1,0
-Dr. Emmett,Brown,Dr. Emmett Brown,Brown,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-Srilakshmi,Sample,Srilakshmi Sample,Sample,,"muhurtam, reception, Venkat",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,1
-Hedy,Lamarr,Hedy Lamarr,Lamarr,,"muhurtam, hotel-golkonda-own, Vidya",,,Attending,,,I'd love to learn more about the accommodations and pricing before I make a decision.,1,0,0,0,0,0,1,0,1,0
-Katherine,Johnson,Katherine Johnson,Johnson,,#N/A,,,Attending,,,I do not need accommodation.,1,1,1,1,1,0,1,0,0,1
-Jane,Doe,Jane Doe,Doe,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-Jane,Doe,Jane Doe,Doe,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-John,Smith,John Smith,Smith Family,,"muhurtam, reception, sangeet, pellikuthuru, Venkat",Attending,Attending,Attending,Attending,,,1,1,1,1,0,0,0,0,0,1
-John,Smith,John Smith,Smith Household,john.h@example.com jsmith@example.org,"muhurtam, reception, Venkat",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,1
-Rosalind,Franklin,Rosalind Franklin,,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-Not,Coming,Not Coming,Coming,,"muhurtam, not-coming, Vidya",,Not Attending,Not Attending,Not Attending,,,1,0,0,0,0,0,0,0,1,0
-Tagless,Guest,Tagless Guest,Guest,,,,,Attending,,,,0,0,0,0,0,0,0,0,0,0
-Admin,Withoutevents,Admin Withoutevents,Withoutevents,,admin,,,Attending,,,,0,0,0,0,0,0,0,1,0,0
-Mary,Smith,Mary Smith,Smith Family,MARY@example.com,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-Peter,Smith,Peter Smith,Smith Household,,muhurtam,,,Attending,,,,1,0,0,0,0,0,0,0,0,0
-Ram,Prayaga,Ram Prayaga,Prayaga North,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0
-Ram,Prayaga,Ram Prayaga,Prayaga South,,muhurtam,,,Attending,,,,1,0,0,0,0,0,0,0,0,0
-Vera,Rubin,Vera Rubin,Rubin,vera.rubin@example.com,"muhurtam, reception, optional-trip",,,Attending,Attending,,,1,1,0,0,1,0,0,0,0,0
-Carl,Sagan,Carl Sagan,Sagan,carl.sagan@example.com,"muhurtam, reception, optional-trip",,,Attending,Attending,,,1,1,0,0,1,0,0,0,0,0
-Enrico,Fermi,Enrico Fermi,Fermi,enrico.fermi@example.com,"muhurtam, optional-trip",,,Attending,,,,1,0,0,0,1,0,0,0,0,0
-Barbara,McClintock,Barbara McClintock,McClintock,,"muhurtam, hotel-golkonda-own, Venkat",,Not Attending,Not Attending,,,I'll be staying at Golkonda Resort.,1,0,0,0,0,0,1,0,0,1
-Lise,Meitner,Lise Meitner,Meitner,,"muhurtam, hotel-golkonda-own, Vidya",,,,,,I'll be staying at Golkonda Resort.,1,0,0,0,0,0,1,0,1,0
-Chien-Shiung,Wu,Chien-Shiung Wu,Wu,,"muhurtam, hotel-golkonda-own",,,Attending,,,I'll be arranging my own accommodation separately.,1,0,0,0,0,0,1,0,0,0
-Tycho,Brahe,Tycho Brahe,Brahe,,"muhurtam, Venkat",,,,,,,1,0,0,0,0,0,0,0,0,1
-Cleopatra,.,Cleopatra,Cleopatra,,"muhurtam, Vidya",,,Attending,,,,1,0,0,0,0,0,0,0,1,0
+first name,last name,envelope name,party,email,tags,pellikuthuru,sangeet,muhurtham,reception,golkonda guest covered,golkonda guest own,muhurtam (tag),reception (tag),sangeet (tag),pellikuthuru (tag),optional-trip (tag),hotel-golkonda-covered (tag),hotel-golkonda-own (tag),admin (tag),vidya (tag),venkat (tag),anupama (tag),jackson (tag)
+Ada,Lovelace,Ada Lovelace,Lovelace,#N/A,"muhurtam, reception, Vidya",,,Attending,Attending,,,1,1,0,0,0,0,0,0,1,0,1,0
+Grace,Hopper,Grace Hopper,Hopper,,"muhurtam, reception, sangeet, Venkat",,Attending,Attending,Attending,,,1,1,1,0,0,0,0,0,0,1,1,0
+Alan,Turing,Alan Turing,Turing,,"muhurtam, reception, sangeet, pellikuthuru, optional-trip, hotel-golkonda-covered, admin, Vidya",Attending,Attending,Attending,Attending,I'll be staying at Golkonda Resort.,,1,1,1,1,1,1,0,1,1,0,0,1
+Mary Ann,Evans,Mary Ann Evans,Evans,,"muhurtam, reception, Vidya",,,Attending,Not Attending,,,1,1,0,0,0,0,0,0,1,0,1,0
+Ana Sofía,Ruiz,Ana Sofía Ruiz,Ruiz,,"muhurtam, reception, pellikuthuru, Venkat",,,Attending,Attending,,,1,1,0,1,0,0,0,0,0,1,1,0
+Prince,,Prince,,,"muhurtam, Vidya",,,Attending,,,,1,0,0,0,0,0,0,0,1,0,1,0
+Dr. Emmett,Brown,Dr. Emmett Brown,Brown,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+Srilakshmi,Sample,Srilakshmi Sample,Sample,,"muhurtam, reception, Venkat",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,1,1,0
+Hedy,Lamarr,Hedy Lamarr,Lamarr,,"muhurtam, hotel-golkonda-own, Vidya",,,Attending,,,I'd love to learn more about the accommodations and pricing before I make a decision.,1,0,0,0,0,0,1,0,1,0,1,0
+Katherine,Johnson,Katherine Johnson,Johnson,,#N/A,,,Attending,,,I do not need accommodation.,1,1,1,1,1,0,1,0,0,1,0,1
+Jane,Doe,Jane Doe,Doe,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+Jane,Doe,Jane Doe,Doe,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+John,Smith,John Smith,Smith Family,,"muhurtam, reception, sangeet, pellikuthuru, Venkat",Attending,Attending,Attending,Attending,,,1,1,1,1,0,0,0,0,0,1,1,0
+John,Smith,John Smith,Smith Household,john.h@example.com jsmith@example.org,"muhurtam, reception, Venkat",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,1,1,0
+Rosalind,Franklin,Rosalind Franklin,,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+Not,Coming,Not Coming,Coming,,"muhurtam, not-coming, Vidya",,Not Attending,Not Attending,Not Attending,,,1,0,0,0,0,0,0,0,1,0,1,0
+Tagless,Guest,Tagless Guest,Guest,,,,,Attending,,,,0,0,0,0,0,0,0,0,0,0,0,0
+Admin,Withoutevents,Admin Withoutevents,Withoutevents,,admin,,,Attending,,,,0,0,0,0,0,0,0,1,0,0,0,0
+Mary,Smith,Mary Smith,Smith Family,MARY@example.com,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+Peter,Smith,Peter Smith,Smith Household,,muhurtam,,,Attending,,,,1,0,0,0,0,0,0,0,0,0,1,0
+Ram,Prayaga,Ram Prayaga,Prayaga North,,"muhurtam, reception",,,Attending,Attending,,,1,1,0,0,0,0,0,0,0,0,1,0
+Ram,Prayaga,Ram Prayaga,Prayaga South,,muhurtam,,,Attending,,,,1,0,0,0,0,0,0,0,0,0,1,0
+Vera,Rubin,Vera Rubin,Rubin,vera.rubin@example.com,"muhurtam, reception, optional-trip",,,Attending,Attending,,,1,1,0,0,1,0,0,0,0,0,1,0
+Carl,Sagan,Carl Sagan,Sagan,carl.sagan@example.com,"muhurtam, reception, optional-trip",,,Attending,Attending,,,1,1,0,0,1,0,0,0,0,0,1,0
+Enrico,Fermi,Enrico Fermi,Fermi,enrico.fermi@example.com,"muhurtam, optional-trip",,,Attending,,,,1,0,0,0,1,0,0,0,0,0,1,0
+Barbara,McClintock,Barbara McClintock,McClintock,,"muhurtam, hotel-golkonda-own, Venkat",,Not Attending,Not Attending,,,I'll be staying at Golkonda Resort.,1,0,0,0,0,0,1,0,0,1,1,0
+Lise,Meitner,Lise Meitner,Meitner,,"muhurtam, hotel-golkonda-own, Vidya",,,,,,I'll be staying at Golkonda Resort.,1,0,0,0,0,0,1,0,1,0,1,0
+Chien-Shiung,Wu,Chien-Shiung Wu,Wu,,"muhurtam, hotel-golkonda-own",,,Attending,,,I'll be arranging my own accommodation separately.,1,0,0,0,0,0,1,0,0,0,1,0
+Tycho,Brahe,Tycho Brahe,Brahe,,"muhurtam, Venkat",,,,,,,1,0,0,0,0,0,0,0,0,1,1,0
+Cleopatra,.,Cleopatra,Cleopatra,,"muhurtam, Vidya",,,Attending,,,,1,0,0,0,0,0,0,0,1,0,1,0

@@ -1,4 +1,5 @@
 import { aliasesFor, fold } from '../../src/lib/guestName.js'
+import { INVITE_SIDE_TAGS, inviteEventsFor, inviteLinkFor } from '../../src/lib/inviteLink.js'
 import { partyHintLabel } from './partyLabel.js'
 import {
   ADMIN_KDF_ITERATIONS,
@@ -15,10 +16,11 @@ import {
 
 // Bumped to 2 when the guest record gained `golkonda`, to 3 when events gained
 // `indianWear`, to 4 when the index gained `guestCount`, to 5 when it gained
-// the passphrase-encrypted `admin` block, and to 6 when that block's entries
-// gained `party`. Feeds sourceFingerprint, so bumping it is what makes a shape
-// change actually republish.
-export const INDEX_VERSION = 6
+// the passphrase-encrypted `admin` block, to 6 when that block's entries gained
+// `party`, and to 7 when they gained `side` and `events`. Feeds
+// sourceFingerprint, so bumping it is what makes a shape change actually
+// republish.
+export const INDEX_VERSION = 7
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -175,6 +177,52 @@ const byName = (a, b) =>
   sortName(a.name).localeCompare(sortName(b.name)) || a.name.localeCompare(b.name)
 
 /**
+ * Every guest resolves to one of the four invite pages.
+ *
+ * /admin/guest-summary hands out a link per guest, so a guest whose tags name no
+ * page would get a blank cell — and a blank cell is exactly the thing nobody
+ * notices until the wrong invitation has already been sent. Two ways to land
+ * there, both tagging slips in With Joy rather than deliberate:
+ *
+ * - carrying both side tags or neither, so there is no side to pick a page from;
+ * - carrying a set of events no page covers. Jackson's side is the live risk
+ *   here, since it has one page and no narrowed variant: anything less than
+ *   Sangeet + Muhurtham + Reception has nowhere to point.
+ *
+ * Rows, never names — the sync's output is counts-only by design, and a row
+ * number is what locates them in the sheet anyway. Every offending row at once,
+ * because fixing them one failed sync at a time is a bad afternoon.
+ */
+export function assertEveryGuestHasAnInvite(guests) {
+  const sideless = []
+  const unlinked = []
+  for (const guest of guests) {
+    const sides = INVITE_SIDE_TAGS.filter((tag) => guest.tags.has(tag))
+    if (sides.length !== 1) {
+      sideless.push(guest.row)
+      continue
+    }
+    const events = inviteEventsFor(guest.tags)
+    if (!inviteLinkFor(sides[0], events))
+      unlinked.push(`${guest.row} (${sides[0]}, ${events || 'no events'})`)
+  }
+
+  if (sideless.length > 0) {
+    throw new Error(
+      `${sideless.length} guest(s) carry both '${INVITE_SIDE_TAGS.join("' and '")}' or neither, so ` +
+        `/admin/guest-summary cannot say which invitation is theirs. Rows: ${sideless.join(', ')}`,
+    )
+  }
+  if (unlinked.length > 0) {
+    throw new Error(
+      `${unlinked.length} guest(s) carry a combination of events that no invite page covers, so ` +
+        `/admin/guest-summary would show them no link. Fix the tags in With Joy, or add the page ` +
+        `and its entry to LINKS in src/lib/inviteLink.js. Rows: ${unlinked.join(', ')}`,
+    )
+  }
+}
+
+/**
  * The roster behind /admin/guest-summary: one entry per guest, name and verdict only.
  *
  * Built from the raw roster rather than from `buildGuestRecords`, which drops
@@ -184,7 +232,9 @@ const byName = (a, b) =>
  *
  * Nothing beyond the name reaches the payload — no email, no address, and not
  * the party's *name* either. `party` below is an opaque integer, enough to draw
- * the households together and useless for anything else.
+ * the households together and useless for anything else. `side` and `events`
+ * are the two the page needs to name a guest's invitation; the link itself is
+ * derived on the page rather than stored, since it follows from those two.
  *
  * Ordering is load-bearing, not cosmetic: the page groups runs of adjacent
  * entries sharing a party, so members of one household have to come out of here
@@ -197,7 +247,16 @@ export function buildGuestSummary(guests) {
     const name = [guest.firstName, guest.lastName].filter(hasLetter).join(' ')
     if (!name) return []
     const tag = SUMMARY_TAGS.find((candidate) => guest.tags.has(candidate))
-    return [{ name, ...(tag ? { tag } : {}), status: guestSummaryStatus(guest), key: guest.party }]
+    return [
+      {
+        name,
+        ...(tag ? { tag } : {}),
+        side: INVITE_SIDE_TAGS.find((candidate) => guest.tags.has(candidate)),
+        events: inviteEventsFor(guest.tags),
+        status: guestSummaryStatus(guest),
+        key: guest.party,
+      },
+    ]
   })
 
   // Households of one are not households. 44 guests carry no party string at
@@ -264,6 +323,23 @@ export function assertSummaryTagsExist(knownTags) {
     throw new Error(
       `No guest carries the ${missing.join(' or ')} tag, so that filter on /admin/guest-summary would ` +
         `come up empty. Check the '… (tag)' columns in the sheet.`,
+    )
+  }
+}
+
+/**
+ * Both side-of-the-wedding tags.
+ *
+ * `assertEveryGuestHasAnInvite` would catch a vanished column too, but it would
+ * report all 649 rows as untaggable and bury the one thing that actually
+ * happened. This says it in a line.
+ */
+export function assertInviteSideTagsExist(knownTags) {
+  const missing = INVITE_SIDE_TAGS.filter((tag) => !knownTags.has(tag))
+  if (missing.length > 0) {
+    throw new Error(
+      `No guest carries the ${missing.join(' or ')} tag, so no guest could be matched to an ` +
+        `invitation on /admin/guest-summary. Check the '… (tag)' columns in the sheet.`,
     )
   }
 }

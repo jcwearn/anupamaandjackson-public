@@ -18,10 +18,12 @@ import { fileURLToPath } from 'node:url'
 import { readFixture, readGoogleSheet } from './lib/roster.js'
 import {
   assertAdminTagExists,
+  assertEveryGuestHasAnInvite,
   assertEveryGuestResolves,
   assertGatesExist,
   assertGolkondaAnswersRecognized,
   assertGolkondaColumnsExist,
+  assertInviteSideTagsExist,
   assertRosterPlausible,
   assertSummaryRsvpColumnsExist,
   assertSummaryTagsExist,
@@ -124,9 +126,14 @@ async function main() {
   assertGatesExist(catalogEvents, knownTags)
   assertAdminTagExists(knownTags)
   assertSummaryTagsExist(knownTags)
+  assertInviteSideTagsExist(knownTags)
   assertGolkondaColumnsExist(guests)
   assertGolkondaAnswersRecognized(guests)
   assertSummaryRsvpColumnsExist(guests)
+  // Not on the fixture, for the same reason assertEveryGuestResolves is skipped
+  // below: it carries deliberately tagless rows, and a guest with no events has
+  // no invitation to be matched to either.
+  if (!args.fixture) assertEveryGuestHasAnInvite(guests)
   assertUniversalEventsMatch(catalogEvents, await readFile(BUNDLED_PATH, 'utf-8'))
 
   const previous = await readPreviousIndex()

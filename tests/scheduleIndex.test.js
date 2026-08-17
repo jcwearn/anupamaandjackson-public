@@ -6,10 +6,12 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { readFixture } from '../scripts/lib/roster.js'
 import {
   assertAdminTagExists,
+  assertEveryGuestHasAnInvite,
   assertEveryGuestResolves,
   assertGatesExist,
   assertGolkondaAnswersRecognized,
   assertGolkondaColumnsExist,
+  assertInviteSideTagsExist,
   assertRosterPlausible,
   assertSummaryRsvpColumnsExist,
   assertSummaryTagsExist,
@@ -290,13 +292,34 @@ describe('guest summary roster', () => {
     expect(named('Jane Doe').tag).toBeUndefined()
   })
 
-  it('carries the name, verdict and household, and nothing else', () => {
-    // The page lists names. Anything more here is guest data shipped for no
-    // reason — and this payload leaves the generator. Ada travels alone, so
-    // she does not even carry the household id.
-    expect(Object.keys(named('Ada Lovelace')).sort()).toEqual(['name', 'status', 'tag'])
-    expect(Object.keys(named('John Smith')).sort()).toEqual(['name', 'party', 'status', 'tag'])
-    expect(Object.keys(named('Jane Doe')).sort()).toEqual(['name', 'party', 'status'])
+  it('carries the name, verdict, household and invitation, and nothing else', () => {
+    // The page lists names and hands out invitations. Anything more here is
+    // guest data shipped for no reason — and this payload leaves the generator.
+    // Ada travels alone, so she does not even carry the household id.
+    const fields = ['events', 'name', 'side', 'status', 'tag']
+    expect(Object.keys(named('Ada Lovelace')).sort()).toEqual(fields)
+    expect(Object.keys(named('John Smith')).sort()).toEqual([...fields, 'party'].sort())
+    expect(Object.keys(named('Jane Doe')).sort()).toEqual([
+      'events',
+      'name',
+      'party',
+      'side',
+      'status',
+    ])
+  })
+
+  it("carries each guest's side and events, which is what names their invitation", () => {
+    expect(named('Ada Lovelace')).toMatchObject({ side: 'anupama', events: 'MR' })
+    expect(named('Grace Hopper')).toMatchObject({ side: 'anupama', events: 'SMR' })
+    expect(named('Alan Turing')).toMatchObject({ side: 'jackson', events: 'SMR' })
+    expect(named('Prince')).toMatchObject({ side: 'anupama', events: 'M' })
+  })
+
+  it('leaves the deliberately tagless rows with no side and no events', () => {
+    // They are carried, because the page's whole job is surfacing them — they
+    // just have no invitation to be given yet.
+    expect(named('Tagless Guest').side).toBeUndefined()
+    expect(named('Tagless Guest').events).toBe('')
   })
 
   it('joins a first name with no last name into just the first', () => {
@@ -470,6 +493,41 @@ describe('build-time guards', () => {
     expect(() => assertSummaryTagsExist(new Set(['admin', 'vidya']))).toThrow(/venkat/)
     expect(() =>
       assertSummaryTagsExist(new Set(guests.flatMap((guest) => [...guest.tags]))),
+    ).not.toThrow()
+  })
+
+  it('rejects a roster missing either side-of-the-wedding tag', () => {
+    expect(() => assertInviteSideTagsExist(new Set(['admin', 'jackson']))).toThrow(/anupama/)
+    expect(() => assertInviteSideTagsExist(new Set(['admin', 'anupama']))).toThrow(/jackson/)
+    expect(() =>
+      assertInviteSideTagsExist(new Set(guests.flatMap((guest) => [...guest.tags]))),
+    ).not.toThrow()
+  })
+
+  it('rejects a guest no invitation covers', () => {
+    // A blank link cell is the thing nobody notices until the wrong invitation
+    // has already gone out, so it fails the sync with the row to fix instead.
+    const withTags = (row, tags) => ({ ...guests[0], row, tags: new Set(tags) })
+
+    // Jackson's side has one page and no narrowed variant, so anything short of
+    // all three events has nowhere to point.
+    expect(() =>
+      assertEveryGuestHasAnInvite([withTags(41, ['jackson', 'muhurtam', 'reception'])]),
+    ).toThrow(/Rows: 41 \(jackson, MR\)/)
+
+    // Both sides or neither: there is no side to pick a page from.
+    expect(() => assertEveryGuestHasAnInvite([withTags(7, ['anupama', 'jackson'])])).toThrow(
+      /Rows: 7/,
+    )
+    expect(() => assertEveryGuestHasAnInvite([withTags(9, ['muhurtam'])])).toThrow(/Rows: 9/)
+
+    // Every offending row at once, so they can be fixed in one pass.
+    expect(() =>
+      assertEveryGuestHasAnInvite([withTags(3, ['muhurtam']), withTags(5, ['muhurtam'])]),
+    ).toThrow(/Rows: 3, 5/)
+
+    expect(() =>
+      assertEveryGuestHasAnInvite(guests.filter((guest) => guest.tags.size > 1)),
     ).not.toThrow()
   })
 
