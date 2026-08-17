@@ -91,7 +91,9 @@ export const routes = [
     ogImageAlt: 'Where to Stay — Anupama & Jackson, October 28, 2026, Hyderabad, India',
   },
   // The admin section. Unlinked from every nav, gated on the `admin` tag and
-  // then on a passphrase, so each prerendered file holds only the locked state.
+  // then on a passphrase, so each prerendered file holds only the page shell —
+  // AdminLayout can't tell who is asking until it has run, and neither gate nor
+  // tool is in the HTML until then.
   //
   // The meta on all three is deliberately uninformative and deliberately
   // identical: the repo is mirrored publicly, so these paths are not secrets and

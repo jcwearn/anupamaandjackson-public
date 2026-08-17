@@ -27,6 +27,15 @@ const AdminLayout: React.FC = () => {
   const { isAdmin, status: guestStatus, displayName, signOut } = useGuestScheduleContext()
   const unlock = useAdminUnlock()
 
+  // 'loading' is the prerendered default and 'resolving' covers the index fetch
+  // and the guest PBKDF2 after it, so isAdmin being false says nothing yet.
+  // Rendering a gate here is a guess an admin who is already known to the site
+  // watches get corrected — the same flash AdminUnlockNotice returns null to
+  // avoid, one gate further down.
+  if (guestStatus === 'loading' || guestStatus === 'resolving') {
+    return <AdminShell />
+  }
+
   if (guestStatus === 'identified' && !isAdmin) {
     return (
       <AdminShell>
@@ -83,9 +92,10 @@ const AdminLayout: React.FC = () => {
 
 /**
  * The page chrome, shared by the gate states and the tools alike so the heading
- * doesn't shift when the passphrase lands.
+ * doesn't shift when the passphrase lands. Childless while the lookup is still
+ * out, which is the whole of what a visitor sees until it comes back.
  */
-const AdminShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+const AdminShell: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
   <div className="min-h-screen bg-peach/20 px-4 pb-16">
     <div className="mx-auto max-w-2xl">
       <header className="py-12 text-center">

@@ -110,13 +110,37 @@ describe('AdminLayout gate', () => {
     expect(signOut).toHaveBeenCalled()
   })
 
-  it('still offers the unlock while the lookup is resolving', () => {
+  it('shows no gate at all while the lookup is resolving', () => {
     // Mid-lookup isAdmin is false but the guest is not yet identified, so the
-    // "not for you" copy would be a lie.
+    // "not for you" copy would be a lie — and so would the unlock prompt, which
+    // an admin the site is in the middle of recognizing would watch flash past.
     setState({ status: 'resolving', isAdmin: false })
     renderAt()
 
+    expect(screen.queryByRole('button', { name: 'Unlock This Page' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/We know you as/)).not.toBeInTheDocument()
+    expect(toolShown()).not.toBeInTheDocument()
+  })
+
+  it('shows no gate before the lookup has started either', () => {
+    // 'loading' is the state the page is prerendered in, so whatever this branch
+    // renders is what ships in dist/admin/index.html and is painted before any
+    // of this has run. A locked card there is a guess, and it was a visible one.
+    setState({ status: 'loading', isAdmin: false })
+    renderAt()
+
+    expect(screen.queryByRole('button', { name: 'Unlock This Page' })).not.toBeInTheDocument()
+    expect(toolShown()).not.toBeInTheDocument()
+  })
+
+  it('offers the unlock once the lookup comes back with nobody', () => {
+    // The suppression above is a pending state, not a hole in the gate: the
+    // moment the answer is in, a visitor the roster doesn't know is asked again.
+    setState({ status: 'notFound', isAdmin: false })
+    renderAt()
+
     expect(screen.getByRole('button', { name: 'Unlock This Page' })).toBeInTheDocument()
+    expect(toolShown()).not.toBeInTheDocument()
   })
 
   it('withholds the tools from an admin who has not entered the passphrase', () => {
