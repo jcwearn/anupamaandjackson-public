@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import { useGuestScheduleContext } from '../lib/guestScheduleContext'
+import AdminNavLink from './AdminNavLink'
 
 interface Props {
   /**
@@ -137,6 +138,11 @@ const GuestBadge: React.FC<Props> = ({ variant, onAction }) => {
           <p className="px-2 pt-1 pb-2 font-body text-xs text-zeus/60">
             You’re seeing the events on your invitation.
           </p>
+          {/* Renders for nobody but the handful carrying the `admin` tag. This
+              panel rather than the bar itself because the bar row has no width
+              to spare at its breakpoint, and because /admin is a fact about who
+              you are — the same thing everything else in here is about. */}
+          <AdminNavLink variant="popover" onClick={() => setPopoverOpen(false)} />
           <button
             type="button"
             role="menuitem"

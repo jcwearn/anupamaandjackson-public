@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { useNavItems } from '../lib/useNavItems'
+import { ADMIN_NAV_ITEM } from '../lib/navItems'
 import { ExternalLinkIcon } from '../icons/ExternalLinkIcon'
+import AdminNavLink from './AdminNavLink'
 import GuestBadge from './GuestBadge'
 import RsvpModal from './RsvpModal'
 import { WITHJOY_RSVP_URL } from '../lib/constants'
@@ -33,6 +35,18 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
     const hamburger = menuButtonRef.current
     return () => hamburger?.focus()
   }, [rsvpOpen])
+
+  // Shared by every link in the dropdown, the Admin one included: modifier and
+  // middle clicks keep the browser's default handling (e.g. open in new tab),
+  // while a plain click waits out the close animation before navigating.
+  const closeThenNavigate =
+    (to: string): React.MouseEventHandler<HTMLAnchorElement> =>
+    (e) => {
+      setOpen(false)
+      if (e.button !== 0 || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return
+      e.preventDefault()
+      window.setTimeout(() => navigate(to, { viewTransition: true }), MENU_CLOSE_MS)
+    }
 
   useEffect(() => {
     if (!open) return
@@ -144,15 +158,7 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
               to={n.to}
               viewTransition
               role="menuitem"
-              onClick={(e) => {
-                setOpen(false)
-                // Modifier/middle clicks keep the browser's default handling
-                // (e.g. open in new tab); plain clicks wait for the close
-                // animation before navigating.
-                if (e.button !== 0 || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return
-                e.preventDefault()
-                window.setTimeout(() => navigate(n.to, { viewTransition: true }), MENU_CLOSE_MS)
-              }}
+              onClick={closeThenNavigate(n.to)}
               className={({ isActive }) =>
                 clsx(
                   'block rounded-lg px-3 py-2 font-body text-base transition-colors hover:bg-peach/40',
@@ -166,6 +172,10 @@ const FloatingNav: React.FC<FloatingNavProps> = ({ mobileOnly = false, hidden = 
             </NavLink>
           ))}
           <div className="my-1 border-t border-gold/20" />
+          {/* Below the divider rather than among the page links: like the badge
+              under it, this is a consequence of who you are, not another
+              destination everyone can reach. */}
+          <AdminNavLink variant="menu" onClick={closeThenNavigate(ADMIN_NAV_ITEM.to)} />
           <GuestBadge variant="menu" onAction={() => setOpen(false)} />
           <button
             type="button"

@@ -73,7 +73,8 @@ const router = createBrowserRouter([
           { path: '/kerala-itinerary', element: <KeralaItinerary /> },
           { path: '/hotels', element: <Hotels /> },
 
-          // Unlinked, gated on the `admin` tag and then on the admin
+          // Linked from the nav, but only for guests carrying the `admin` tag
+          // (AdminNavLink), and gated on that same tag and then on the admin
           // passphrase — AdminLayout owns both gates so a tool added here
           // inherits them. Under SiteLayout rather than FloatingNavLayout
           // because only SiteLayout mounts the provider the tag gate reads.

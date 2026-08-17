@@ -19,6 +19,11 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const KERALA_NAV_ITEM: NavItem = { to: '/kerala-itinerary', label: 'Kerala Itinerary' }
 
+// Never joins the row above — AdminNavLink renders it inside the guest badge's
+// popover on the bar, and under the divider in FloatingNav's dropdown. It lives
+// here anyway so the path and the label are written once.
+export const ADMIN_NAV_ITEM: NavItem = { to: '/admin', label: 'Admin' }
+
 // The second-level row TravelLayout pins under SiteNav. Labels are shorter than
 // the page titles they lead to: four chips have to sit side by side at 390px,
 // which is why /travel/food is "Food" and not "What to Eat". Measured at 390px

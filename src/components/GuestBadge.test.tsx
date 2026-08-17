@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import GuestBadge from './GuestBadge'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
 import { universalEvents } from '../data/scheduleEvents'
@@ -35,11 +36,15 @@ beforeEach(() => {
   setState()
 })
 
+// MemoryRouter because the popover now holds AdminNavLink's <Link>, which
+// needs a router context even in the cases where it renders nothing.
 const renderBadge = (variant: 'bar' | 'menu' = 'bar') =>
   render(
-    <GuestScheduleProvider>
-      <GuestBadge variant={variant} />
-    </GuestScheduleProvider>,
+    <MemoryRouter>
+      <GuestScheduleProvider>
+        <GuestBadge variant={variant} />
+      </GuestScheduleProvider>
+    </MemoryRouter>,
   )
 
 describe('GuestBadge', () => {
@@ -92,6 +97,27 @@ describe('GuestBadge', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Not you? Sign out' }))
 
     expect(signOut).toHaveBeenCalled()
+  })
+
+  it('offers an admin the way in to /admin, behind the same tap as sign-out', () => {
+    setState({ status: 'identified', displayName: 'Grace', isAdmin: true })
+    renderBadge()
+
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Signed in as Grace' }))
+
+    expect(screen.getByRole('menuitem', { name: 'Admin' })).toHaveAttribute('href', '/admin')
+  })
+
+  it('keeps /admin out of an ordinary guest’s popover', () => {
+    setState({ status: 'identified', displayName: 'Grace' })
+    renderBadge()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Signed in as Grace' }))
+
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Not you? Sign out' })).toBeInTheDocument()
   })
 
   it('lays both parts out flat in the dropdown, where there is room', () => {
