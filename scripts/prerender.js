@@ -1,9 +1,27 @@
+import { readFileSync } from 'fs'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { dirname, join } from 'path'
 import { fileURLToPath, pathToFileURL } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
+
+/**
+ * public/_redirects, parsed into one [from, to, status] per rule.
+ *
+ * Lives here rather than in the test that reads it because it belongs beside
+ * `routes`: the two have to agree, and every redirect rule points at a path
+ * this file is responsible for writing. The test is .tsx and the project ships
+ * no @types/node, so reading the file there would mean either a new dependency
+ * or a cast — and this is the better home for it either way.
+ */
+export function readRedirects() {
+  return readFileSync(join(root, 'public/_redirects'), 'utf-8')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
+    .map((line) => line.split(/\s+/))
+}
 
 // Routes to prerender with their metadata. Exported so prerenderRoutes.test.tsx
 // can check this list against the routes entry-server.tsx actually serves —

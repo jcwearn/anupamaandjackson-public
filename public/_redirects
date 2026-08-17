@@ -1,13 +1,29 @@
-# Travel Tips moved under /travel. The browser reattaches the #fragment across a
-# 301 on its own, so deep links like /travel-tips#what-to-pack survive.
-/travel-tips  /travel/tips  301
+# Old URLs that have been passed around by hand and must keep working.
+#
+# Every rule is listed twice, bare and with a trailing slash, because Pages
+# matches the path literally. Only the bare form was here at first, so
+# /guest-summary redirected and /guest-summary/ fell through to the SPA shell,
+# where the client-side HashRedirect was the only thing putting it right. That
+# held until a copy of the old page was cached at the slash form: the shell
+# never loaded, the client-side redirect never ran, and the link served a
+# months-old page for as long as the cache held it.
+#
+# Targets carry the trailing slash the prerendered pages actually live at.
+# Without it the browser follows this 301 into Pages' own 308 to the canonical
+# form — two hops where one will do.
+#
+# The browser reattaches the #fragment across a 301 on its own, so deep links
+# like /travel-tips#what-to-pack still survive.
+/travel-tips   /travel/tips/   301
+/travel-tips/  /travel/tips/   301
 
 # The two admin tools moved under /admin, which is now the one place they and
-# anything added later live. Neither was ever linked from a nav, but both URLs
-# have been passed around the family by hand, so they keep working.
+# anything added later live.
 #
 # Neither path may be prerendered again — a matching static file would shadow
 # these rules. scripts/prerender.js and prerenderRoutes.test.tsx both hold that
-# line.
-/invites/links   /admin/invite-links    301
-/guest-summary   /admin/guest-summary   301
+# line, and the test below also holds the two-forms-per-rule shape.
+/invites/links    /admin/invite-links/    301
+/invites/links/   /admin/invite-links/    301
+/guest-summary    /admin/guest-summary/   301
+/guest-summary/   /admin/guest-summary/   301
