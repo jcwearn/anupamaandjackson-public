@@ -31,11 +31,15 @@ const householdBox = (first: boolean, last: boolean) =>
   ].join(' ')
 
 /**
- * Whose list to show. 'all' is not a tag — it is the absence of a tag filter,
- * and it includes the guests carrying neither side's tag.
+ * Whose list to show. The four named ones partition the roster: Vidya's and
+ * Venkat's guests are all on Anupama's side, so hers is what is left of it once
+ * their two lists are taken out. 'all' is not a list at all — it is the absence
+ * of a filter.
  */
 const SIDES = [
   { value: 'all', label: 'Everyone' },
+  { value: 'anupama', label: 'Anupama' },
+  { value: 'jackson', label: 'Jackson' },
   { value: 'vidya', label: 'Vidya' },
   { value: 'venkat', label: 'Venkat' },
 ] as const
@@ -54,11 +58,38 @@ const STATUSES: { value: GuestSummaryStatus; label: string }[] = [
 type Side = (typeof SIDES)[number]['value']
 
 /**
+ * Whether a guest belongs on the chosen list.
+ *
+ * Two independent tag families meet here. `side` is which side of the wedding
+ * the guest is on, and every guest on the real roster has one — the sync fails
+ * rather than publish a guest who doesn't. `tag` is the finer split of Anupama's
+ * side between her parents' lists, and it is set only for those two, so its
+ * absence is the "on neither of them" test.
+ *
+ * An entry carrying no `side` matches only Everyone, which is the honest answer
+ * for the one case that produces it: this bundle and schedule-index.json deploy
+ * separately, so for a moment the index in front of it is a version behind and
+ * has no side to file its guests under. See GuestSummaryEntry.
+ */
+const onSide = (entry: GuestSummaryEntry, side: Side) => {
+  switch (side) {
+    case 'all':
+      return true
+    case 'anupama':
+      return entry.side === 'anupama' && !entry.tag
+    case 'jackson':
+      return entry.side === 'jackson'
+    default:
+      return entry.tag === side
+  }
+}
+
+/**
  * One labelled row of filter chips.
  *
- * The label is what the two rows were missing: on their own they were six chips
- * in a heap, and nothing on the page said that the first three and the last
- * three answer different questions.
+ * The label is what the two rows were missing: on their own they were chips in
+ * a heap, and nothing on the page said that the top row and the bottom one
+ * answer different questions.
  *
  * `role="group"` with aria-labelledby rather than a fieldset and legend. These
  * are buttons carrying aria-pressed, not radios, and a fieldset would announce
@@ -129,10 +160,7 @@ const GuestSummary: React.FC = () => {
 
   const visible = useMemo(
     () =>
-      summary.filter(
-        (entry: GuestSummaryEntry) =>
-          entry.status === status && (side === 'all' || entry.tag === side),
-      ),
+      summary.filter((entry: GuestSummaryEntry) => entry.status === status && onSide(entry, side)),
     [summary, side, status],
   )
 
@@ -171,8 +199,8 @@ const GuestSummary: React.FC = () => {
       {/* In a card of their own, so the filters read as one panel that acts on
           the table below rather than as loose chrome floating above it.
           "Guest list" rather than "Host": Vidya's and Venkat's are two lists
-          within Anupama's side, and the 176 guests on neither of them — all of
-          Jackson's side among them — are only reachable under Everyone. */}
+          within Anupama's side, so the five chips are four lists and the whole
+          roster, not five peers. */}
       <div className="card">
         {/* w-fit on the inner block, not items-center on the rows: centring the
             rows individually would centre each on its own width, and the two

@@ -40,8 +40,12 @@ const setState = (overrides: Partial<GuestScheduleState> = {}) => {
 }
 
 /**
- * Nine guests, one for each tag × status pair plus three untagged, so every
- * combination of the two chip rows has exactly one expected name.
+ * Twelve guests, one for each list × status pair, so every combination of the
+ * two chip rows has exactly one expected name.
+ *
+ * The Anupama four carry her side and neither parent's tag, which is what that
+ * chip means: the Vidya and Venkat rows are on her side too, and the chip has
+ * to leave them out.
  */
 const summary: GuestSummaryEntry[] = [
   { name: 'Vidya Yes', tag: 'vidya', side: 'anupama', events: 'SMR', status: 'attending' },
@@ -50,9 +54,12 @@ const summary: GuestSummaryEntry[] = [
   { name: 'Venkat Yes', tag: 'venkat', side: 'anupama', events: 'SMR', status: 'attending' },
   { name: 'Venkat No', tag: 'venkat', side: 'anupama', events: 'MR', status: 'declined' },
   { name: 'Venkat Silent', tag: 'venkat', side: 'anupama', events: 'M', status: 'none' },
-  { name: 'Neither Yes', side: 'jackson', events: 'SMR', status: 'attending' },
-  { name: 'Neither No', side: 'jackson', events: 'SMR', status: 'declined' },
-  { name: 'Neither Silent', side: 'jackson', events: 'SMR', status: 'none' },
+  { name: 'Anupama Yes', side: 'anupama', events: 'SMR', status: 'attending' },
+  { name: 'Anupama No', side: 'anupama', events: 'MR', status: 'declined' },
+  { name: 'Anupama Silent', side: 'anupama', events: 'M', status: 'none' },
+  { name: 'Jackson Yes', side: 'jackson', events: 'SMR', status: 'attending' },
+  { name: 'Jackson No', side: 'jackson', events: 'SMR', status: 'declined' },
+  { name: 'Jackson Silent', side: 'jackson', events: 'SMR', status: 'none' },
 ]
 
 const setUnlock = (
@@ -144,13 +151,25 @@ describe('GuestSummary filters', () => {
     // The list worth acting on. Attending and declined are both settled.
     renderPage()
 
-    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Neither Silent'])
+    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'])
   })
 
   it.each([
-    ['Everyone', 'Attending', ['Vidya Yes', 'Venkat Yes', 'Neither Yes']],
-    ['Everyone', 'Not Attending', ['Vidya No', 'Venkat No', 'Neither No']],
-    ['Everyone', 'No Response', ['Vidya Silent', 'Venkat Silent', 'Neither Silent']],
+    ['Everyone', 'Attending', ['Vidya Yes', 'Venkat Yes', 'Anupama Yes', 'Jackson Yes']],
+    ['Everyone', 'Not Attending', ['Vidya No', 'Venkat No', 'Anupama No', 'Jackson No']],
+    [
+      'Everyone',
+      'No Response',
+      ['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'],
+    ],
+    // Anupama's chip is her side less the two lists within it, so none of the
+    // Vidya or Venkat rows above may appear under it.
+    ['Anupama', 'Attending', ['Anupama Yes']],
+    ['Anupama', 'Not Attending', ['Anupama No']],
+    ['Anupama', 'No Response', ['Anupama Silent']],
+    ['Jackson', 'Attending', ['Jackson Yes']],
+    ['Jackson', 'Not Attending', ['Jackson No']],
+    ['Jackson', 'No Response', ['Jackson Silent']],
     ['Vidya', 'Attending', ['Vidya Yes']],
     ['Vidya', 'Not Attending', ['Vidya No']],
     ['Vidya', 'No Response', ['Vidya Silent']],
@@ -169,7 +188,7 @@ describe('GuestSummary filters', () => {
   it('counts what is on screen', () => {
     renderPage()
 
-    expect(screen.getByText('3 guests')).toBeInTheDocument()
+    expect(screen.getByText('4 guests')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Vidya' }))
     // Singular, because '1 guests' on a page built for one person to read all
@@ -178,13 +197,13 @@ describe('GuestSummary filters', () => {
   })
 
   it('says what each row of chips filters on', () => {
-    // Six chips in a heap said nothing about which three answered which
+    // The chips in a heap said nothing about which of them answered which
     // question. The label names the group, and names it to a screen reader too.
     renderPage()
 
     const rows = screen.getAllByRole('group')
     expect(rows.map((row) => row.getAttribute('aria-label') ?? row.textContent)).toEqual([
-      'Guest listEveryoneVidyaVenkat',
+      'Guest listEveryoneAnupamaJacksonVidyaVenkat',
       'RSVPAttendingNot AttendingNo Response',
     ])
     expect(screen.getByRole('group', { name: 'Guest list' })).toBeInTheDocument()
@@ -212,6 +231,25 @@ describe('GuestSummary filters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
 
     expect(listed()).toEqual(['Venkat Yes'])
+  })
+
+  it('shows a guest with no side under Everyone and nowhere else', () => {
+    // What an index built before `side` existed looks like: this bundle and
+    // schedule-index.json deploy separately, so for a moment the index in front
+    // of the page is a version behind. Everyone still finds them, which beats
+    // filing them under a list that is not theirs.
+    setUnlock('unlocked', { summary: [{ name: 'Unsynced Guest', status: 'none' }] })
+    renderPage()
+
+    expect(listed()).toEqual(['Unsynced Guest'])
+
+    for (const chip of ['Anupama', 'Jackson', 'Vidya', 'Venkat']) {
+      fireEvent.click(screen.getByRole('button', { name: chip }))
+      expect(screen.getByText('0 guests')).toBeInTheDocument()
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Everyone' }))
+    expect(listed()).toEqual(['Unsynced Guest'])
   })
 
   it('says so plainly when a combination is empty', () => {
