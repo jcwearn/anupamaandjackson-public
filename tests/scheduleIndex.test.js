@@ -850,7 +850,17 @@ describe('admin payload', () => {
       },
       {
         room: 2,
-        occupants: [{ name: 'Enrico Fermi', trip: 'full', flight: 'ow', occupancy: 'single' }],
+        occupants: [
+          {
+            name: 'Enrico Fermi',
+            trip: 'full',
+            flight: 'ow',
+            occupancy: 'single',
+            // Here as well as in his own envelope: the billing summary needs it
+            // to tell what we are covering from what the agent is charging.
+            hostCovers: 9531,
+          },
+        ],
       },
     ])
     expect(keralaTrip.billing).toEqual(keralaBilling)
@@ -948,6 +958,10 @@ describe('kerala payload', () => {
       flight: 'ow',
       occupancy: 'single',
       roommates: [],
+      // His is the fixture's subsidised share: ₹82,032 at the card, ₹9,531 of
+      // it ours, so he is asked $761 rather than $861.
+      hostCovers: 9531,
+      priceNote: 'We are covering $100 of this one, so your price is $761 rather than $861.',
     })
   })
 
@@ -1073,6 +1087,41 @@ describe('kerala payload', () => {
     )
     expect(rooms[0].occupants[0]).toMatchObject({ priceOverride: 67440, soleUseNights: 1 })
     expect([...payloads.values()][0]).not.toHaveProperty('soleUseNights')
+  })
+
+  it('carries what we cover to the guest as well as to the admin rooms', () => {
+    // The one price field that belongs in both. The guest has to see it —
+    // it changes the figure they are being asked for — and the admin page has
+    // to see it to know the difference is ours rather than the agent's.
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [response('vera@example.com', { hostCovers: 23283 }), response('carl@example.com')],
+    )
+    expect(rooms[0].occupants[0]).toMatchObject({ hostCovers: 23283 })
+    expect(rooms[0].occupants[1]).not.toHaveProperty('hostCovers')
+    expect([...payloads.values()][0]).toMatchObject({ hostCovers: 23283 })
+    expect([...payloads.values()][1]).not.toHaveProperty('hostCovers')
+  })
+
+  it('refuses a covered share that is not a positive figure under the price', () => {
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    const pair = (overrides) => [
+      response('vera@example.com', overrides),
+      response('carl@example.com'),
+    ]
+    expect(() => resolveKeralaPayloads(roster, pair({ hostCovers: 0 }))).toThrow(/hostCovers/)
+    expect(() => resolveKeralaPayloads(roster, pair({ hostCovers: -5 }))).toThrow(/hostCovers/)
+    expect(() => resolveKeralaPayloads(roster, pair({ hostCovers: 'lots' }))).toThrow(/hostCovers/)
+    // Covering more than the guest was quoted would hand them a negative price.
+    expect(() =>
+      resolveKeralaPayloads(roster, pair({ priceOverride: 20000, hostCovers: 20000 })),
+    ).toThrow(/hostCovers/)
   })
 
   it('carries the host flag to the admin rooms and nowhere else', () => {

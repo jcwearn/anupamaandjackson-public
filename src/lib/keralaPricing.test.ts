@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   AIRFARE,
   LAND_COST,
+  askedUsd,
   keralaAgentCost,
   keralaPrice,
   keralaShortfall,
@@ -139,6 +140,58 @@ describe('keralaPrice', () => {
     expect(keralaShortfall(odd)).toBe(0)
     expect(rateComponents(odd).at(-1)).toMatchObject({ label: 'Unaccounted for' })
     expect(rateComponents(odd).at(-1)?.working).toBeUndefined()
+  })
+
+  it('takes what we cover off the guest without taking it off the agent', () => {
+    // The distinction the field exists for. The agent invoices this guest at
+    // the ordinary single rate; we have simply decided to pay part of their
+    // share, so their price drops and the total we owe does not move a rupee.
+    const subsidised = {
+      trip: 'full',
+      occupancy: 'single',
+      flight: 'rt',
+      hostCovers: 23283,
+    } as const
+    expect(keralaPrice({ trip: 'full', occupancy: 'single', flight: 'rt' })).toBe(90000)
+    expect(keralaPrice(subsidised)).toBe(66717)
+    expect(keralaAgentCost(subsidised)).toBe(90000)
+    expect(keralaShortfall(subsidised)).toBe(23283)
+    // Whole dollars, which is what the guest is actually asked for: 66,717 is
+    // 700 × the rate they were quoted at, so it lands on the figure exactly
+    // rather than a dollar either side of it.
+    expect(askedUsd(subsidised)).toBe(700)
+    expect(askedUsd({ trip: 'full', occupancy: 'single', flight: 'rt' })).toBe(944)
+  })
+
+  it('itemises a subsidised guest as the plain rate they are billed at', () => {
+    // The breakdown is the agent's view, so what we cover must not appear in
+    // it — and must not leave it short of its own total either.
+    const parts = rateComponents({
+      trip: 'full',
+      occupancy: 'single',
+      flight: 'rt',
+      hostCovers: 23283,
+    })
+    expect(parts.map((part) => part.label)).not.toContain('Unaccounted for')
+    expect(parts.every((part) => part.quoted)).toBe(true)
+    expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(90000)
+  })
+
+  it('composes what we cover with an exceptional rate rather than replacing it', () => {
+    // Nobody is in this position yet. It is pinned because the two fields mean
+    // different things — one is the price they were quoted, one is how much of
+    // it is ours — and a future edit that made one win outright would be a
+    // silent change to what somebody is asked for.
+    const both = {
+      trip: 'full',
+      occupancy: 'double',
+      flight: 'rt',
+      priceOverride: 67440,
+      soleUseNights: 1,
+      hostCovers: 7440,
+    } as const
+    expect(keralaPrice(both)).toBe(60000)
+    expect(keralaAgentCost(both)).toBe(70160)
   })
 
   it('says so rather than lying when the parts do not add up', () => {

@@ -437,13 +437,15 @@ const ROOM_LEFT = [1, 2, 3]
 const NO_UNIT_PRICE = '—'
 
 /**
- * Why a share of the total is ours. Three different situations, three different
- * follow-ups — one is ours by definition, one is a quote that aged, and one is
- * a guest who sent the wrong amount and might simply be asked for the rest.
+ * Why a share of the total is ours. Four different situations, four different
+ * follow-ups — one is ours by definition, one is a quote that aged, one we
+ * chose and owe nobody an explanation for, and one is a guest who sent the
+ * wrong amount and might simply be asked for the rest.
  */
 const COVERED_REASON: Record<CoveredLine['reason'], (amount: number) => string> = {
   host: () => 'your own place',
   shortfall: () => 'quoted before the sole-use night was costed',
+  gift: () => 'part of their price is on you',
   settlement: (amount) =>
     amount < 0 ? 'sent more than they were asked' : 'sent less than they were asked',
 }
@@ -752,14 +754,44 @@ const BreakdownTable: React.FC<{
 
                     {bucket.total !== bucket.guestPrice && (
                       <dl className="mx-auto mt-3 grid max-w-md grid-cols-[1fr_auto] gap-x-6 gap-y-1 border-t border-gold/40 pt-3 text-xs">
-                        <dt className="text-zeus/70">Quoted to the guest, and paid</dt>
+                        {/* Not "quoted to the guest, and paid", which this said
+                            until it was read closely. Both halves could be
+                            untrue at once: a row can hold our own places, which
+                            nobody quoted, and guests who have not sent anything
+                            yet. What the figure actually is, is what the guests
+                            in this row owe us. */}
+                        <dt className="text-zeus/70">What the guests here owe</dt>
                         <dd className="text-right tabular-nums text-zeus">
                           {format(bucket.guestPrice)}
                         </dd>
-                        <dt className="font-medium text-zeus/80">You cover the difference</dt>
-                        <dd className="text-right font-medium tabular-nums text-rosewood">
-                          {format(bucket.total - bucket.guestPrice)}
-                        </dd>
+                        {/* Split out, because a host place and a share we took
+                            on look identical in the arithmetic and are nothing
+                            alike: one was never money a guest owed us. Lumped
+                            together they raise the question of where the
+                            difference came from, which is the question this
+                            line exists to answer. */}
+                        {bucket.hosts > 0 && (
+                          <>
+                            <dt className="text-zeus/70">
+                              {bucket.hosts === 1
+                                ? 'Your own place'
+                                : `Your own places · ${bucket.hosts}`}
+                            </dt>
+                            <dd className="text-right tabular-nums text-zeus">
+                              {format(bucket.hosts * bucket.each)}
+                            </dd>
+                          </>
+                        )}
+                        {bucket.total - bucket.guestPrice - bucket.hosts * bucket.each > 0 && (
+                          <>
+                            <dt className="font-medium text-zeus/80">You cover the difference</dt>
+                            <dd className="text-right font-medium tabular-nums text-rosewood">
+                              {format(
+                                bucket.total - bucket.guestPrice - bucket.hosts * bucket.each,
+                              )}
+                            </dd>
+                          </>
+                        )}
                       </dl>
                     )}
                   </td>

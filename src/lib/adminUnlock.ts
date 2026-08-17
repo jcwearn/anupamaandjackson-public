@@ -64,6 +64,12 @@ export interface KeralaRoomOccupant {
   /** What the guest was asked to pay, when it is not the rate card figure. */
   priceOverride?: number
   /**
+   * Rupees of their share we are paying ourselves. Unlike the two fields either
+   * side of it, this one moves what the guest owes without moving what the
+   * agent bills, so it lands under "you are covering" rather than in the total.
+   */
+  hostCovers?: number
+  /**
    * Nights their room is theirs alone because a roommate left early. What the
    * agent charges us on top of the rate card, which since one guest paid an
    * earlier figure is no longer the same as what they paid.

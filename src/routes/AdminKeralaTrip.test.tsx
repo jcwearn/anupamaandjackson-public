@@ -490,14 +490,34 @@ describe('the price breakdown', () => {
     expect(screen.getByText(/occupancy is worth ₹14,000/)).toBeInTheDocument()
   })
 
-  it('shows what the guest paid and what we absorb, where those differ', () => {
+  it('shows what the guest owes and what we absorb, where those differ', () => {
     // He was quoted before the sole-use night was worked out properly, has
     // paid that figure, and is not being re-invoiced.
     renderPage()
     expand('Price exception · Carl Sagan')
 
-    expect(moneyFor('Quoted to the guest, and paid')).toHaveTextContent('₹67,440')
+    expect(moneyFor('What the guests here owe')).toHaveTextContent('₹67,440')
     expect(moneyFor('You cover the difference')).toHaveTextContent('₹2,720')
+    // Nobody's own place is in this row, so that line stays off it. Scoped to
+    // the itemisation: the room table calls a host's cell "Your own place,
+    // still to be paid", which is a different statement about the same fact.
+    expect(detail()!.queryByText(/Your own place/)).toBeNull()
+  })
+
+  it('names your own places rather than calling them a difference you cover', () => {
+    // The two sit inside an ordinary rate row, so the row's total and its
+    // guest price differ for a reason that has nothing to do with covering
+    // anyone's share. Lumping the two together is what made this row unable
+    // to say where its own difference came from.
+    renderPage()
+    expand('Full · double occupancy · round trip')
+
+    // This row is the two hosts and nobody else: 2 × 56,160, none of it money
+    // a guest owes us.
+    expect(moneyFor('Your own places · 2')).toHaveTextContent('₹1,12,320')
+    expect(moneyFor('What the guests here owe')).toHaveTextContent('₹0')
+    // Nothing left over once their places are named, so no covering line.
+    expect(screen.queryByText('You cover the difference')).toBeNull()
   })
 
   it('takes your own two places out of what the guests owe', () => {
@@ -549,6 +569,46 @@ describe('the price breakdown', () => {
     const list = screen.getByText('You are covering').closest('dl') as HTMLElement
     expect(within(list).getAllByText('your own place')).toHaveLength(2)
     expect(screen.getByText('quoted before the sole-use night was costed')).toBeInTheDocument()
+  })
+
+  it('names a guest whose share you are partly paying, without inventing a rate', () => {
+    // A sixth room rather than a change to the shared fixture, so the totals
+    // every other test pins stay where they are. Asked $944 at the card rate,
+    // being asked $700, with the ₹23,283 difference on us.
+    setUnlock('unlocked', {
+      kerala: {
+        ...kerala,
+        rooms: [
+          ...kerala.rooms,
+          {
+            room: 6,
+            occupants: [
+              {
+                name: 'Rosalind Franklin',
+                trip: 'full',
+                flight: 'rt',
+                occupancy: 'single',
+                hostCovers: 23283,
+              },
+            ],
+          },
+        ],
+      },
+    })
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /You are covering/ }))
+
+    expect(coveredRow('Rosalind Franklin')).toHaveTextContent('₹23,283')
+    expect(screen.getByText('part of their price is on you')).toBeInTheDocument()
+    // The agent's side is untouched: she is an ordinary full/single/rt line,
+    // not an exception, and the total went up by the whole card rate.
+    expect(moneyFor('Total quoted')).toHaveTextContent(
+      `₹${(AGENT_TOTAL + 90000).toLocaleString('en-IN')}`,
+    )
+    expect(screen.queryByRole('button', { name: /Price exception · Rosalind/ })).toBeNull()
+    expect(
+      screen.getByRole('button', { name: /Full · single occupancy · round trip/ }),
+    ).toBeInTheDocument()
   })
 
   it('carries that gap up to the money at the top of the card', () => {

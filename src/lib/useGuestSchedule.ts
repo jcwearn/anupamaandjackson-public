@@ -33,6 +33,12 @@ export interface KeralaGuestInfo {
   roommates: string[]
   /** In rupees, like the pricing table; replaces the table-derived price. */
   priceOverride?: number
+  /**
+   * Rupees off their price that we are paying for them. Comes off whichever
+   * figure the two above settled on, and never off what the agent bills — see
+   * `PriceChoice` in keralaPricing.ts for why that is a separate field.
+   */
+  hostCovers?: number
   /** Guest-specific pricing caveat (e.g. a roommate leaving a night early). */
   priceNote?: string
 }

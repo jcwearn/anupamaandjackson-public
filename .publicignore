@@ -18,6 +18,12 @@
 .idea/
 .DS_Store
 
+# Working notes for agents. Tracked, unlike .claude/, because it is worth having
+# in the history and reviewable in a PR -- but held back from the mirror for now
+# rather than published as advice to nobody. Root-anchored: this is the one at
+# the top of the repo, not any CLAUDE.md that later appears in a subdirectory.
+/CLAUDE.md
+
 # ---------------------------------------------------------------------------
 # Guest data. This is the reason this repo is mirrored rather than published.
 # ---------------------------------------------------------------------------

@@ -144,6 +144,90 @@ describe('billing', () => {
     )
   })
 
+  it('counts how many of a rate row are your own places', () => {
+    // A row's total and its guest price come apart for two unlike reasons, and
+    // this is what lets the row tell them apart: a host place was never money a
+    // guest owed us, and the rest is a share we took on.
+    const mixed: KeralaRoom[] = [
+      {
+        ...room(1, 'double', ['full', 'full']),
+        occupants: [
+          { ...room(1, 'double', ['full', 'full']).occupants[0], host: true },
+          room(1, 'double', ['full', 'full']).occupants[1],
+        ],
+      },
+    ]
+    const { billing } = summarizeKeralaTrip(mixed, null)
+
+    expect(billing.buckets[0]).toMatchObject({ people: 2, hosts: 1, total: 56160 * 2 })
+    // One of the two owes us; the other place is ours.
+    expect(billing.buckets[0].guestPrice).toBe(56160)
+  })
+
+  it('leaves a subsidised guest in the rate they are billed at', () => {
+    // The point of the field, stated as a test: this table gets read back
+    // against the agent's invoice, so a guest whose share we are partly paying
+    // has to stay an ordinary line on it at an ordinary rate. Only what the
+    // guest owes moves.
+    const subsidised: KeralaRoom[] = [
+      { ...single(2), occupants: [{ ...single(2).occupants[0], hostCovers: 23283 }] },
+    ]
+    const { billing } = summarizeKeralaTrip(subsidised, null)
+
+    expect(billing.total).toBe(90000)
+    expect(billing.buckets.map((bucket) => bucket.label)).toEqual([
+      'Full · single occupancy · round trip',
+    ])
+    expect(billing.buckets[0]).toMatchObject({ people: 1, each: 90000, total: 90000, hosts: 0 })
+    // What the guest owes is the only figure that moved.
+    expect(billing.buckets[0].guestPrice).toBe(66717)
+    expect(billing.coveredBy).toEqual([{ name: 'Solo 2', amount: 23283, reason: 'gift' }])
+    expect(billing.covered).toBe(23283)
+    expect(billing.guestPrices).toBe(66717)
+    expect(billing.guestPrices + billing.covered).toBe(billing.total)
+    // Nothing of ours reaches the itemisation, which has to foot to the agent's
+    // figure rather than to what anyone was asked for.
+    expect(billing.buckets[0].choice).not.toHaveProperty('hostCovers')
+  })
+
+  it('asks a subsidised guest for the reduced figure, not the card rate', () => {
+    const subsidised: KeralaRoom[] = [
+      { ...single(2), occupants: [{ ...single(2).occupants[0], hostCovers: 23283 }] },
+    ]
+    const { billing } = summarizeKeralaTrip(subsidised, null)
+
+    expect(billing.toCollectFrom).toEqual([{ name: 'Solo 2', room: 2, usd: 700 }])
+    expect(billing.toCollect).toBe(700)
+  })
+
+  it('separates what we chose to cover from what a quote got wrong', () => {
+    // Two reasons, two lines, one person — and they must not double-count. The
+    // gift comes out of the shortfall so the pair still sums to the gap between
+    // what the agent charges for them and what they were asked for.
+    const bothReasons: KeralaRoom[] = [
+      {
+        ...room(1, 'twin', ['full', 'short']),
+        occupants: [
+          {
+            ...room(1, 'twin', ['full', 'short']).occupants[0],
+            priceOverride: 67440,
+            soleUseNights: 1,
+            hostCovers: 7440,
+          },
+          room(1, 'twin', ['full', 'short']).occupants[1],
+        ],
+      },
+    ]
+    const { billing } = summarizeKeralaTrip(bothReasons, null)
+
+    expect(billing.coveredBy).toEqual([
+      { name: 'Guest 1.0', amount: 7440, reason: 'gift' },
+      { name: 'Guest 1.0', amount: 2720, reason: 'shortfall' },
+    ])
+    expect(billing.covered).toBe(7440 + 2720)
+    expect(billing.guestPrices + billing.covered).toBe(billing.total)
+  })
+
   it('works a percentage row out of the total and leaves the rest to the balance', () => {
     const { billing } = summarizeKeralaTrip(rooms, {
       payments: [{ amount: 50000, note: 'Advance' }],

@@ -24,7 +24,9 @@
       "trip": "full",
       "flight": "ow",
       "occupancy": "single",
-      "room": 2
+      "room": 2,
+      "hostCovers": 9531,
+      "priceNote": "We are covering $100 of this one, so your price is $761 rather than $861."
     }
   ],
   "billing": {

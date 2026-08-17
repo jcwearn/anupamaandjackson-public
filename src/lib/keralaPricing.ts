@@ -87,16 +87,24 @@ export const pricing: {
  * only if the table has no row for the combination, which the types make
  * unreachable — it is there so a bad row in the data file surfaces as a blank
  * rather than a NaN propagating into a total.
+ *
+ * `hostCovers` comes off whichever figure won, rather than replacing it, so the
+ * two compose: a guest can be quoted an exceptional rate *and* have part of it
+ * on us. See the type for why it is not simply a smaller `priceOverride`.
  */
 export const keralaPrice = (
-  choice: Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & { priceOverride?: number },
+  choice: Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & {
+    priceOverride?: number
+    hostCovers?: number
+  },
 ): number | null => {
-  if (choice.priceOverride !== undefined) return choice.priceOverride
+  const covered = choice.hostCovers ?? 0
+  if (choice.priceOverride !== undefined) return choice.priceOverride - covered
   const row = pricing
     .find((option) => option.trip === choice.trip)
     ?.rows.find((candidate) => candidate.occ === choice.occupancy)
   if (!row) return null
-  return choice.flight === 'rt' ? row.roundTrip : row.oneWay
+  return (choice.flight === 'rt' ? row.roundTrip : row.oneWay) - covered
 }
 
 /**
@@ -108,10 +116,20 @@ export const keralaPrice = (
  * night out properly, has paid that figure, and is not being re-invoiced — so
  * the difference is ours to absorb, and both numbers have to be tracked to see
  * it. See `keralaPrice` for the first and `keralaAgentCost` for the second.
+ *
+ * `hostCovers` is a third thing again, and the reason it is not spelled as a
+ * smaller `priceOverride`: an override moves what the agent bills, because it
+ * describes a stay the rate card cannot price. This one does not. The guest is
+ * an ordinary line on the agent's invoice at an ordinary rate, and we have
+ * simply decided to pay part of their share for them. Writing it as an override
+ * would quietly take the difference off the total we owe — money the agent is
+ * still going to ask for — and would file them under "price exception" in a
+ * breakdown meant for the agent, who has no exception to hear about.
  */
 export type PriceChoice = Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & {
   priceOverride?: number
   soleUseNights?: number
+  hostCovers?: number
 }
 
 /**
@@ -168,11 +186,15 @@ export const SOLE_USE_FINAL_NIGHT =
  * it, so a change to the rate card carries through instead of stranding a
  * number. A `priceOverride` with no sole-use nights still stands in, for an
  * exception of some other kind that nothing here can derive.
+ *
+ * `hostCovers` is added straight back on, which is the whole point of it being
+ * its own field: it is a transfer between us and the guest and the agent is not
+ * party to it, so it must not reach a figure the agent is going to invoice.
  */
 export const keralaAgentCost = (choice: PriceChoice): number => {
   const base = tableRate(choice.trip, choice.occupancy, choice.flight)
   if (choice.soleUseNights) return base + choice.soleUseNights * SOLE_USE_FINAL_NIGHT
-  return keralaPrice(choice) ?? base
+  return (keralaPrice(choice) ?? base) + (choice.hostCovers ?? 0)
 }
 
 /**

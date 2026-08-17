@@ -18,10 +18,11 @@ import {
 // `indianWear`, to 4 when the index gained `guestCount`, to 5 when it gained
 // the passphrase-encrypted `admin` block, to 6 when that block's entries gained
 // `party`, to 7 when they gained `side` and `events`, to 8 when the admin block
-// gained `keralaTrip` beside `summary`, and to 9 when its room occupants gained
-// `payment`. Feeds sourceFingerprint, so bumping it is what makes a shape
+// gained `keralaTrip` beside `summary`, to 9 when its room occupants gained
+// `payment`, and to 10 when both they and the guest payload gained
+// `hostCovers`. Feeds sourceFingerprint, so bumping it is what makes a shape
 // change actually republish.
-export const INDEX_VERSION = 9
+export const INDEX_VERSION = 10
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -646,6 +647,31 @@ export function resolveKeralaPayloads(guests, responses) {
         )
       }
     }
+    // What we are paying of this guest's own share. Not a discount the agent
+    // gives and not a rate they quoted -- they invoice this guest at the card
+    // rate like everyone else, and the money moves between us and the guest
+    // only. So it never touches the total, and /admin/kerala-trip files it
+    // under what we are covering instead.
+    //
+    // Bounded against `priceOverride` where there is one; where there is not,
+    // the ceiling is the rate card, which lives in src/lib/keralaPricing.ts and
+    // is TypeScript this file cannot import. Copying the eight rates over here
+    // to check a bound is exactly the duplication that file's own header warns
+    // against -- one table, two callers -- so the ceiling is left to the review
+    // of the figure, and only the arithmetic that can be checked here is.
+    if (response.hostCovers !== undefined) {
+      if (
+        !Number.isFinite(response.hostCovers) ||
+        response.hostCovers <= 0 ||
+        (response.priceOverride !== undefined && response.hostCovers >= response.priceOverride)
+      ) {
+        throw new Error(
+          `Kerala response for '${email}' has hostCovers=${JSON.stringify(response.hostCovers)}, ` +
+            `which must be a positive number of rupees smaller than the price it comes off. ` +
+            `Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
     // Separate from the check above so the message can say which way it is
     // wrong: the agent asks about beds only for the shared rooms, and a `bed`
     // on a single is as much a mistake as a missing one on a double.
@@ -760,6 +786,9 @@ export function resolveKeralaPayloads(guests, responses) {
         .filter((occupant) => occupant !== guest)
         .map((occupant) => `${occupant.firstName} ${occupant.lastName}`.trim()),
       ...(response.priceOverride !== undefined ? { priceOverride: response.priceOverride } : {}),
+      // Goes to the guest as well as to the admin page: it changes the figure
+      // they are being asked for, so their own card has to know about it.
+      ...(response.hostCovers !== undefined ? { hostCovers: response.hostCovers } : {}),
       ...(response.priceNote ? { priceNote: response.priceNote } : {}),
     })
   }
@@ -794,6 +823,10 @@ export function resolveKeralaPayloads(guests, responses) {
           ...(response.priceOverride !== undefined
             ? { priceOverride: response.priceOverride }
             : {}),
+          // The one field above this line that is also in the guest's envelope:
+          // the billing summary needs it to work out what we are covering, and
+          // the guest needs it to see the right price.
+          ...(response.hostCovers !== undefined ? { hostCovers: response.hostCovers } : {}),
           // Admin-side only, all of them. The guest's own envelope carries the
           // price they were asked for and nothing about what we are charged for
           // them, who is paying for whom, or what anyone has sent.

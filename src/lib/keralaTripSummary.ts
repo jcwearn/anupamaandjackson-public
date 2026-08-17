@@ -47,13 +47,31 @@ export interface PriceBucket {
   people: number
   each: number
   total: number
-  /** What this rate is, so the row can itemise itself. See `rateComponents`. */
+  /**
+   * What this rate is, so the row can itemise itself. See `rateComponents`.
+   *
+   * No `hostCovers`: the itemisation has to add up to what the agent charges,
+   * and that field by definition does not reach it. Including it would leave
+   * `rateComponents` short of its own total and print an "Unaccounted for" line
+   * for money that is accounted for, just not by them.
+   */
   choice: Pick<
     KeralaRoomOccupant,
     'trip' | 'occupancy' | 'flight' | 'priceOverride' | 'soleUseNights'
   >
   /** What these guests owe us, which is nil for our own places. */
   guestPrice: number
+  /**
+   * How many of `people` are our own places rather than guests.
+   *
+   * Here so the row can say which of the two reasons its total and its
+   * guest price differ by. They read identically in the figures and are
+   * nothing alike: a host place is one nobody was ever going to pay us for,
+   * and the rest is a guest's share we took on. A row that called the first
+   * one "you cover the difference" invited exactly the question of where the
+   * difference had come from.
+   */
+  hosts: number
 }
 
 /** One reason a share of the total falls to us rather than to a guest. */
@@ -63,10 +81,13 @@ export interface CoveredLine {
   /**
    * `host` is one of our own two places, which was never anyone's to pay.
    * `shortfall` is a guest quoted less than the agent went on to charge.
+   * `gift` is a guest we decided to pay part of for — the agent charged the
+   * ordinary rate and we took some of it off their side, which is why it is not
+   * a `shortfall`: nothing about the quote went wrong.
    * `settlement` is a guest who sent less than they were asked — or more, in
    * which case the amount is negative and nets against the rest.
    */
-  reason: 'host' | 'shortfall' | 'settlement'
+  reason: 'host' | 'shortfall' | 'gift' | 'settlement'
 }
 
 /** A guest who owes us their share and has not sent it. */
@@ -187,6 +208,11 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
     // schedule is paid against; what a guest was quoted is tracked beside it.
     const each = keralaAgentCost(occupant)
     if (!each) continue
+    // `hostCovers` is deliberately not one of these. This table is the agent's
+    // view -- it is what gets read back against their invoice, and shared with
+    // them -- and a guest we are subsidising is an ordinary line on it at an
+    // ordinary rate. Calling them an exception would describe an arrangement
+    // the agent is not part of and cannot see in their own figures.
     const exception = occupant.priceOverride !== undefined || occupant.soleUseNights !== undefined
     const label = exception
       ? `Price exception · ${occupant.name}`
@@ -197,6 +223,7 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
       each,
       total: 0,
       guestPrice: 0,
+      hosts: 0,
       choice: {
         trip: occupant.trip,
         occupancy: occupant.occupancy,
@@ -209,6 +236,7 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
     // price they were quoted, which for one guest is less than `each`.
     bucket.guestPrice += occupant.host ? 0 : (keralaPrice(occupant) ?? each)
     bucket.people += 1
+    if (occupant.host) bucket.hosts += 1
     bucket.total += each
     buckets.set(label, bucket)
   }
@@ -223,16 +251,25 @@ const summarizeBilling = (rooms: KeralaRoom[], billing: KeralaBilling | null): B
   // Named, because "you are covering" is a figure worth being able to take
   // apart: two of those names are ours and the rest are quotes that have aged,
   // and they are owed different follow-ups.
-  const coveredBy: CoveredLine[] = occupants
-    .map((occupant): CoveredLine | null => {
-      const cost = keralaAgentCost(occupant)
-      if (occupant.host) return { name: occupant.name, amount: cost, reason: 'host' as const }
-      const shortfall = cost - (keralaPrice(occupant) ?? cost)
-      return shortfall > 0
-        ? { name: occupant.name, amount: shortfall, reason: 'shortfall' as const }
-        : null
-    })
-    .filter((line) => line !== null)
+  //
+  // One occupant can produce two lines, which is why this is a flatMap: the two
+  // reasons are independent, and a guest could be both quoted before a cost was
+  // understood and subsidised on top of it. `hostCovers` is taken out of the
+  // shortfall rather than counted twice, so the lines still sum to the gap
+  // between what the agent charges for someone and what they were asked for.
+  const coveredBy: CoveredLine[] = occupants.flatMap((occupant): CoveredLine[] => {
+    const cost = keralaAgentCost(occupant)
+    if (occupant.host) return [{ name: occupant.name, amount: cost, reason: 'host' as const }]
+    const lines: CoveredLine[] = []
+    if (occupant.hostCovers) {
+      lines.push({ name: occupant.name, amount: occupant.hostCovers, reason: 'gift' as const })
+    }
+    const shortfall = cost - (keralaPrice(occupant) ?? cost) - (occupant.hostCovers ?? 0)
+    if (shortfall > 0) {
+      lines.push({ name: occupant.name, amount: shortfall, reason: 'shortfall' as const })
+    }
+    return lines
+  })
 
   // What guests have sent us, and what they still owe. Their money reaches us,
   // never the agent, so it settles their side of the ledger and leaves

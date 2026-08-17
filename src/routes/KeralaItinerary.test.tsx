@@ -706,23 +706,47 @@ describe('Kerala personalization', () => {
     )
   })
 
-  it('quotes Charles his actual price, with the note explaining the extra', () => {
+  // Fixture names, not the real guests in either of these two cases. This file
+  // is published to the public mirror, and a name in a test title is as
+  // identifying as one anywhere else — keralaPricing.test.ts says the same.
+  it('quotes an overridden guest their actual price, with the note explaining the extra', () => {
     const note =
-      'Your price is a little higher than the double-occupancy rate ($588): Brandon heads home a night early, so your last night is single occupancy and adds one night’s single supplement ($118).'
+      'Your price is a little higher than the double-occupancy rate ($588): Carl heads home a night early, so your last night is single occupancy and adds one night’s single supplement ($118).'
     renderAs({
       trip: 'full',
       flight: 'rt',
       occupancy: 'double',
-      roommates: ['Brandon Lord'],
+      roommates: ['Carl Sagan'],
       priceOverride: 67440,
       priceNote: note,
     })
 
-    // The card leads with what he actually pays; the note explains why.
+    // The card leads with what they actually pay; the note explains why.
     expect(within(yourTripCard()).getByText(usd(67440))).toBeInTheDocument()
     expect(screen.getByText(note)).toBeInTheDocument()
     // The shared table keeps quoting the group rate.
     expect(priceRow('Full itinerary', /Double occupancy \(per person\)/)).toEqual([usd(56160)])
+  })
+
+  it('quotes a subsidised guest the reduced price, with the table unchanged behind it', () => {
+    // The card and the table disagree on purpose here: the guest is being asked
+    // for less than the rate their row quotes, and the note is what reconciles
+    // the two. Nothing else on the page knows why.
+    const note = 'We are covering $244 of this one, so your price is $700 instead of $944.'
+    renderAs({
+      trip: 'full',
+      flight: 'rt',
+      occupancy: 'single',
+      roommates: [],
+      hostCovers: 23283,
+      priceNote: note,
+    })
+
+    expect(within(yourTripCard()).getByText('$700')).toBeInTheDocument()
+    expect(screen.getByText(note)).toBeInTheDocument()
+    // A regex, because this is the guest's own row and so carries the "Your
+    // rate" marker in its accessible name.
+    expect(priceRow('Full itinerary', /Single occupancy/)).toEqual(['$944'])
   })
 
   it('leaves the page untouched for a trip guest with no form response', () => {
