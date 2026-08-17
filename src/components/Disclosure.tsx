@@ -3,15 +3,22 @@ import { ChevronDownIcon } from '../icons/ChevronDownIcon'
 import { AnchorScrollMt } from '../lib/anchorOffset'
 import CopyLinkButton from './CopyLinkButton'
 
-export const Disclosure: React.FC<{ id: string; title: string; children: React.ReactNode }> = ({
-  id,
-  title,
-  children,
-}) => {
+export const Disclosure: React.FC<{
+  id: string
+  title: string
+  children: React.ReactNode
+  /**
+   * Extra classes on the `details` itself. `card` sets `backdrop-blur`, which
+   * makes every one of these a stacking context — so a popover inside one
+   * cannot raise itself above a later sibling card no matter what z-index it
+   * carries. /admin/kerala-trip passes a z-index here for exactly that.
+   */
+  className?: string
+}> = ({ id, title, children, className = '' }) => {
   const scrollMt = React.useContext(AnchorScrollMt)
 
   return (
-    <details id={id} className={`group/disclosure card ${scrollMt}`}>
+    <details id={id} className={`group/disclosure card ${scrollMt} ${className}`}>
       <summary className="group/copy flex cursor-pointer list-none items-center justify-between gap-4 font-display text-xl text-rosewood [&::-webkit-details-marker]:hidden">
         {title}
         <span className="flex shrink-0 items-center gap-2">

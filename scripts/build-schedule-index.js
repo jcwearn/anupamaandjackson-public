@@ -116,9 +116,14 @@ async function main() {
   const guests = await loadRoster(args.fixture)
   // Checked in and load-bearing: a missing file must fail the sync, or the
   // whole trip personalization would silently fall out of the index.
-  const keralaResponses = JSON.parse(
+  const keralaFile = JSON.parse(
     await readFile(args.kerala ? resolve(root, args.kerala) : KERALA_RESPONSES_PATH, 'utf-8'),
-  ).responses
+  )
+  const keralaResponses = keralaFile.responses
+  // Optional, unlike the responses: an index with no billing block still serves
+  // every guest their trip, it just leaves /admin/kerala-trip's money section
+  // saying there is nothing recorded yet.
+  const keralaBilling = keralaFile.billing ?? null
 
   const adminPassphrase = adminPassphraseFor(args.fixture)
 
@@ -142,6 +147,7 @@ async function main() {
     catalogEvents,
     keralaResponses,
     adminPassphrase,
+    keralaBilling,
   )
 
   if (!args.force && !args.dryRun && previous?.sourceHash === sourceHash) {
@@ -155,6 +161,7 @@ async function main() {
     adminPassphrase,
     sourceHash,
     keralaResponses,
+    keralaBilling,
   })
 
   if (!args.force) {
@@ -174,6 +181,10 @@ async function main() {
   console.log(`Lookup keys:      ${stats.lookupKeys} (aliases + collisions)`)
   console.log(`Admins:           ${stats.admins}`)
   console.log(`Kerala responses: ${stats.keralaResponses} (all matched)`)
+  console.log(
+    `Kerala rooms:     ${stats.keralaRooms} (${stats.keralaBeds.double} double bed, ` +
+      `${stats.keralaBeds.twin} twin bed, the rest single occupancy)`,
+  )
   console.log(
     `Golkonda rooms:   ${stats.golkondaCovered} covered, ${stats.golkondaOwn} own ` +
       `(tagged, attending, and taking the room)`,

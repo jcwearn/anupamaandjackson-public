@@ -46,6 +46,7 @@ const setUnlock = (
   unlockState.current = {
     status,
     summary: [],
+    kerala: null,
     unlock: vi.fn(),
     forget: vi.fn(),
     ...overrides,

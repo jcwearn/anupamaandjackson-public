@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom'
-import type { GuestSummaryEntry } from './adminUnlock'
+import type { GuestSummaryEntry, KeralaTrip } from './adminUnlock'
 
 /**
  * What AdminLayout hands its tools on the outlet.
@@ -12,6 +12,11 @@ import type { GuestSummaryEntry } from './adminUnlock'
 export interface AdminContext {
   /** The decrypted roster. Only the tools see it, and only past the gate. */
   summary: GuestSummaryEntry[]
+  /**
+   * The Kerala rooming and billing, from the same envelope. Null when the index
+   * in front of this bundle predates the field — see AdminPayload.keralaTrip.
+   */
+  kerala: KeralaTrip | null
 }
 
 /**

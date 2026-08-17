@@ -8,6 +8,7 @@ import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
 import GuestSummary from './routes/GuestSummary'
+import AdminKeralaTrip from './routes/AdminKeralaTrip'
 import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
@@ -85,6 +86,7 @@ const router = createBrowserRouter([
               { index: true, element: <AdminIndex /> },
               { path: 'invite-links', element: <InviteLinks /> },
               { path: 'guest-summary', element: <GuestSummary /> },
+              { path: 'kerala-trip', element: <AdminKeralaTrip /> },
             ],
           },
 

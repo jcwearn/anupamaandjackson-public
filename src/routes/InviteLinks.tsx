@@ -66,7 +66,7 @@ const InviteLinks: React.FC = () => (
               >
                 {url}
               </a>
-              <CopyButton url={url} />
+              <CopyButton value={url} />
             </div>
           </li>
         )
@@ -95,7 +95,7 @@ const InviteLinks: React.FC = () => (
           >
             Download
           </a>
-          <CopyButton url={`${SITE_ORIGIN}${file}`} />
+          <CopyButton value={`${SITE_ORIGIN}${file}`} />
         </li>
       ))}
     </ul>

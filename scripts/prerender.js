@@ -125,6 +125,13 @@ export const routes = [
     ogImage: null,
   },
   {
+    path: '/admin/kerala-trip',
+    outputPath: 'dist/admin/kerala-trip/index.html',
+    title: 'Kerala Trip - Anupama & Jackson',
+    description: 'A private page for Anupama & Jackson’s wedding.',
+    ogImage: null,
+  },
+  {
     path: '/travel',
     outputPath: 'dist/travel/index.html',
     title: 'Getting Here - Anupama & Jackson',

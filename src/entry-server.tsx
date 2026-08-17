@@ -11,6 +11,7 @@ import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
 import InviteLinks from './routes/InviteLinks'
 import GuestSummary from './routes/GuestSummary'
+import AdminKeralaTrip from './routes/AdminKeralaTrip'
 import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
@@ -61,6 +62,7 @@ export function render(url: string) {
             <Route index element={<AdminIndex />} />
             <Route path="invite-links" element={<InviteLinks />} />
             <Route path="guest-summary" element={<GuestSummary />} />
+            <Route path="kerala-trip" element={<AdminKeralaTrip />} />
           </Route>
           <Route path="/invites/links" element={<HashRedirect to="/admin/invite-links" />} />
           <Route path="/guest-summary" element={<HashRedirect to="/admin/guest-summary" />} />

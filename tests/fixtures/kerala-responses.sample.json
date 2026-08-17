@@ -6,6 +6,7 @@
       "trip": "full",
       "flight": "rt",
       "occupancy": "double",
+      "bed": "twin",
       "room": 1,
       "priceOverride": 67440,
       "priceNote": "Carl heads home a night early, so your last night is single occupancy."
@@ -15,6 +16,7 @@
       "trip": "short",
       "flight": "ow",
       "occupancy": "double",
+      "bed": "twin",
       "room": 1
     },
     {
@@ -24,5 +26,13 @@
       "occupancy": "single",
       "room": 2
     }
-  ]
+  ],
+  "billing": {
+    "_source": "Invented figures, so the admin page has something to total in the fixture sync.",
+    "payments": [{ "date": "2026-07-01", "amount": 50000, "note": "Advance" }],
+    "schedule": [
+      { "due": "2026-09-05", "pct": 40, "note": "40% of the total" },
+      { "due": "2026-09-30", "note": "Balance" }
+    ]
+  }
 }

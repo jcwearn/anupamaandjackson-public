@@ -1,0 +1,284 @@
+/**
+ * The Kerala trip rate card, and the lookup into it.
+ *
+ * Split out of KeralaItinerary.tsx for the reason inr.ts was: that file exports
+ * a route component, and a module exporting both a component and non-components
+ * breaks fast refresh -- react/only-export-components, an error in .oxlintrc.json.
+ *
+ * It also has a second reader now. /admin/kerala-trip totals the whole party up
+ * from these same rows, and a copy of the table over there is a copy that can go
+ * stale: the page would quietly tell us we owe a number no guest was ever quoted.
+ * One table, two callers.
+ */
+
+import type { KeralaGuestInfo } from './useGuestSchedule'
+
+// Quotes come in rupees, so those are what we store; the dollar figures guests
+// see are derived, and go stale as the rate moves. Update the rate, not the table.
+
+/**
+ * What the agent charges for the land portion, per person — their figures, for
+ * each itinerary at each occupancy. No flights in these.
+ *
+ * The shortened double-occupancy figure is 24,700 because they corrected it:
+ * the first quote said 30,540, and a later message put the two nights of 29 and
+ * 30 October at 24,700. Anything still quoting 30,540 predates that.
+ */
+export const LAND_COST = {
+  full: { double: 39840, single: 73680 },
+  short: { double: 24700, single: 44540 },
+} as const
+
+/** Their per-person airfare, one figure per leg. The legs differ. */
+export const AIRFARE = { out: 8352, back: 7968 } as const
+
+/** How many nights on the ground each itinerary buys. */
+export const NIGHTS = { full: 3, short: 2 } as const
+
+const rateRow = (trip: 'full' | 'short', occ: 'double' | 'single', occupancy: string) => ({
+  occ,
+  occupancy,
+  // A one-way guest flies out with the group and makes their own way home, so
+  // they pay the land cost and the outbound leg only.
+  oneWay: LAND_COST[trip][occ] + AIRFARE.out,
+  roundTrip: LAND_COST[trip][occ] + AIRFARE.out + AIRFARE.back,
+})
+
+/**
+ * The eight rates, added up rather than written down.
+ *
+ * They used to be eight literals, which is how a rate card and its own
+ * breakdown drift apart: the agent corrected one land cost mid-quote, and a
+ * table of totals gives you no way to tell whether the correction landed.
+ * Composed from `LAND_COST` and `AIRFARE`, every total is the sum of figures
+ * they actually sent, and correcting one of those corrects the card with it.
+ */
+export const pricing: {
+  trip: 'full' | 'short'
+  title: string
+  dates: string
+  rows: { occ: 'double' | 'single'; occupancy: string; roundTrip: number; oneWay: number }[]
+}[] = [
+  {
+    trip: 'full',
+    title: 'Full itinerary',
+    dates: 'October 29 – November 1 · 3 nights',
+    rows: [
+      rateRow('full', 'double', 'Double occupancy (per person)'),
+      rateRow('full', 'single', 'Single occupancy'),
+    ],
+  },
+  {
+    trip: 'short',
+    title: 'Shortened itinerary',
+    dates: 'October 29 – 31 · 2 nights',
+    rows: [
+      rateRow('short', 'double', 'Double occupancy (per person)'),
+      rateRow('short', 'single', 'Single occupancy'),
+    ],
+  },
+]
+
+/**
+ * What one person pays, in rupees.
+ *
+ * An override wins outright: it exists for a stay none of the rows above
+ * describe, so falling back to a row would quote the wrong trip. Returns null
+ * only if the table has no row for the combination, which the types make
+ * unreachable — it is there so a bad row in the data file surfaces as a blank
+ * rather than a NaN propagating into a total.
+ */
+export const keralaPrice = (
+  choice: Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & { priceOverride?: number },
+): number | null => {
+  if (choice.priceOverride !== undefined) return choice.priceOverride
+  const row = pricing
+    .find((option) => option.trip === choice.trip)
+    ?.rows.find((candidate) => candidate.occ === choice.occupancy)
+  if (!row) return null
+  return choice.flight === 'rt' ? row.roundTrip : row.oneWay
+}
+
+/**
+ * Everything a price depends on.
+ *
+ * `priceOverride` is what the *guest* was asked to pay; `soleUseNights` is what
+ * the *agent* charges us on top of the rate card. They are separate because
+ * they have come apart: one guest was quoted before we worked the sole-use
+ * night out properly, has paid that figure, and is not being re-invoiced — so
+ * the difference is ours to absorb, and both numbers have to be tracked to see
+ * it. See `keralaPrice` for the first and `keralaAgentCost` for the second.
+ */
+export type PriceChoice = Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & {
+  priceOverride?: number
+  soleUseNights?: number
+}
+
+/**
+ * The rate guests were quoted at, and paid at.
+ *
+ * Not `INR_PER_USD`, which is for display and moves whenever the box on
+ * /admin/kerala-trip is retyped. A guest was asked for a whole number of
+ * dollars once, and settling their payment has to compare against that figure
+ * rather than against whatever the rate is today — otherwise every guest churns
+ * between settled and short each time the rate ticks.
+ *
+ * It happens to equal INR_PER_USD right now. It is a separate constant because
+ * the two mean different things and will not stay equal.
+ */
+export const QUOTED_AT_INR_PER_USD = 95.31
+
+/** The rate the table quotes, ignoring any override. */
+const tableRate = (trip: 'full' | 'short', occ: 'double' | 'single', flight: 'rt' | 'ow') =>
+  keralaPrice({ trip, occupancy: occ, flight }) ?? 0
+
+/**
+ * What sole use of a shared room costs for the trip's final night.
+ *
+ * One respondent is in this position: their roommate leaves after night two, so
+ * their third night is a single room they are not being charged a single rate
+ * for. Not a figure the agent sent — they have never priced a part-night — but
+ * one their own numbers determine, by subtraction, two ways over:
+ *
+ *   night three, single: 73,680 − 44,540 = 29,140
+ *   night three, double: 39,840 − 24,700 = 15,140
+ *   occupancy delta:                       14,000
+ *
+ * — and it cross-checks against their supplements, 33,840 − 19,840 = 14,000.
+ *
+ * The subtraction is what makes it trustworthy. Everything about that day which
+ * does not depend on occupancy (the extra day's transport, meals, sightseeing)
+ * appears in both marginals and cancels; only the room survives. That is why
+ * this replaced an earlier figure of 11,280, which came from spreading the full
+ * supplement evenly over three nights — an assumption their own numbers
+ * contradict, since the same split over the shortened itinerary gives 9,920.
+ *
+ * It also confirms the third night is the dear one: an even split would put it
+ * at 13,280, and it actually costs 15,140.
+ */
+export const SOLE_USE_FINAL_NIGHT =
+  LAND_COST.full.single - LAND_COST.short.single - (LAND_COST.full.double - LAND_COST.short.double)
+
+/**
+ * What the agent bills us for one person — which is not always what the guest
+ * was asked to pay.
+ *
+ * `soleUseNights` is the honest version of a price exception: the fact about
+ * the stay, rather than a total someone worked out once. The cost follows from
+ * it, so a change to the rate card carries through instead of stranding a
+ * number. A `priceOverride` with no sole-use nights still stands in, for an
+ * exception of some other kind that nothing here can derive.
+ */
+export const keralaAgentCost = (choice: PriceChoice): number => {
+  const base = tableRate(choice.trip, choice.occupancy, choice.flight)
+  if (choice.soleUseNights) return base + choice.soleUseNights * SOLE_USE_FINAL_NIGHT
+  return keralaPrice(choice) ?? base
+}
+
+/**
+ * The whole dollars a guest was asked for.
+ *
+ * Rounded, because that is what they were told: the rate card's ₹48,192 was
+ * quoted as $506, and a guest who sends exactly $506 has settled even though
+ * the true conversion is $505.63. Comparing against the unrounded figure made
+ * seventeen of nineteen payers look a few cents out and buried the two that
+ * genuinely are.
+ */
+export const askedUsd = (choice: PriceChoice): number =>
+  Math.round((keralaPrice(choice) ?? 0) / QUOTED_AT_INR_PER_USD)
+
+/** What the guest is out of pocket beyond their own price, and we absorb. */
+export const keralaShortfall = (choice: PriceChoice): number =>
+  keralaAgentCost(choice) - (keralaPrice(choice) ?? 0)
+
+/** The arithmetic behind a line, so the page can show it rather than assert it. */
+export interface SoleUseWorking {
+  nights: number
+  perNight: number
+  /** What the final night costs at each occupancy, and where each comes from. */
+  singleNight: number
+  doubleNight: number
+  fullSingle: number
+  shortSingle: number
+  fullDouble: number
+  shortDouble: number
+}
+
+export interface RateComponent {
+  label: string
+  amount: number
+  /**
+   * True for a figure the agent sent us verbatim. Their land costs and their two
+   * airfares add up to all eight cells exactly, so every part of a plain rate is
+   * one. A sole-use night is not: it is those figures subtracted from each
+   * other, which is a weaker claim and should not wear the same badge.
+   */
+  quoted?: boolean
+  /** Present on a line that is arithmetic on their figures rather than one of them. */
+  working?: SoleUseWorking
+}
+
+/**
+ * One rate, itemised into the figures it was built from.
+ *
+ * Not a reconstruction: `pricing` is composed out of these, so the parts are the
+ * source and the total is the derived thing rather than the other way round.
+ *
+ * An override is the exception. It gets the components of the rate it departs
+ * from plus the difference, and that difference is ours rather than theirs.
+ *
+ * A remainder line appears if the parts ever stop adding up. It should be
+ * unreachable, and the test pins that, but a display that quietly showed the
+ * wrong arithmetic would be worse than one that admits to a gap.
+ */
+export const rateComponents = (choice: PriceChoice): RateComponent[] => {
+  const { trip, occupancy, flight } = choice
+  const parts: RateComponent[] = [
+    {
+      label: `Land · ${NIGHTS[trip]} nights, ${occupancy} occupancy`,
+      amount: LAND_COST[trip][occupancy],
+      quoted: true,
+    },
+    { label: 'Airfare · HYD → COK', amount: AIRFARE.out, quoted: true },
+  ]
+  if (flight === 'rt') {
+    parts.push({ label: 'Airfare · COK → HYD', amount: AIRFARE.back, quoted: true })
+  }
+  if (choice.soleUseNights) {
+    parts.push({
+      label: `Sole use of the room · ${choice.soleUseNights === 1 ? 'final night' : `${choice.soleUseNights} nights`}`,
+      amount: choice.soleUseNights * SOLE_USE_FINAL_NIGHT,
+      // Deliberately not `quoted`. It is arithmetic on four of their figures
+      // rather than one they sent, and the difference matters: this is the
+      // only line on the page nobody could read back off an email. `working`
+      // below is what it has instead of a badge.
+      working: {
+        nights: choice.soleUseNights,
+        perNight: SOLE_USE_FINAL_NIGHT,
+        singleNight: LAND_COST.full.single - LAND_COST.short.single,
+        doubleNight: LAND_COST.full.double - LAND_COST.short.double,
+        fullSingle: LAND_COST.full.single,
+        shortSingle: LAND_COST.short.single,
+        fullDouble: LAND_COST.full.double,
+        shortDouble: LAND_COST.short.double,
+      },
+    })
+  }
+
+  const target = keralaAgentCost(choice)
+  const shortfall = target - parts.reduce((sum, part) => sum + part.amount, 0)
+  if (shortfall !== 0) parts.push({ label: 'Unaccounted for', amount: shortfall })
+  return parts
+}
+
+/** Every figure the agent has given us, as one list. */
+export const quotedFigures = (): { label: string; amount: number }[] => [
+  ...(['full', 'short'] as const).flatMap((trip) =>
+    (['double', 'single'] as const).map((occ) => ({
+      label: `Land · ${trip === 'full' ? 'Full' : 'Shortened'} itinerary, ${occ} occupancy`,
+      amount: LAND_COST[trip][occ],
+    })),
+  ),
+  { label: 'Airfare · HYD → COK', amount: AIRFARE.out },
+  { label: 'Airfare · COK → HYD', amount: AIRFARE.back },
+]

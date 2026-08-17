@@ -73,7 +73,12 @@ describe('prerendered routes', () => {
   it('serves the admin tools under one parent path', () => {
     const admin = prerendered.filter((path) => path === '/admin' || path.startsWith('/admin/'))
 
-    expect(admin.sort()).toEqual(['/admin', '/admin/guest-summary', '/admin/invite-links'])
+    expect(admin.sort()).toEqual([
+      '/admin',
+      '/admin/guest-summary',
+      '/admin/invite-links',
+      '/admin/kerala-trip',
+    ])
   })
 
   it('serves the Travel section under one parent path', () => {

@@ -18,6 +18,10 @@ const TOOL_BLURBS: Record<string, { title: string; blurb: string }> = {
     title: 'Guest Summary',
     blurb: 'Who has answered, and who still needs asking.',
   },
+  '/admin/kerala-trip': {
+    title: 'Kerala Trip',
+    blurb: 'Rooming, flights and money for the travel agent.',
+  },
 }
 
 const AdminIndex: React.FC = () => (

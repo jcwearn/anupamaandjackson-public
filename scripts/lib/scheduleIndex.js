@@ -17,10 +17,11 @@ import {
 // Bumped to 2 when the guest record gained `golkonda`, to 3 when events gained
 // `indianWear`, to 4 when the index gained `guestCount`, to 5 when it gained
 // the passphrase-encrypted `admin` block, to 6 when that block's entries gained
-// `party`, and to 7 when they gained `side` and `events`. Feeds
-// sourceFingerprint, so bumping it is what makes a shape change actually
-// republish.
-export const INDEX_VERSION = 7
+// `party`, to 7 when they gained `side` and `events`, to 8 when the admin block
+// gained `keralaTrip` beside `summary`, and to 9 when its room occupants gained
+// `payment`. Feeds sourceFingerprint, so bumping it is what makes a shape
+// change actually republish.
+export const INDEX_VERSION = 9
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -532,6 +533,13 @@ export function assertEveryGuestResolves(unresolvedRows) {
 const KERALA_TRIPS = new Set(['full', 'short'])
 const KERALA_FLIGHTS = new Set(['rt', 'ow'])
 const KERALA_OCCUPANCIES = new Set(['single', 'double'])
+// Which bed the hotel puts in a shared room. Only ever asked of a room with two
+// people in it: a single-occupancy guest has one bed and there is nothing to
+// choose, so carrying the field there would be a second thing to keep true.
+const KERALA_BEDS = new Set(['double', 'twin'])
+/** Who a guest sent their money to, and how it got there. */
+const KERALA_PAID_TO = new Set(['anupama', 'jackson'])
+const KERALA_PAID_VIA = new Set(['zelle', 'venmo', 'paypal', 'roommate'])
 
 /**
  * Attaches each Kerala trip-form response to its roster guest, keyed by email.
@@ -546,6 +554,11 @@ const KERALA_OCCUPANCIES = new Set(['single', 'double'])
  * guest list — rather than anything from the form. Every payload rides
  * inside its own guest's encrypted envelope, so nobody can read who anyone
  * else rooms with.
+ *
+ * Returns `{ payloads, rooms }`: the per-guest Map above, and the same rooms
+ * assembled whole for /admin/kerala-trip, which needs to see both occupants at
+ * once to answer the agent's rooming questions. That one goes into the
+ * passphrase-keyed admin envelope, not any guest's.
  */
 export function resolveKeralaPayloads(guests, responses) {
   const byEmail = new Map()
@@ -560,7 +573,7 @@ export function resolveKeralaPayloads(guests, responses) {
 
   const matched = new Map()
   for (const response of responses) {
-    const { email, trip, flight, occupancy, room } = response
+    const { email, trip, flight, occupancy, room, bed } = response
     if (
       !KERALA_TRIPS.has(trip) ||
       !KERALA_FLIGHTS.has(flight) ||
@@ -572,6 +585,77 @@ export function resolveKeralaPayloads(guests, responses) {
       throw new Error(
         `Kerala response for '${email}' has invalid fields (trip=${trip}, flight=${flight}, ` +
           `occupancy=${occupancy}, room=${room}). Fix data/kerala-trip-responses.json.`,
+      )
+    }
+    // What a guest has actually sent us — which goes to us, not to the agent,
+    // and so settles their side without touching what we owe. `roommate` is the
+    // one whose share went in with someone else's payment; the room says whose,
+    // and the pairing is checked below once every response is matched.
+    if (response.payment !== undefined) {
+      const { usd, to, via } = response.payment
+      const owed = via === 'roommate'
+      if (
+        !KERALA_PAID_VIA.has(via) ||
+        (to !== undefined && !KERALA_PAID_TO.has(to)) ||
+        (owed ? usd !== undefined : !(Number.isFinite(usd) && usd > 0))
+      ) {
+        throw new Error(
+          `Kerala payment for '${email}' is malformed (usd=${JSON.stringify(usd)}, ` +
+            `to=${JSON.stringify(to)}, via=${JSON.stringify(via)}). A payment needs a positive ` +
+            `"usd" and a "via" of ${[...KERALA_PAID_VIA].join('/')}; a "roommate" payment ` +
+            `carries no amount of its own. Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
+    // A shorter name for the admin rooming table, where one 23-character name
+    // was setting the width of a column twenty-four rows deep. Display only:
+    // the guest's own record still names their roommates in full, because a
+    // first name alone is ambiguous in a family-sized guest list.
+    if (response.displayName !== undefined && !response.displayName.trim()) {
+      throw new Error(
+        `Kerala response for '${email}' has an empty displayName. Give it a name or remove ` +
+          `the field. Fix data/kerala-trip-responses.json.`,
+      )
+    }
+    // Whose trip this is. Their own places are not money any guest owes us, so
+    // /admin/kerala-trip takes them out of what the guests are paying and puts
+    // them in what we are covering. A flag in the data rather than a pair of
+    // names in the source, which is published.
+    if (response.host !== undefined && response.host !== true) {
+      throw new Error(
+        `Kerala response for '${email}' has host=${JSON.stringify(response.host)}; the field is ` +
+          `either true or absent. Fix data/kerala-trip-responses.json.`,
+      )
+    }
+    // What the agent charges over the rate card, as the fact rather than a
+    // total: this guest's roommate leaves early, so their final night is a
+    // single room. Only ever on a shared room on the full itinerary — the
+    // figure is the difference between the two itineraries' final nights, and
+    // a shortened stay has no such night to difference.
+    if (response.soleUseNights !== undefined) {
+      if (
+        !Number.isInteger(response.soleUseNights) ||
+        response.soleUseNights < 1 ||
+        occupancy !== 'double' ||
+        trip !== 'full'
+      ) {
+        throw new Error(
+          `Kerala response for '${email}' has soleUseNights=${JSON.stringify(response.soleUseNights)}, ` +
+            `which must be a positive integer on a full-itinerary double-occupancy stay. ` +
+            `Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
+    // Separate from the check above so the message can say which way it is
+    // wrong: the agent asks about beds only for the shared rooms, and a `bed`
+    // on a single is as much a mistake as a missing one on a double.
+    if (occupancy === 'double' ? !KERALA_BEDS.has(bed) : bed !== undefined) {
+      throw new Error(
+        occupancy === 'double'
+          ? `Kerala response for '${email}' needs a "bed" of "double" or "twin" (got ${JSON.stringify(bed)}) — ` +
+              `it shares a room. Fix data/kerala-trip-responses.json.`
+          : `Kerala response for '${email}' is single occupancy but carries a "bed" ` +
+              `(${JSON.stringify(bed)}). Remove it from data/kerala-trip-responses.json.`,
       )
     }
     let owners = byEmail.get(email.trim().toLowerCase()) ?? []
@@ -633,6 +717,36 @@ export function resolveKeralaPayloads(guests, responses) {
         }'). Pair them with a roommate, or mark them single.`,
       )
     }
+    // The bed is a property of the room, stored per person because that is the
+    // shape of the form export. Roommates who disagree describe a room that
+    // cannot be booked, and the count sent to the agent would be off by one
+    // whichever of the two it believed.
+    if (occupants.length === 2) {
+      const [first, second] = occupants.map((occupant) => matched.get(occupant))
+      if (first.bed !== second.bed) {
+        throw new Error(
+          `Kerala room ${room} is '${first.bed}' for '${first.email}' but '${second.bed}' for ` +
+            `'${second.email}' — roommates share one bed type. Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
+    // A guest whose share went in with their roommate's payment needs that
+    // roommate to have actually paid. Unchecked, a mistyped one reads as a
+    // guest who has settled when nobody has sent anything for them.
+    for (const occupant of occupants) {
+      const response = matched.get(occupant)
+      if (response.payment?.via !== 'roommate') continue
+      const payer = occupants
+        .filter((other) => other !== occupant)
+        .map((other) => matched.get(other))
+        .find((other) => other.payment?.usd !== undefined)
+      if (!payer) {
+        throw new Error(
+          `Kerala payment for '${response.email}' says a roommate covered it, but nobody in ` +
+            `room ${room} has a payment with an amount. Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
   }
 
   const payloads = new Map()
@@ -649,7 +763,52 @@ export function resolveKeralaPayloads(guests, responses) {
       ...(response.priceNote ? { priceNote: response.priceNote } : {}),
     })
   }
-  return payloads
+
+  // The same rooms again, this time whole rather than sliced per guest, for
+  // /admin/kerala-trip. Built here rather than in a second pass of its own
+  // because everything it needs — the email-to-guest join, the room grouping,
+  // the validation that both survived — has already happened above.
+  const adminRooms = [...rooms.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([room, occupants]) => ({
+      room,
+      ...(matched.get(occupants[0]).bed !== undefined
+        ? { bed: matched.get(occupants[0]).bed }
+        : {}),
+      occupants: occupants.map((occupant) => {
+        const response = matched.get(occupant)
+        // Who covered them, when their share went in with a roommate's payment.
+        // Resolved here rather than on the page, which has only the room and
+        // would have to work the pairing out a second time.
+        const payer =
+          response.payment?.via === 'roommate'
+            ? occupants.find(
+                (other) => other !== occupant && matched.get(other).payment?.usd !== undefined,
+              )
+            : undefined
+        return {
+          name: response.displayName ?? `${occupant.firstName} ${occupant.lastName}`.trim(),
+          trip: response.trip,
+          flight: response.flight,
+          occupancy: response.occupancy,
+          ...(response.priceOverride !== undefined
+            ? { priceOverride: response.priceOverride }
+            : {}),
+          // Admin-side only, all of them. The guest's own envelope carries the
+          // price they were asked for and nothing about what we are charged for
+          // them, who is paying for whom, or what anyone has sent.
+          ...(response.soleUseNights !== undefined
+            ? { soleUseNights: response.soleUseNights }
+            : {}),
+          ...(response.host ? { host: true } : {}),
+          ...(response.payment
+            ? { payment: { ...response.payment, ...(payer ? { paidBy: payer.firstName } : {}) } }
+            : {}),
+        }
+      }),
+    }))
+
+  return { payloads, rooms: adminRooms }
 }
 
 /** Builds one record per guest, before collision resolution. */
@@ -724,6 +883,7 @@ export async function sourceFingerprint(
   catalogEvents,
   keralaResponses = null,
   adminPassphrase = '',
+  keralaBilling = null,
 ) {
   const canonical = JSON.stringify({
     version: INDEX_VERSION,
@@ -751,6 +911,9 @@ export async function sourceFingerprint(
       .sort(),
     catalog: catalogEvents,
     kerala: keralaResponses,
+    // Moves on its own, without the roster changing at all: recording a payment
+    // is exactly the edit that would otherwise hash identical and never ship.
+    keralaBilling,
     // Rotating the passphrase changes no roster input, so without this the
     // fingerprint would match, the sync would report 'nothing to publish', and
     // the old ciphertext would stay live under the old secret — a rotation that
@@ -773,6 +936,7 @@ export async function buildIndex({
   adminPassphrase,
   sourceHash,
   keralaResponses = null,
+  keralaBilling = null,
 }) {
   // Not a default, because there is no safe default. An index built with an
   // empty or forgotten passphrase would publish the roster under a key anyone
@@ -797,7 +961,8 @@ export async function buildIndex({
     events[event.id] = await encryptJson(key, presentableEvent(event))
   }
 
-  const keralaPayloads = keralaResponses ? resolveKeralaPayloads(guests, keralaResponses) : null
+  const kerala = keralaResponses ? resolveKeralaPayloads(guests, keralaResponses) : null
+  const keralaPayloads = kerala?.payloads ?? null
 
   const records = buildGuestRecords(guests, catalogEvents, keralaPayloads)
 
@@ -889,6 +1054,10 @@ export async function buildIndex({
   // Built from `guests`, not `records`: the latter has already dropped everyone
   // with no event tag, and those are the rows /admin/guest-summary most needs.
   const summary = buildGuestSummary(guests)
+  // Rooms whole, plus whatever the agent has been paid. Both are admin-only
+  // views of data that already rides in the index per guest; neither adds a
+  // reader, because this envelope's key is a GitHub secret rather than a name.
+  const keralaTrip = kerala ? { rooms: kerala.rooms, billing: keralaBilling } : undefined
   const adminKey = await importEventKey(
     await deriveAdminKeyBytes(adminPassphrase, adminSalt, adminIterations),
   )
@@ -910,7 +1079,8 @@ export async function buildIndex({
       },
       events,
       guests: guestIndex,
-      // The /admin/guest-summary roster, under the generated passphrase rather than
+      // What the admin tools read — the /admin/guest-summary roster and the
+      // /admin/kerala-trip rooming — under the generated passphrase rather than
       // any guest's name. Unlike everything above it, this envelope is meant to
       // hold: the key exists in a GitHub secret and a local .env, nowhere the
       // public mirror can reach, so guessing a name buys nothing here.
@@ -921,7 +1091,7 @@ export async function buildIndex({
           iterations: adminIterations,
           salt: bytesToBase64(adminSalt),
         },
-        payload: await encryptJson(adminKey, { summary }),
+        payload: await encryptJson(adminKey, { summary, keralaTrip }),
       },
     },
     stats: {
@@ -938,6 +1108,15 @@ export async function buildIndex({
         ]),
       ),
       keralaResponses: records.filter((record) => record.kerala).length,
+      keralaRooms: kerala?.rooms.length ?? 0,
+      // Rooms, not people — the agent books one bed type per room, and this is
+      // the number the sync log should let us sanity-check against their reply.
+      keralaBeds: Object.fromEntries(
+        [...KERALA_BEDS].map((bed) => [
+          bed,
+          (kerala?.rooms ?? []).filter((room) => room.bed === bed).length,
+        ]),
+      ),
       golkondaCovered: records.filter((record) => record.golkonda === 'covered').length,
       golkondaOwn: records.filter((record) => record.golkonda === 'own').length,
       // Sheet rows that resolved to no record at all and are absent from the

@@ -48,8 +48,89 @@ export interface GuestSummaryEntry {
   party?: number
 }
 
+/**
+ * One person in a room, as /admin/kerala-trip needs them.
+ *
+ * Deliberately not KeralaGuestInfo: that one is written from a single guest's
+ * point of view and says `roommates`, which is the wrong shape for a table with
+ * a row per room. `priceNote` is left off too — the admin page totals prices, it
+ * does not explain them.
+ */
+export interface KeralaRoomOccupant {
+  name: string
+  trip: 'full' | 'short'
+  flight: 'rt' | 'ow'
+  occupancy: 'single' | 'double'
+  /** What the guest was asked to pay, when it is not the rate card figure. */
+  priceOverride?: number
+  /**
+   * Nights their room is theirs alone because a roommate left early. What the
+   * agent charges us on top of the rate card, which since one guest paid an
+   * earlier figure is no longer the same as what they paid.
+   */
+  soleUseNights?: number
+  /**
+   * Whose trip this is. Their places are not money a guest owes us, so the
+   * billing counts them as covered rather than as guests paying.
+   */
+  host?: boolean
+  /** What they have sent us, which is not what the agent has been paid. */
+  payment?: KeralaPayerRecord
+}
+
+/**
+ * A guest's own transfer, in the dollars they were quoted and sent.
+ *
+ * `via: 'roommate'` is the guest whose share went in with someone else's
+ * payment: no amount of their own, and `paidBy` names who covered them.
+ */
+export interface KeralaPayerRecord {
+  usd?: number
+  to?: 'anupama' | 'jackson'
+  via: 'zelle' | 'venmo' | 'paypal' | 'roommate'
+  paidBy?: string
+}
+
+/** `bed` is absent exactly when the room holds one person. */
+export interface KeralaRoom {
+  room: number
+  bed?: 'double' | 'twin'
+  occupants: KeralaRoomOccupant[]
+}
+
+/** A payment with no `date` is one whose receipt has not been dug out yet. */
+export interface KeralaPayment {
+  date?: string
+  amount: number
+  note?: string
+}
+
+/** `pct` of the total; a row without one is the remainder. */
+export interface KeralaScheduledPayment {
+  due: string
+  pct?: number
+  note?: string
+}
+
+export interface KeralaBilling {
+  payments: KeralaPayment[]
+  schedule: KeralaScheduledPayment[]
+}
+
+export interface KeralaTrip {
+  rooms: KeralaRoom[]
+  billing: KeralaBilling | null
+}
+
 interface AdminPayload {
   summary: GuestSummaryEntry[]
+  /**
+   * Optional for the reason `side` and `events` above are: this bundle and
+   * schedule-index.json deploy separately, so between shipping the JS and the
+   * next sync the index in front of it is a version behind and has no rooming
+   * at all. The page says so rather than rendering a table of nothing.
+   */
+  keralaTrip?: KeralaTrip
 }
 
 interface AdminBlock {
@@ -69,6 +150,7 @@ export type AdminUnlockStatus =
 export interface AdminUnlockState {
   status: AdminUnlockStatus
   summary: GuestSummaryEntry[]
+  kerala: KeralaTrip | null
   unlock: (passphrase: string) => void
   forget: () => void
 }
@@ -88,6 +170,7 @@ export interface AdminUnlockState {
 export function useAdminUnlock(): AdminUnlockState {
   const [status, setStatus] = useState<AdminUnlockStatus>('loading')
   const [summary, setSummary] = useState<GuestSummaryEntry[]>([])
+  const [kerala, setKerala] = useState<KeralaTrip | null>(null)
 
   const blockRef = useRef<AdminBlock | null>(null)
   // Guards a slow PBKDF2 landing after unmount, or after the admin has hit
@@ -147,6 +230,7 @@ export function useAdminUnlock(): AdminUnlockState {
       }
 
       setSummary(opened.summary)
+      setKerala(opened.keralaTrip ?? null)
       setStatus('unlocked')
     }
 
@@ -185,6 +269,7 @@ export function useAdminUnlock(): AdminUnlockState {
           // Storage refused, so this unlock lasts the session. Still unlocked.
         }
         setSummary(opened.summary)
+        setKerala(opened.keralaTrip ?? null)
         setStatus('unlocked')
       })()
     },
@@ -194,10 +279,11 @@ export function useAdminUnlock(): AdminUnlockState {
   const forget = useCallback(() => {
     forgetStoredKey()
     setSummary([])
+    setKerala(null)
     setStatus('locked')
   }, [])
 
-  return { status, summary, unlock, forget }
+  return { status, summary, kerala, unlock, forget }
 }
 
 function forgetStoredKey() {

@@ -82,7 +82,9 @@ const AdminLayout: React.FC = () => {
       <SectionNav items={ADMIN_NAV_ITEMS} label="Admin section" />
       <AdminShell>
         <div className="font-body">
-          <Outlet context={{ summary: unlock.summary } satisfies AdminContext} />
+          <Outlet
+            context={{ summary: unlock.summary, kerala: unlock.kerala } satisfies AdminContext}
+          />
           <AdminForgetButton onForget={unlock.forget} />
         </div>
       </AdminShell>

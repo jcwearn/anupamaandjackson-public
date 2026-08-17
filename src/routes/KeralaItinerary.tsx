@@ -1,5 +1,7 @@
 import React from 'react'
 import { usd } from '../lib/inr'
+import { pricing, keralaPrice } from '../lib/keralaPricing'
+import { flights } from '../lib/keralaFlights'
 import { Link } from 'react-router-dom'
 import StickySectionHeading from '../components/StickySectionHeading'
 import JumpNav, { JUMP_NAV_SCROLL_MT, type JumpTarget } from '../components/JumpNav'
@@ -128,50 +130,6 @@ const parseTrip = (value: string | null): Trip =>
 const parseFlights = (value: string | null): FlightChoice =>
   value === 'rt' || value === 'ow' ? value : 'all'
 
-type Flight = {
-  trips: Exclude<Trip, 'all'>[]
-  leg: 'out' | 'return'
-  scope: string
-  // ISO, so the cards can be ordered by it and the weekday can't contradict it.
-  date: string
-  // Absent until the booking exists; the card renders a placeholder instead.
-  number?: string
-  from: { code: string; city: string; time?: string }
-  to: { code: string; city: string; time?: string }
-}
-
-// Times are stored as the airline prints them, so the duration and the 12-hour
-// display are both derived — they can't drift from each other or the ticket.
-const flights: Flight[] = [
-  {
-    trips: ['full', 'short'],
-    leg: 'out',
-    scope: 'Both itineraries',
-    date: '2026-10-29',
-    number: 'IndiGo 6E 6682',
-    from: { code: 'HYD', city: 'Hyderabad', time: '14:15' },
-    to: { code: 'COK', city: 'Kochi', time: '15:55' },
-  },
-  {
-    trips: ['full'],
-    leg: 'return',
-    scope: 'Full itinerary',
-    date: '2026-11-01',
-    number: 'IndiGo 6E 951',
-    from: { code: 'COK', city: 'Kochi', time: '13:49' },
-    to: { code: 'HYD', city: 'Hyderabad', time: '15:15' },
-  },
-  {
-    trips: ['short'],
-    leg: 'return',
-    scope: 'Shortened itinerary',
-    date: '2026-10-31',
-    number: 'IndiGo 6E 6681',
-    from: { code: 'COK', city: 'Kochi', time: '16:25' },
-    to: { code: 'HYD', city: 'Hyderabad', time: '18:00' },
-  },
-]
-
 const dayLabel = (date: string) => {
   const [year, month, day] = date.split('-').map(Number)
   // Built from the parts rather than parsed: `new Date('2026-10-29')` is read as
@@ -221,45 +179,6 @@ const inclusionsFor = (trip: Trip, flightChoice: FlightChoice) => [
   'Transfers to/from Kochi Airport, hotel, and houseboat',
   'Transportation and entry tickets to all sightseeing places mentioned in the itinerary.',
   'Guide on day 1 and day 3.',
-]
-
-// Quotes come in rupees, so those are what we store; the dollar figures guests
-// see are derived, and go stale as the rate moves. Update the rate, not the table.
-
-const pricing: {
-  trip: Exclude<Trip, 'all'>
-  title: string
-  dates: string
-  rows: { occ: 'double' | 'single'; occupancy: string; roundTrip: number; oneWay: number }[]
-}[] = [
-  {
-    trip: 'full',
-    title: 'Full itinerary',
-    dates: 'October 29 – November 1 · 3 nights',
-    rows: [
-      {
-        occ: 'double',
-        occupancy: 'Double occupancy (per person)',
-        roundTrip: 56160,
-        oneWay: 48192,
-      },
-      { occ: 'single', occupancy: 'Single occupancy', roundTrip: 90000, oneWay: 82032 },
-    ],
-  },
-  {
-    trip: 'short',
-    title: 'Shortened itinerary',
-    dates: 'October 29 – 31 · 2 nights',
-    rows: [
-      {
-        occ: 'double',
-        occupancy: 'Double occupancy (per person)',
-        roundTrip: 41020,
-        oneWay: 33052,
-      },
-      { occ: 'single', occupancy: 'Single occupancy', roundTrip: 60860, oneWay: 52892 },
-    ],
-  },
 ]
 
 // What the summary card says about each choice — a headline value plus a
@@ -369,18 +288,7 @@ const KeralaItineraryContent: React.FC = () => {
   // The guest's own price, read straight out of the pricing table so the card
   // and the table can never quote different numbers — unless their record
   // carries an override (a stay the table's rows don't describe).
-  const summaryRow = kerala
-    ? pricing
-        .find((option) => option.trip === kerala.trip)
-        ?.rows.find((row) => row.occ === kerala.occupancy)
-    : undefined
-  const summaryInr =
-    kerala?.priceOverride ??
-    (kerala && summaryRow
-      ? kerala.flight === 'rt'
-        ? summaryRow.roundTrip
-        : summaryRow.oneWay
-      : null)
+  const summaryInr = kerala ? keralaPrice(kerala) : null
 
   return (
     <div className="min-h-screen bg-peach/20">

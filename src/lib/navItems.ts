@@ -39,12 +39,14 @@ export const TRAVEL_NAV_ITEMS: NavItem[] = [
 // The row AdminLayout pins under SiteNav, and only once the passphrase is in —
 // these are never shown to a guest.
 //
-// Unlike the Travel row above, this one has room to spare: measured at 390px it
-// fills 216 of the 374px inside the bar's padding, so there is space for a
-// fourth chip and then some. The labels are short anyway because "Invites" and
-// "Guests" are what these are called out loud.
+// The fourth chip is what the slack noted here was for: measured at 390px the
+// three-chip row filled 216 of the 374px inside the bar's padding, and "Kerala"
+// takes it to 283, still on one line. The labels are short anyway because
+// "Invites", "Guests" and "Kerala" are what these are called out loud. A fifth
+// chip, or a longer label than these, is what would wrap the row.
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { to: '/admin', label: 'Overview' },
   { to: '/admin/invite-links', label: 'Invites' },
   { to: '/admin/guest-summary', label: 'Guests' },
+  { to: '/admin/kerala-trip', label: 'Kerala' },
 ]

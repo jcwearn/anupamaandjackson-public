@@ -45,6 +45,7 @@ const TEST_PASSPHRASE = 'correct-horse-battery-staple'
 let catalogEvents
 let guests
 let keralaResponses
+let keralaBilling
 let index
 let stats
 
@@ -53,9 +54,11 @@ beforeAll(async () => {
     await readFile(join(root, 'data', 'schedule-events.json'), 'utf-8'),
   ).events
   guests = await readFixture(join(root, 'tests', 'fixtures', 'guests.sample.csv'))
-  keralaResponses = JSON.parse(
+  const keralaFile = JSON.parse(
     await readFile(join(root, 'tests', 'fixtures', 'kerala-responses.sample.json'), 'utf-8'),
-  ).responses
+  )
+  keralaResponses = keralaFile.responses
+  keralaBilling = keralaFile.billing
   ;({ index, stats } = await buildIndex({
     guests,
     catalogEvents,
@@ -63,6 +66,7 @@ beforeAll(async () => {
     adminIterations: TEST_ITERATIONS,
     adminPassphrase: TEST_PASSPHRASE,
     keralaResponses,
+    keralaBilling,
   }))
 })
 
@@ -825,6 +829,35 @@ describe('admin payload', () => {
     expect(payload.summary).toHaveLength(guests.length)
   })
 
+  it('carries the whole rooming and the billing beside the roster', async () => {
+    // /admin/kerala-trip answers the agent's questions about rooms it does not
+    // occupy, so unlike the per-guest payload this one sees both occupants.
+    const { keralaTrip } = await open(TEST_PASSPHRASE)
+    expect(keralaTrip.rooms).toEqual([
+      {
+        room: 1,
+        bed: 'twin',
+        occupants: [
+          {
+            name: 'Vera Rubin',
+            trip: 'full',
+            flight: 'rt',
+            occupancy: 'double',
+            priceOverride: 67440,
+          },
+          { name: 'Carl Sagan', trip: 'short', flight: 'ow', occupancy: 'double' },
+        ],
+      },
+      {
+        room: 2,
+        occupants: [{ name: 'Enrico Fermi', trip: 'full', flight: 'ow', occupancy: 'single' }],
+      },
+    ])
+    expect(keralaTrip.billing).toEqual(keralaBilling)
+    expect(stats.keralaRooms).toBe(2)
+    expect(stats.keralaBeds).toEqual({ double: 0, twin: 1 })
+  })
+
   it('stays shut for every other passphrase', async () => {
     // Not a comparison the client makes and could be talked out of — a wrong
     // key is an AES-GCM tag failure, and there is nothing else to try.
@@ -868,14 +901,21 @@ describe('kerala payload', () => {
     emails,
     tags: new Set(['optional-trip']),
   })
-  const response = (email, overrides = {}) => ({
-    email,
-    trip: 'full',
-    flight: 'rt',
-    occupancy: 'double',
-    room: 1,
-    ...overrides,
-  })
+  const response = (email, overrides = {}) => {
+    const built = {
+      email,
+      trip: 'full',
+      flight: 'rt',
+      occupancy: 'double',
+      bed: 'double',
+      room: 1,
+      ...overrides,
+    }
+    // The generator rejects a bed on a single, so an `occupancy: 'single'`
+    // override has to drop the default one rather than have every caller say so.
+    if (built.occupancy === 'single' && overrides.bed === undefined) delete built.bed
+    return built
+  }
 
   it('rides the encrypted record with roster-named roommates', async () => {
     // Vera's fixture email is uppercased; matching must not care. Her roommate
@@ -946,7 +986,7 @@ describe('kerala payload', () => {
       rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
       rosterGuest(2, "Vera's Guest", '', ['vera@example.com']),
     ]
-    const payloads = resolveKeralaPayloads(roster, [
+    const { payloads } = resolveKeralaPayloads(roster, [
       response('vera@example.com', { occupancy: 'single', name: 'Vera Rubin' }),
     ])
     expect(payloads.get(roster[0])).toBeDefined()
@@ -989,6 +1029,221 @@ describe('kerala payload', () => {
         response('enrico@example.com'),
       ]),
     ).toThrow(/3 occupants/)
+  })
+
+  it('refuses a bed that is missing, misspelt, or on a single', () => {
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    const pair = (overrides = {}) => [
+      response('vera@example.com', overrides),
+      response('carl@example.com', overrides),
+    ]
+
+    expect(() => resolveKeralaPayloads(roster, pair({ bed: undefined }))).toThrow(
+      /needs a "bed" of "double" or "twin"/,
+    )
+    expect(() => resolveKeralaPayloads(roster, pair({ bed: 'queen' }))).toThrow(
+      /needs a "bed" of "double" or "twin"/,
+    )
+    // The other direction: a single has one bed and nothing to choose, so a
+    // stray value there is a row that was edited without being re-read.
+    expect(() =>
+      resolveKeralaPayloads(
+        [rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com'])],
+        [response('vera@example.com', { occupancy: 'single', bed: 'twin', room: 9 })],
+      ),
+    ).toThrow(/single occupancy but carries a "bed"/)
+  })
+
+  it('carries a sole-use night to the admin rooms and nowhere else', async () => {
+    // What the agent charges us over the rate card, kept apart from the price
+    // the guest was quoted. The guest's own envelope must not carry it: what
+    // we are billed for them is not their business.
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [
+        response('vera@example.com', { priceOverride: 67440, soleUseNights: 1 }),
+        response('carl@example.com', { trip: 'short' }),
+      ],
+    )
+    expect(rooms[0].occupants[0]).toMatchObject({ priceOverride: 67440, soleUseNights: 1 })
+    expect([...payloads.values()][0]).not.toHaveProperty('soleUseNights')
+  })
+
+  it('carries the host flag to the admin rooms and nowhere else', () => {
+    // Whose trip it is, which decides whether their place counts as money a
+    // guest owes. A flag in the data rather than two names in the source,
+    // which is published — and not in the guest's own envelope either.
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [response('vera@example.com', { host: true }), response('carl@example.com')],
+    )
+    expect(rooms[0].occupants[0]).toMatchObject({ host: true })
+    expect(rooms[0].occupants[1]).not.toHaveProperty('host')
+    expect([...payloads.values()][0]).not.toHaveProperty('host')
+  })
+
+  it('refuses a host flag that is anything but true', () => {
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { host: false }),
+        response('carl@example.com'),
+      ]),
+    ).toThrow(/host=false/)
+  })
+
+  it('carries a payment to the admin rooms, naming who covered whom', () => {
+    // Guest money is admin business: their own envelope carries the price they
+    // were asked for and nothing about what anyone has actually sent.
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [
+        response('vera@example.com', { payment: { usd: 1178, to: 'anupama', via: 'zelle' } }),
+        response('carl@example.com', { payment: { via: 'roommate' } }),
+      ],
+    )
+    expect(rooms[0].occupants[0].payment).toEqual({ usd: 1178, to: 'anupama', via: 'zelle' })
+    // Resolved here, where the pairing is already known, rather than on a page
+    // that would have to work out who paid for whom a second time.
+    expect(rooms[0].occupants[1].payment).toEqual({ via: 'roommate', paidBy: 'Vera' })
+    for (const payload of payloads.values()) expect(payload).not.toHaveProperty('payment')
+  })
+
+  it('refuses a malformed payment', () => {
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    const pair = (payment) => [
+      response('vera@example.com', { payment }),
+      response('carl@example.com'),
+    ]
+    expect(() => resolveKeralaPayloads(roster, pair({ usd: 100, via: 'cheque' }))).toThrow(
+      /malformed/,
+    )
+    expect(() =>
+      resolveKeralaPayloads(roster, pair({ usd: 100, to: 'someone', via: 'zelle' })),
+    ).toThrow(/malformed/)
+    expect(() => resolveKeralaPayloads(roster, pair({ via: 'zelle' }))).toThrow(/malformed/)
+    expect(() => resolveKeralaPayloads(roster, pair({ usd: -5, via: 'zelle' }))).toThrow(
+      /malformed/,
+    )
+    // A roommate payment carries no amount of its own; the payer's row has it.
+    expect(() => resolveKeralaPayloads(roster, pair({ usd: 100, via: 'roommate' }))).toThrow(
+      /malformed/,
+    )
+  })
+
+  it('refuses a roommate payment with no roommate who actually paid', () => {
+    // Unchecked, a mistyped one reads as a guest who has settled when nobody
+    // has sent a penny for them.
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { payment: { via: 'roommate' } }),
+        response('carl@example.com'),
+      ]),
+    ).toThrow(/nobody in room 1 has a payment with an amount/)
+  })
+
+  it('refuses a sole-use night on a stay that has no final night to cost', () => {
+    // The figure is the difference between the two itineraries' final nights,
+    // so a shortened stay has nothing to difference — and a single-occupancy
+    // guest is already being charged the single rate.
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    const pair = (overrides) => [
+      response('vera@example.com', overrides),
+      response('carl@example.com', overrides),
+    ]
+    expect(() => resolveKeralaPayloads(roster, pair({ trip: 'short', soleUseNights: 1 }))).toThrow(
+      /soleUseNights/,
+    )
+    expect(() =>
+      resolveKeralaPayloads(
+        [roster[0]],
+        [response('vera@example.com', { occupancy: 'single', soleUseNights: 1, room: 9 })],
+      ),
+    ).toThrow(/soleUseNights/)
+    expect(() => resolveKeralaPayloads(roster, pair({ soleUseNights: 0 }))).toThrow(/soleUseNights/)
+    expect(() => resolveKeralaPayloads(roster, pair({ soleUseNights: 1.5 }))).toThrow(
+      /soleUseNights/,
+    )
+  })
+
+  it('refuses roommates who disagree about the bed', () => {
+    // The room can only be booked one way, and the count sent to the agent
+    // would be off by one whichever of the two it believed.
+    expect(() =>
+      resolveKeralaPayloads(
+        [
+          rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+          rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+        ],
+        [
+          response('vera@example.com', { bed: 'double' }),
+          response('carl@example.com', { bed: 'twin' }),
+        ],
+      ),
+    ).toThrow(/roommates share one bed type/)
+  })
+
+  it('assembles whole rooms for the admin page, in room order', () => {
+    const { rooms } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+        rosterGuest(3, 'Enrico', 'Fermi', ['enrico@example.com']),
+      ],
+      [
+        response('enrico@example.com', { occupancy: 'single', flight: 'ow', room: 9 }),
+        response('vera@example.com', { bed: 'twin', priceOverride: 67440 }),
+        response('carl@example.com', { bed: 'twin', trip: 'short', flight: 'ow' }),
+      ],
+    )
+
+    // Sorted numerically, not by the order the responses happened to be typed
+    // in — the admin table is read against the agent's own room numbering.
+    expect(rooms).toEqual([
+      {
+        room: 1,
+        bed: 'twin',
+        occupants: [
+          {
+            name: 'Vera Rubin',
+            trip: 'full',
+            flight: 'rt',
+            occupancy: 'double',
+            priceOverride: 67440,
+          },
+          { name: 'Carl Sagan', trip: 'short', flight: 'ow', occupancy: 'double' },
+        ],
+      },
+      {
+        room: 9,
+        occupants: [{ name: 'Enrico Fermi', trip: 'full', flight: 'ow', occupancy: 'single' }],
+      },
+    ])
   })
 
   it('refuses malformed response fields', () => {
@@ -1042,6 +1297,21 @@ describe('kerala payload', () => {
       ),
     ).toBe(before)
   })
+
+  it('republishes when a payment is recorded', async () => {
+    // Recording a payment moves nothing about the roster, so without billing in
+    // the fingerprint this is exactly the edit that hashes identical and never
+    // ships — the sync would say 'nothing to publish' and mean it.
+    const args = [guests, catalogEvents, keralaResponses, '']
+    const before = await sourceFingerprint(...args, keralaBilling)
+    expect(await sourceFingerprint(...args, null)).not.toBe(before)
+    expect(
+      await sourceFingerprint(...args, {
+        ...keralaBilling,
+        payments: [...keralaBilling.payments, { date: '2026-09-05', amount: 1, note: 'Second' }],
+      }),
+    ).not.toBe(before)
+  })
 })
 
 describe('privacy invariants', () => {
@@ -1076,6 +1346,17 @@ describe('privacy invariants', () => {
     }
     expect(serialized).not.toContain('roommates')
     expect(serialized).not.toContain('priceNote')
+    // The admin rooming names both occupants of every room in one object, and
+    // the billing says what we owe. Both sit inside the passphrase envelope;
+    // the name check above already covers the occupants themselves.
+    expect(serialized).not.toContain('keralaTrip')
+    expect(serialized).not.toContain('occupants')
+    // What a guest has sent us is ours and theirs, not the index's.
+    expect(serialized).not.toContain('payment')
+    expect(serialized).not.toContain('zelle')
+    expect(serialized).not.toContain('venmo')
+    expect(serialized).not.toContain('paypal')
+    expect(serialized).not.toContain(String(keralaBilling.payments[0].amount))
   })
 
   it('contains no golkonda answer or stay in plaintext', () => {

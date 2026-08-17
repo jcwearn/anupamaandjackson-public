@@ -370,7 +370,7 @@ const GuestSummary: React.FC = () => {
                               rather than publish one who doesn't — so this is
                               belt and braces against an index built before that
                               check existed. */}
-                          {link ? <CopyButton compact url={`${SITE_ORIGIN}${link}`} /> : '—'}
+                          {link ? <CopyButton compact value={`${SITE_ORIGIN}${link}`} /> : '—'}
                         </td>
                       </tr>
                     )
