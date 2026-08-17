@@ -155,8 +155,13 @@ const AdminKeralaTrip: React.FC = () => {
 
             {/* A div per row, which `dl` has allowed since HTML 5.2. A bare
                 dt/dd grid has no element spanning the pair, so the clickable
-                row below would have had nothing to hang off. */}
-            <dl className="flex flex-col gap-y-2 text-sm">
+                row below would have had nothing to hang off.
+
+                No `gap-y` here: the space between rows lives inside them, as
+                padding. The rows behind an opened figure are tinted, and a gap
+                would show a stripe of untinted card between each of them
+                instead of the one band the tint is meant to be. */}
+            <dl className="flex flex-col text-sm">
               <Money label="Total quoted" amount={summary.billing.total} {...{ currency, rate }} />
               {/* Only when the two have come apart, which they have for one
                   guest: he was quoted before the sole-use night was worked out
@@ -216,7 +221,7 @@ const AdminKeralaTrip: React.FC = () => {
                 card with two payment totals on it invites exactly that
                 misreading, which is why the rule is written down rather than
                 left to be inferred from the rule above. */}
-            <dl className="mt-5 flex flex-col gap-y-2 border-t border-gold/40 pt-4 text-sm">
+            <dl className="mt-5 flex flex-col border-t border-gold/40 pt-4 text-sm">
               <Money
                 label="Guests have transferred"
                 amount={summary.billing.transferred * QUOTED_AT_INR_PER_USD}
@@ -244,7 +249,7 @@ const AdminKeralaTrip: React.FC = () => {
                     ))}
                 </>
               )}
-              <p className="pt-1 text-xs text-zeus/50">
+              <p className="pt-2 text-xs text-zeus/50">
                 Sent to you, not to the agent — none of this changes what is outstanding above.
               </p>
             </dl>
@@ -1180,10 +1185,18 @@ const Money: React.FC<{
     // your eye on one line while it travels the leader to a figure several
     // inches away, and that is worth as much on a row with nothing to click.
     // The negative margin gives the tint a little air either side without
-    // moving the text; the card's own padding absorbs it.
-    className={`-mx-2 flex items-baseline gap-x-3 rounded px-2 transition-colors hover:bg-lily/20 ${
-      onToggle ? 'cursor-pointer' : ''
-    }`}
+    // moving the text; the card's own padding absorbs it. The `py` is the
+    // spacing the list used to set as a gap — held inside the row so that the
+    // tint below has nothing to break it up.
+    //
+    // A sub row rests on the same `bg-lily/10` the opened rate row wears in
+    // "How the total breaks down", so both cards say "this is the inside of the
+    // row above" in the same colour. Square-cornered, unlike the rest: stacked
+    // rounded rectangles of one colour notch each other at every seam, and this
+    // is a band rather than a row.
+    className={`-mx-2 flex items-baseline gap-x-3 px-2 py-1 transition-colors hover:bg-lily/20 ${
+      sub ? 'bg-lily/10' : 'rounded'
+    } ${onToggle ? 'cursor-pointer' : ''}`}
   >
     <dt
       className={`flex min-w-0 flex-1 items-baseline gap-x-2 ${sub ? 'pl-4' : ''} ${

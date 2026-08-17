@@ -356,6 +356,34 @@ describe('payments', () => {
     expect(row('You are covering')?.className).toContain('cursor-pointer')
   })
 
+  it('rests the rows behind an opened figure on the tint the rate table uses', () => {
+    // The indent and the muted text alone were easy to lose in a long list.
+    // `bg-lily/10` is what an opened row wears in "How the total breaks down",
+    // so both cards mark "this is the inside of the row above" the same way.
+    // The list sets no gap between its rows — one would show a stripe of
+    // untinted card between each name and break the band into pieces.
+    renderPage()
+    const list = screen.getByText('You are covering').closest('dl') as HTMLElement
+    const tinted = () =>
+      [...list.querySelectorAll('dt')]
+        .map((dt) => dt.parentElement as HTMLElement)
+        .filter((row) => row.className.includes('bg-lily/10'))
+
+    expect(list.className).not.toContain('gap-y')
+    expect(tinted()).toHaveLength(0)
+
+    fireEvent.click(screen.getByRole('button', { name: /You are covering/ }))
+    for (const name of ['Ada Lovelace', 'Grace Hopper', 'Carl Sagan']) {
+      expect(coveredRow(name)?.parentElement?.className).toContain('bg-lily/10')
+    }
+    // Not the row that opened, and not the plain rows either — only what is
+    // behind the figure.
+    expect(screen.getByText('You are covering').closest('div')?.className).not.toContain(
+      'bg-lily/10',
+    )
+    expect(screen.getByText('Total quoted').closest('div')?.className).not.toContain('bg-lily/10')
+  })
+
   it('runs a leader from each label to its figure', () => {
     // What ties a label to a figure several inches away, and what takes up the
     // slack that pins them all to the same right edge.
@@ -685,6 +713,21 @@ describe('guest money', () => {
     fireEvent.click(screen.getByRole('button', { name: /Still to collect/ }))
     // Enrico shares room 3 and has sent nothing; the room-4 pair likewise.
     expect(screen.getAllByText(/^room \d+$/)).toHaveLength(3)
+  })
+
+  it('sits those names on the same tinted band as the covering list', () => {
+    // The second list opens the same way and so has to look the same opened.
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /Still to collect/ }))
+
+    const list = screen.getByText('Still to collect').closest('dl') as HTMLElement
+    expect(list.className).not.toContain('gap-y')
+    for (const hint of screen.getAllByText(/^room \d+$/)) {
+      expect(hint.closest('div')?.className).toContain('bg-lily/10')
+    }
+    expect(screen.getByText('Still to collect').closest('div')?.className).not.toContain(
+      'bg-lily/10',
+    )
   })
 
   it('answers at a glance whether a room has settled', () => {
