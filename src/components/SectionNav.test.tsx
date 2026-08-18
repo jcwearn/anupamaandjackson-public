@@ -75,6 +75,21 @@ describe('SectionNav', () => {
     expect(current()).toEqual(['/travel/hyderabad'])
   })
 
+  it('leaves the current chip inert under the pointer', () => {
+    // The hover cue on an active chip means "press me again and something
+    // happens". Here it would be a lie: the chip you are on is the page you
+    // are on. /admin/guest-summary's filter chips opt into it because pressing
+    // one of those releases the filter.
+    renderAt('/travel/tips')
+
+    const [chip] = screen
+      .getAllByRole('link')
+      .filter((link) => link.getAttribute('aria-current') === 'page')
+
+    expect(chip.className).toContain('bg-rosewood')
+    expect(chip.className).not.toContain('hover:bg-')
+  })
+
   it('is labelled for screen readers, so it is distinct from the site nav', () => {
     renderAt('/travel')
     expect(screen.getByRole('navigation', { name: 'Travel section' })).toBeInTheDocument()

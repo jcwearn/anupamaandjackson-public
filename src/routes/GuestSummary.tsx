@@ -3,6 +3,7 @@ import type { GuestSummaryEntry, GuestSummaryStatus } from '../lib/adminUnlock'
 import { useAdminContext } from '../lib/adminContext'
 import { chipClass } from '../lib/chipClass'
 import { JUMP_NAV_SECTION_TOP, SITE_NAV_OFFSET, SITE_ORIGIN } from '../lib/constants'
+import { fold } from '../lib/guestName'
 import { INVITE_EVENTS, inviteLinkFor } from '../lib/inviteLink'
 import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 import CopyButton from '../components/CopyButton'
@@ -31,13 +32,17 @@ const householdBox = (first: boolean, last: boolean) =>
   ].join(' ')
 
 /**
- * Whose list to show. The four named ones partition the roster: Vidya's and
- * Venkat's guests are all on Anupama's side, so hers is what is left of it once
- * their two lists are taken out. 'all' is not a list at all — it is the absence
- * of a filter.
+ * Whose list to show. The four partition the roster: Vidya's and Venkat's guests
+ * are all on Anupama's side, so hers is what is left of it once their two lists
+ * are taken out.
+ *
+ * There is deliberately no "Everyone" chip. It used to be the first of five, and
+ * it was the odd one out — four lists and a not-a-list sitting as peers, with no
+ * equivalent on the RSVP row below, which meant the page could never show all
+ * three answers at once. Both rows now say "no filter" the same way: nothing
+ * selected. Clicking the chip you are on releases it.
  */
 const SIDES = [
-  { value: 'all', label: 'Everyone' },
   { value: 'anupama', label: 'Anupama' },
   { value: 'jackson', label: 'Jackson' },
   { value: 'vidya', label: 'Vidya' },
@@ -66,15 +71,18 @@ type Side = (typeof SIDES)[number]['value']
  * side between her parents' lists, and it is set only for those two, so its
  * absence is the "on neither of them" test.
  *
- * An entry carrying no `side` matches only Everyone, which is the honest answer
- * for the one case that produces it: this bundle and schedule-index.json deploy
- * separately, so for a moment the index in front of it is a version behind and
- * has no side to file its guests under. See GuestSummaryEntry.
+ * An entry carrying no `side` is on none of the four lists, and so shows up only
+ * when the row is empty. That is the honest answer for the one case that
+ * produces it: this bundle and schedule-index.json deploy separately, so for a
+ * moment the index in front of it is a version behind and has no side to file
+ * its guests under. See GuestSummaryEntry.
+ *
+ * Only called with a chosen side — "no chip" is tested at the call site rather
+ * than as a case here, so the switch stays exhaustive over the real lists and
+ * the compiler keeps it that way when one is added.
  */
 const onSide = (entry: GuestSummaryEntry, side: Side) => {
   switch (side) {
-    case 'all':
-      return true
     case 'anupama':
       return entry.side === 'anupama' && !entry.tag
     case 'jackson':
@@ -93,7 +101,9 @@ const onSide = (entry: GuestSummaryEntry, side: Side) => {
  *
  * `role="group"` with aria-labelledby rather than a fieldset and legend. These
  * are buttons carrying aria-pressed, not radios, and a fieldset would announce
- * them as a set of form controls to fill in rather than a view to switch.
+ * them as a set of form controls to fill in rather than a view to switch. That
+ * is also what makes an empty row possible at all: a radio group cannot be
+ * emptied once answered, and emptying it is how you say "no filter" here.
  *
  * A function declaration, not an arrow: the generic keeps each row's value tied
  * to its own options, so a handler cannot be passed the other row's values.
@@ -106,8 +116,8 @@ function FilterRow<T extends string>({
 }: {
   label: string
   options: readonly { value: T; label: string }[]
-  selected: T
-  onSelect: (value: T) => void
+  selected: T | null
+  onSelect: (value: T | null) => void
 }) {
   const labelId = React.useId()
   return (
@@ -131,8 +141,10 @@ function FilterRow<T extends string>({
             key={value}
             type="button"
             aria-pressed={selected === value}
-            onClick={() => onSelect(value)}
-            className={chipClass(selected === value)}
+            onClick={() => onSelect(selected === value ? null : value)}
+            // Every chip in this component is a toggle — that is what the row
+            // being emptiable means — so the hover cue is unconditional here.
+            className={chipClass(selected === value, { toggles: true })}
           >
             {option}
           </button>
@@ -148,8 +160,12 @@ function FilterRow<T extends string>({
 const GuestSummary: React.FC = () => {
   const { summary } = useAdminContext()
 
-  const [side, setSide] = useState<Side>('all')
-  const [status, setStatus] = useState<GuestSummaryStatus>('none')
+  // Both start as they always have: no list chosen, and the answer nobody has
+  // given yet. null is the empty row rather than a sentinel value in the option
+  // lists, so "no filter" cannot be typo'd into a filter that matches nothing.
+  const [side, setSide] = useState<Side | null>(null)
+  const [status, setStatus] = useState<GuestSummaryStatus | null>('none')
+  const [query, setQuery] = useState('')
 
   // The column headings pin under whatever is above them, which is one bar or
   // two: SectionNav hides on the way down the page, and a header parked at the
@@ -158,11 +174,37 @@ const GuestSummary: React.FC = () => {
   // same scroll events, same threshold, same 200ms.
   const [sectionNavHidden] = useHiddenOnScrollDown()
 
-  const visible = useMemo(
-    () =>
-      summary.filter((entry: GuestSummaryEntry) => entry.status === status && onSide(entry, side)),
-    [summary, side, status],
-  )
+  // fold() is what the generator matches names with, so the box behaves like the
+  // rest of the site: case, accents and punctuation all fall away, and 'jose'
+  // finds José. Folded once here rather than per row per keystroke.
+  const needle = useMemo(() => fold(query), [query])
+
+  /**
+   * The rows on screen: the chips first, then the search box within them.
+   *
+   * The search narrows what the chips left rather than reaching past them, which
+   * is the only reading that keeps the count line honest — a box that searched
+   * the whole roster would report guests the chips say are not on this list.
+   *
+   * A match pulls in the rest of its household, because a party outline drawn
+   * around one of four names reads as a mistake. It pulls them from `kept`, not
+   * from `summary`: a housemate the chips already excluded stays excluded, on
+   * the same principle the grouping below is built on.
+   */
+  const visible = useMemo(() => {
+    const kept = summary.filter(
+      (entry: GuestSummaryEntry) =>
+        (status === null || entry.status === status) && (side === null || onSide(entry, side)),
+    )
+    if (!needle) return kept
+    const hit = (entry: GuestSummaryEntry) => fold(entry.name).includes(needle)
+    const parties = new Set(
+      kept.filter((entry) => entry.party !== undefined && hit(entry)).map((entry) => entry.party),
+    )
+    return kept.filter(
+      (entry) => hit(entry) || (entry.party !== undefined && parties.has(entry.party)),
+    )
+  }, [summary, side, status, needle])
 
   /**
    * The visible rows, with households drawn together.
@@ -199,14 +241,36 @@ const GuestSummary: React.FC = () => {
       {/* In a card of their own, so the filters read as one panel that acts on
           the table below rather than as loose chrome floating above it.
           "Guest list" rather than "Host": Vidya's and Venkat's are two lists
-          within Anupama's side, so the five chips are four lists and the whole
-          roster, not five peers. */}
+          within Anupama's side, not two more hosts alongside it. */}
       <div className="card">
         {/* w-fit on the inner block, not items-center on the rows: centring the
-            rows individually would centre each on its own width, and the two
+            rows individually would centre each on its own width, and the three
             would step in and out against each other. This sizes the block to
-            the wider row and centres that, so the chips still line up. */}
+            the widest row and centres that, so the controls still line up. */}
         <div className="flex flex-col gap-3 sm:mx-auto sm:w-fit">
+          {/* Above the chips, not below: this is the "find one person" control
+              and the chips read as refinements under it.
+
+              A label rather than a third role="group" — one input needs no
+              grouping semantics, and the two groups on the page stay the two
+              questions the chips ask. The label reuses the chip rows' styling
+              exactly, so all three controls start at the same x on desktop.
+
+              type="search" for the clear affordance and the Escape key the
+              browser gives it for free. Fixed width because the block around it
+              is w-fit, where flex-1 has nothing to grow into. */}
+          <label className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <span className="text-xs uppercase tracking-wide text-zeus/60 sm:w-24 sm:shrink-0 sm:text-right">
+              Search
+            </span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Name"
+              className="w-full rounded-full border border-gold/50 bg-white/70 px-3.5 py-1.5 text-sm text-zeus placeholder:text-zeus/40 focus-visible:outline-2 focus-visible:outline-gold sm:w-64"
+            />
+          </label>
           <FilterRow label="Guest list" options={SIDES} selected={side} onSelect={setSide} />
           <FilterRow label="RSVP" options={STATUSES} selected={status} onSelect={setStatus} />
         </div>
@@ -217,7 +281,13 @@ const GuestSummary: React.FC = () => {
       </p>
 
       {visible.length === 0 ? (
-        <p className="card mt-4 text-center text-sm text-zeus/80">Nobody on this list right now.</p>
+        // Two sentences, because they are two different disappointments. With
+        // the box empty the list itself is empty, which is worth knowing. With
+        // something typed in it, the list is fine and the name is the problem —
+        // and echoing back what was searched for is what catches the typo.
+        <p className="card mt-4 text-center text-sm text-zeus/80">
+          {query.trim() ? `Nobody matching “${query.trim()}”.` : 'Nobody on this list right now.'}
+        </p>
       ) : (
         <div className="card mt-4">
           {/* border-separate, not collapse, for two reasons the Kerala pricing

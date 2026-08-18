@@ -103,6 +103,24 @@ const asAdmin = () => setState({ status: 'identified', displayName: 'Anupama', i
 const guestTable = () => screen.getByRole('table')
 
 /**
+ * Select a chip, whatever the row was on.
+ *
+ * A bare click is no longer "select" — clicking the chip you are already on
+ * releases it, which is how a row says "no filter". The page opens on No
+ * Response, so a test that clicked it to select it would clear it instead.
+ */
+const choose = (name: string) => {
+  const chip = screen.getByRole('button', { name })
+  if (chip.getAttribute('aria-pressed') !== 'true') fireEvent.click(chip)
+}
+
+/** The name box. `type="search"` is what makes it a searchbox rather than a textbox. */
+const searchBox = () => screen.getByRole('searchbox', { name: 'Search' })
+
+/** Type into the name box, as one keystroke's worth of state change. */
+const search = (query: string) => fireEvent.change(searchBox(), { target: { value: query } })
+
+/**
  * The names on screen, in order.
  *
  * The name is each row's header cell, so this reads the column without having
@@ -156,15 +174,8 @@ describe('GuestSummary filters', () => {
   })
 
   it.each([
-    ['Everyone', 'Attending', ['Vidya Yes', 'Venkat Yes', 'Anupama Yes', 'Jackson Yes']],
-    ['Everyone', 'Not Attending', ['Vidya No', 'Venkat No', 'Anupama No', 'Jackson No']],
-    [
-      'Everyone',
-      'No Response',
-      ['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'],
-    ],
     // Anupama's chip is her side less the two lists within it, so none of the
-    // Vidya or Venkat rows above may appear under it.
+    // Vidya or Venkat rows may appear under it.
     ['Anupama', 'Attending', ['Anupama Yes']],
     ['Anupama', 'Not Attending', ['Anupama No']],
     ['Anupama', 'No Response', ['Anupama Silent']],
@@ -180,10 +191,61 @@ describe('GuestSummary filters', () => {
   ])('lists %s / %s', (side, status, expected) => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: side }))
-    fireEvent.click(screen.getByRole('button', { name: status }))
+    choose(side)
+    choose(status)
 
     expect(listed()).toEqual(expected)
+  })
+
+  it.each([
+    ['Attending', ['Vidya Yes', 'Venkat Yes', 'Anupama Yes', 'Jackson Yes']],
+    ['Not Attending', ['Vidya No', 'Venkat No', 'Anupama No', 'Jackson No']],
+    ['No Response', ['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent']],
+  ])('lists every list at once under %s when no list is chosen', (status, expected) => {
+    // What the Everyone chip used to do. It is now the state the Guest list row
+    // starts in and returns to, rather than a fifth option beside four lists.
+    renderPage()
+
+    choose(status)
+
+    expect(listed()).toEqual(expected)
+  })
+
+  it('releases the guest list chip you are already on', () => {
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
+    expect(listed()).toEqual(['Venkat Silent'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
+
+    expect(screen.getByRole('button', { name: 'Venkat' })).toHaveAttribute('aria-pressed', 'false')
+    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'])
+  })
+
+  it('shows all three answers at once when the RSVP chip is released', () => {
+    // The thing the row could not do while it had no "any" option: a guest
+    // whose answer you do not know took three clicks to find.
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'No Response' }))
+
+    expect(screen.getByRole('button', { name: 'No Response' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    expect(listed()).toEqual(summary.map((entry) => entry.name))
+  })
+
+  it('shows the whole roster with both rows released', () => {
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'No Response' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Jackson' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Jackson' }))
+
+    expect(listed()).toEqual(summary.map((entry) => entry.name))
+    expect(screen.getByText('12 guests')).toBeInTheDocument()
   })
 
   it('counts what is on screen', () => {
@@ -204,23 +266,50 @@ describe('GuestSummary filters', () => {
 
     const rows = screen.getAllByRole('group')
     expect(rows.map((row) => row.getAttribute('aria-label') ?? row.textContent)).toEqual([
-      'Guest listEveryoneAnupamaJacksonVidyaVenkat',
+      'Guest listAnupamaJacksonVidyaVenkat',
       'RSVPAttendingNot AttendingNo Response',
     ])
     expect(screen.getByRole('group', { name: 'Guest list' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'RSVP' })).toBeInTheDocument()
+    // The search box is the third control and deliberately not a third group —
+    // one input has nothing to group with, and the two groups on the page stay
+    // the two questions the chips ask.
+    expect(rows).toHaveLength(2)
+    expect(searchBox()).toBeInTheDocument()
   })
 
   it('marks the active chip in each row', () => {
     renderPage()
 
-    expect(screen.getByRole('button', { name: 'Everyone' })).toHaveAttribute('aria-pressed', 'true')
+    // Nothing is pressed on the Guest list row until something is chosen; the
+    // row opens empty rather than on a chip that means "no filter".
+    for (const chip of ['Anupama', 'Jackson', 'Vidya', 'Venkat']) {
+      expect(screen.getByRole('button', { name: chip })).toHaveAttribute('aria-pressed', 'false')
+    }
+    expect(screen.getByRole('button', { name: 'No Response' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
     fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
     expect(screen.getByRole('button', { name: 'Venkat' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Everyone' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    expect(screen.getByRole('button', { name: 'Vidya' })).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('offers a hover cue on the chip you are already on', () => {
+    // The chip you are on is the one you press to clear the filter, so it is
+    // the last chip on the row that should look inert under the pointer. It
+    // used to be the only one that did.
+    //
+    // These chips ask for the cue; the nav bars sharing chipClass do not, since
+    // their current chip leads to the page you are already on. SectionNav's
+    // own test holds the other half of that pair.
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
+
+    expect(screen.getByRole('button', { name: 'Venkat' }).className).toContain('hover:bg-')
+    expect(screen.getByRole('button', { name: 'Vidya' }).className).toContain('hover:bg-')
   })
 
   it('keeps the two filters independent', () => {
@@ -234,11 +323,11 @@ describe('GuestSummary filters', () => {
     expect(listed()).toEqual(['Venkat Yes'])
   })
 
-  it('shows a guest with no side under Everyone and nowhere else', () => {
+  it('shows a guest with no side only while no list is chosen', () => {
     // What an index built before `side` existed looks like: this bundle and
     // schedule-index.json deploy separately, so for a moment the index in front
-    // of the page is a version behind. Everyone still finds them, which beats
-    // filing them under a list that is not theirs.
+    // of the page is a version behind. An empty Guest list row still finds
+    // them, which beats filing them under a list that is not theirs.
     setUnlock('unlocked', { summary: [{ name: 'Unsynced Guest', status: 'none' }] })
     renderPage()
 
@@ -247,10 +336,9 @@ describe('GuestSummary filters', () => {
     for (const chip of ['Anupama', 'Jackson', 'Vidya', 'Venkat']) {
       fireEvent.click(screen.getByRole('button', { name: chip }))
       expect(screen.getByText('0 guests')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: chip }))
+      expect(listed()).toEqual(['Unsynced Guest'])
     }
-
-    fireEvent.click(screen.getByRole('button', { name: 'Everyone' }))
-    expect(listed()).toEqual(['Unsynced Guest'])
   })
 
   it('says so plainly when a combination is empty', () => {
@@ -260,6 +348,19 @@ describe('GuestSummary filters', () => {
     expect(screen.getByText('0 guests')).toBeInTheDocument()
     expect(screen.getByText('Nobody on this list right now.')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('blames the name, not the list, when a search finds nobody', () => {
+    // Two different disappointments. "Nobody on this list" is wrong when the
+    // list is full and the spelling is what missed, and echoing the query back
+    // is what catches the typo.
+    renderPage()
+
+    search('Meitner')
+
+    expect(screen.getByText('0 guests')).toBeInTheDocument()
+    expect(screen.getByText('Nobody matching “Meitner”.')).toBeInTheDocument()
+    expect(screen.queryByText('Nobody on this list right now.')).not.toBeInTheDocument()
   })
 
   it('lists both of two guests who share a name', () => {
@@ -369,6 +470,119 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     expect(screen.getByText('3 guests')).toBeInTheDocument()
+  })
+})
+
+describe('GuestSummary search', () => {
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked')
+  })
+
+  it('narrows the list to the names that match', () => {
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Attending' }))
+    search('venkat')
+
+    expect(listed()).toEqual(['Venkat Yes'])
+    expect(screen.getByText('1 guest')).toBeInTheDocument()
+  })
+
+  it('matches on part of a name, from anywhere in it', () => {
+    // Nobody types a full name to find someone. Surname-first is the common
+    // case, and the roster is stored first-name-first.
+    renderPage()
+
+    search('sil')
+
+    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'])
+  })
+
+  it('ignores case, accents and punctuation', () => {
+    // fold() is the same normaliser the generator matches names with, so the
+    // box behaves like the rest of the site rather than like a raw includes().
+    setUnlock('unlocked', {
+      summary: [{ name: 'Émilie du Châtelet-Fermi', status: 'none' }],
+    })
+    renderPage()
+
+    for (const query of ['emilie', 'ÉMILIE', 'chatelet', 'Châtelet', 'chatelet fermi']) {
+      search(query)
+      expect(listed()).toEqual(['Émilie du Châtelet-Fermi'])
+    }
+  })
+
+  it('keeps the rest of a matched guest’s household on screen', () => {
+    // A party outline drawn around one of three names reads as a bug. Matching
+    // one member is a good enough reason to show the household.
+    setUnlock('unlocked', {
+      summary: [
+        { name: 'Ada Lovelace', status: 'none', party: 2 },
+        { name: 'Grace Hopper', status: 'none', party: 2 },
+        { name: 'Alan Turing', status: 'none' },
+      ],
+    })
+    renderPage()
+
+    search('hopper')
+
+    expect(households()).toEqual([['Ada Lovelace', 'Grace Hopper']])
+    expect(boxOf('Ada Lovelace')).toContain('border-gold/50')
+    expect(screen.getByText('2 guests')).toBeInTheDocument()
+  })
+
+  it('does not pull a housemate back past the chips', () => {
+    // The household is drawn from what the chips left, not from the roster.
+    // Otherwise a search on a "who has not responded" list quietly reintroduces
+    // the member who already answered.
+    setUnlock('unlocked', {
+      summary: [
+        { name: 'Vera Rubin', status: 'none', party: 5 },
+        { name: 'Carl Sagan', status: 'attending', party: 5 },
+      ],
+    })
+    renderPage()
+
+    search('rubin')
+
+    expect(listed()).toEqual(['Vera Rubin'])
+  })
+
+  it('narrows within the chips rather than reaching past them', () => {
+    // An AND. A name the chips exclude stays excluded, so the count line can
+    // never claim a guest who is not on the chosen list.
+    renderPage()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vidya' }))
+    search('jackson')
+
+    expect(screen.getByText('0 guests')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vidya' }))
+    expect(listed()).toEqual(['Jackson Silent'])
+  })
+
+  it('gives the whole list back when the box is cleared', () => {
+    renderPage()
+
+    search('anupama')
+    expect(listed()).toEqual(['Anupama Silent'])
+
+    search('')
+
+    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'])
+  })
+
+  it('ignores a box holding nothing but spaces', () => {
+    // fold() reduces it to the empty string, which is the no-query case — not a
+    // query that matches every name by accident.
+    renderPage()
+
+    search('   ')
+
+    expect(listed()).toEqual(['Vidya Silent', 'Venkat Silent', 'Anupama Silent', 'Jackson Silent'])
+    expect(screen.queryByText(/Nobody/)).not.toBeInTheDocument()
   })
 })
 
