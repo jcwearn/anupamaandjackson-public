@@ -851,13 +851,21 @@ describe('GuestSummary attendance', () => {
     showEveryone()
 
     const legend = screen.getByRole('list')
+    // The three answers in the same order as the RSVP chips above them, which
+    // is the whole reason the order is worth asserting: the two rows say almost
+    // the same words a few pixels apart, and a reader lines them up.
     expect([...legend.querySelectorAll('li')].map((item) => item.textContent)).toEqual([
       'Dots:',
-      'No response',
       'Attending',
       'Not attending',
+      'No response',
       'Not invited',
     ])
+    expect(
+      [...screen.getByRole('group', { name: 'RSVP' }).querySelectorAll('button')].map(
+        (chip) => chip.textContent,
+      ),
+    ).toEqual(['Attending', 'Not Attending', 'No Response'])
     // Every mark in the key is one the table actually draws, and every mark the
     // table draws is in the key — a legend that keys three of four states would
     // be worse than none.

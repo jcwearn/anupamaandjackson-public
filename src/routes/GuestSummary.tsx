@@ -71,14 +71,24 @@ const DOTS = {
 type DotState = keyof typeof DOTS
 
 /**
- * The legend under the filters, in the order the answers arrive at rather than
- * the order DOTS declares them: invited, then answered, then answered which
- * way. 'Not invited' last because it is the one that is not an answer.
+ * The legend under the filters, in STATUSES order — the same three answers in
+ * the same left-to-right order as the RSVP chips a few pixels above it.
+ *
+ * It used to run 'no response' first, on the reasoning that it is the order the
+ * answers arrive at. That reasoning holds and it still lost: the two rows sit
+ * one under the other and say almost the same four words, so a reader lines
+ * them up whether or not they were meant to, and a legend whose order disagreed
+ * with the chips read as a third thing to learn rather than a key to the first.
+ * Matching the chips costs the arrival order nothing anybody was reading.
+ *
+ * 'Not invited' stays last, after the three, because it is the one that is not
+ * an answer — STATUSES has no chip for it, and there is nothing above it to
+ * line up with.
  */
 const LEGEND: readonly { state: DotState; label: string }[] = [
-  { state: 'none', label: 'No response' },
   { state: 'attending', label: 'Attending' },
   { state: 'declined', label: 'Not attending' },
+  { state: 'none', label: 'No response' },
   { state: 'uninvited', label: 'Not invited' },
 ]
 
