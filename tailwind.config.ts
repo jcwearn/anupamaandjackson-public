@@ -31,6 +31,14 @@ export default {
         cream: '#fff4f8',
         gold: '#c8a25e',
         fern: '#5f8f6a',
+        // The 'no' beside fern's 'yes', on /admin/guest-summary's dots. A
+        // desaturated brick rather than a stock alarm red, which on a page of
+        // pink and gold would be the loudest thing on it by a distance — and
+        // declining an event is a normal answer, not an error. Kept off
+        // rosewood's hue on purpose: rosewood is this page's structural accent,
+        // in its headings, rules and chips, so a rosewood dot would read as
+        // chrome rather than as a verdict.
+        clay: '#b0574f',
         // FSSAI's own mark colours, used verbatim by DietBadge. A guest should be
         // able to match these against a printed menu, so they don't get tuned to
         // the palette the way the colours above it are.

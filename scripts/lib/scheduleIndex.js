@@ -1,5 +1,11 @@
 import { aliasesFor, fold } from '../../src/lib/guestName.js'
-import { INVITE_SIDE_TAGS, inviteEventsFor, inviteLinkFor } from '../../src/lib/inviteLink.js'
+import {
+  INVITE_SIDE_TAGS,
+  SUMMARY_EVENTS,
+  inviteEventsFor,
+  inviteLinkFor,
+  summaryEventsFor,
+} from '../../src/lib/inviteLink.js'
 import { partyHintLabel } from './partyLabel.js'
 import {
   ADMIN_KDF_ITERATIONS,
@@ -20,9 +26,13 @@ import {
 // `party`, to 7 when they gained `side` and `events`, to 8 when the admin block
 // gained `keralaTrip` beside `summary`, to 9 when its room occupants gained
 // `payment`, and to 10 when both they and the guest payload gained
-// `hostCovers`. Feeds sourceFingerprint, so bumping it is what makes a shape
-// change actually republish.
-export const INDEX_VERSION = 10
+// `hostCovers`, to 11 when the summary entries gained `attending` and
+// `declined`, the per-event answers /admin/guest-summary colours its dots from,
+// and to 12 when their `events` widened from the three events an invitation is
+// narrowed by to the four the table has a column for — the pellikuthuru joined
+// them. Feeds sourceFingerprint, so bumping it is what makes a shape change
+// actually republish.
+export const INDEX_VERSION = 12
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -140,7 +150,10 @@ export function assertGolkondaAnswersRecognized(guests) {
 export const SUMMARY_TAGS = ['vidya', 'venkat']
 
 /**
- * The RSVP columns that count as attendance.
+ * The RSVP columns that count as attendance, collapsed into the one verdict
+ * behind the page's filter chips. The same four the table now has a column
+ * each for, though the two lists arrived at that by different routes and
+ * nothing keeps them equal — see EVENT_RSVP_FIELDS.
  *
  * 'optional trip' is deliberately absent. Its answers include 'I am interested
  * to learn more about the trip', which is neither an acceptance nor a decline,
@@ -160,6 +173,83 @@ export function guestSummaryStatus(guest) {
   const answers = SUMMARY_RSVP_FIELDS.map((field) => guest[field]).filter(Boolean)
   if (answers.length === 0) return 'none'
   return answers.includes(RSVP_ATTENDING) ? 'attending' : 'declined'
+}
+
+/**
+ * Which RSVP column answers each column on the table.
+ *
+ * Spelled out rather than derived from the tag name, and that is not
+ * belt-and-braces: the invite tag is 'muhurtam' with one 'h' and the column
+ * beside it is 'muhurthamRsvp' with two — INVITE_EVENTS says so where it
+ * defines the tag. Any string munging between the two would leave that column
+ * unread and file every guest as having never answered about the one event
+ * nearly all of them are coming to.
+ *
+ * These four happen to be the same four as SUMMARY_RSVP_FIELDS above, now that
+ * the pellikuthuru has a column of its own. They are still two lists: that one
+ * is the whole-guest verdict and is keyed by field, this one is the table's
+ * columns and is keyed by tag. An event could join either without joining the
+ * other — a fifth column on the table nobody is asked to RSVP to would belong
+ * in neither, and would fail loudly below rather than go quietly grey.
+ */
+const EVENT_RSVP_FIELDS = {
+  pellikuthuru: 'pellikuthuruRsvp',
+  sangeet: 'sangeetRsvp',
+  muhurtam: 'muhurthamRsvp',
+  reception: 'receptionRsvp',
+}
+
+/**
+ * SUMMARY_EVENTS with the column each letter is answered by, in table order.
+ *
+ * Thrown at module scope rather than skipped, because an event added to
+ * SUMMARY_EVENTS without a column here is a wiring mistake rather than roster
+ * data. Silently unanswerable, its dot would be grey for every guest and look
+ * exactly like a roster nobody had replied to yet.
+ */
+export const EVENT_ANSWERS = SUMMARY_EVENTS.map(({ tag, letter }) => {
+  const field = EVENT_RSVP_FIELDS[tag]
+  if (!field) {
+    throw new Error(
+      `SUMMARY_EVENTS carries '${tag}', which EVENT_RSVP_FIELDS in scripts/lib/scheduleIndex.js ` +
+        `has no RSVP column for, so its dot would read as 'no response' for every guest on ` +
+        `/admin/guest-summary. Add the column.`,
+    )
+  }
+  return { letter, field }
+})
+
+/**
+ * A guest's answers about the events on the table, as two subsets of
+ * their own `events` string: the letters they said yes to, and the ones they
+ * said no to. A letter in neither is an event nobody has heard back about.
+ *
+ * Intersected with `events` rather than read straight off the columns, and that
+ * is not tidying either. The '… (tag)' columns and With Joy's per-event guest
+ * lists are maintained by different hands and drift apart: guests have declined
+ * events they carry no tag for, and the fixture roster has rows answering
+ * 'Attending' about the muhurtham with no muhurtam tag at all. The table has
+ * one cell per event a guest is *invited* to, so an answer about anything else
+ * has nowhere honest to go. `summaryAnswersOutsideInvite` counts those instead
+ * of the page quietly rendering them.
+ *
+ * A blank is dropped rather than counted as a no, on exactly the reasoning
+ * `guestSummaryStatus` gives above: '' is a question nobody has answered, and
+ * turning it into a decline would put a red dot beside a guest who has said
+ * nothing at all — which is the one thing this page must never do, since the
+ * whole reason it exists is to find the people still worth chasing.
+ */
+export function guestEventAnswers(guest, events) {
+  let attending = ''
+  let declined = ''
+  for (const { letter, field } of EVENT_ANSWERS) {
+    if (!events.includes(letter)) continue
+    const answer = guest[field]
+    if (!answer) continue
+    if (answer === RSVP_ATTENDING) attending += letter
+    else declined += letter
+  }
+  return { attending, declined }
 }
 
 /**
@@ -236,7 +326,11 @@ export function assertEveryGuestHasAnInvite(guests) {
  * the party's *name* either. `party` below is an opaque integer, enough to draw
  * the households together and useless for anything else. `side` and `events`
  * are the two the page needs to name a guest's invitation; the link itself is
- * derived on the page rather than stored, since it follows from those two.
+ * derived on the page rather than stored, since it follows from those two — by
+ * way of `inviteEventsIn`, because `events` covers every column on the table
+ * and the pellikuthuru narrows no invitation. `attending` and `declined` are
+ * subsets of `events`, saying which of them the guest has answered which way;
+ * see `guestEventAnswers`.
  *
  * Ordering is load-bearing, not cosmetic: the page groups runs of adjacent
  * entries sharing a party, so members of one household have to come out of here
@@ -249,12 +343,22 @@ export function buildGuestSummary(guests) {
     const name = [guest.firstName, guest.lastName].filter(hasLetter).join(' ')
     if (!name) return []
     const tag = SUMMARY_TAGS.find((candidate) => guest.tags.has(candidate))
+    // Every column on the table, not just the three an invitation is narrowed
+    // by — the page derives the second from the first with `inviteEventsIn`.
+    const events = summaryEventsFor(guest.tags)
+    const { attending, declined } = guestEventAnswers(guest, events)
     return [
       {
         name,
         ...(tag ? { tag } : {}),
         side: INVITE_SIDE_TAGS.find((candidate) => guest.tags.has(candidate)),
-        events: inviteEventsFor(guest.tags),
+        events,
+        // Omitted when empty, like `tag` above rather than sent as ''. A guest
+        // who has answered nothing is the commonest row on this list, and an
+        // absent field says so for free — which is also, not by accident, the
+        // shape an index built before these two fields existed has.
+        ...(attending ? { attending } : {}),
+        ...(declined ? { declined } : {}),
         status: guestSummaryStatus(guest),
         key: guest.party,
       },
@@ -529,6 +633,43 @@ export function assertEveryGuestResolves(unresolvedRows) {
       `index (sheet row(s) ${unresolvedRows.join(', ')}) — they would be told we can't find ` +
       `them. Tag them in With Joy, or re-run with --force to publish without them.`,
   )
+}
+
+/**
+ * Rows whose RSVP answers reach past their tags.
+ *
+ * Not fatal, because it is ordinary. With Joy's per-event guest lists and the
+ * '… (tag)' columns are kept by different mechanisms, and a guest who declined
+ * the sangeet before anyone set the tag stays declined in the column forever.
+ * The dots leave those events blank, which is the only honest cell a table
+ * built per invitation has to offer — see `guestEventAnswers`.
+ *
+ * Worth saying out loud all the same, and the affirmative direction especially.
+ * A guest who has said *yes* to an event we do not think is theirs is either a
+ * missing tag — in which case they are also being sent the wrong printed
+ * invitation, which `assertEveryGuestHasAnInvite` cannot catch because their
+ * tags are perfectly self-consistent — or a With Joy list that is wrong. Both
+ * are worth an afternoon, and neither shows up anywhere else in this pipeline.
+ *
+ * Rows, never names: the sync's output is counts-only by design, and a row
+ * number is what locates them in the sheet anyway.
+ */
+export function summaryAnswersOutsideInvite(guests) {
+  const rows = []
+  const affirmativeRows = []
+  for (const guest of guests) {
+    const events = summaryEventsFor(guest.tags)
+    let outside = false
+    let affirmative = false
+    for (const { letter, field } of EVENT_ANSWERS) {
+      if (events.includes(letter) || !guest[field]) continue
+      outside = true
+      if (guest[field] === RSVP_ATTENDING) affirmative = true
+    }
+    if (outside) rows.push(guest.row)
+    if (affirmative) affirmativeRows.push(guest.row)
+  }
+  return { rows, affirmativeRows }
 }
 
 const KERALA_TRIPS = new Set(['full', 'short'])
@@ -1140,6 +1281,21 @@ export async function buildIndex({
           summary.filter((entry) => entry.status === status).length,
         ]),
       ),
+      // Per event rather than per guest, which is the whole point of the dots:
+      // a guest counted 'attending' above may still have declined one of these
+      // three. Printed by the sync so the derivation can be eyeballed against
+      // the sheet's own per-event totals without a name going anywhere.
+      summaryPerEvent: Object.fromEntries(
+        SUMMARY_EVENTS.map(({ letter, label }) => [
+          label,
+          {
+            invited: summary.filter((entry) => entry.events?.includes(letter)).length,
+            attending: summary.filter((entry) => entry.attending?.includes(letter)).length,
+            declined: summary.filter((entry) => entry.declined?.includes(letter)).length,
+          },
+        ]),
+      ),
+      summaryOutsideInvite: summaryAnswersOutsideInvite(guests),
       keralaResponses: records.filter((record) => record.kerala).length,
       keralaRooms: kerala?.rooms.length ?? 0,
       // Rooms, not people — the agent books one bed type per room, and this is

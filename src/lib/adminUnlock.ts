@@ -29,8 +29,11 @@ export interface GuestSummaryEntry {
    */
   side?: InviteSide
   /**
-   * The guest's events as letters in INVITE_EVENTS order: 'SMR', 'MR', 'M'.
-   * With `side`, this is what names their invitation — see `inviteLinkFor`.
+   * The guest's events as letters in SUMMARY_EVENTS order: 'PSMR', 'PM', 'MR'.
+   * Every event the table has a column for, which is one more than the three an
+   * invitation is narrowed by — the pellikuthuru has its own tag and its own
+   * RSVP column and no invitation of its own. With `side`, this still names
+   * their invitation, by way of `inviteEventsIn` — see `inviteLinkFor`.
    *
    * Optional for the same reason as `side`, plus one the page has to survive:
    * this bundle and schedule-index.json deploy separately, so between shipping
@@ -38,6 +41,27 @@ export interface GuestSummaryEntry {
    * has neither field. An empty column beats a blank page.
    */
   events?: string
+  /**
+   * Which of `events` the guest has said yes to, and which no — the same
+   * letters in the same order, each a subset of `events`. A letter in neither
+   * is an event they were invited to and have not answered about.
+   *
+   * Two subsets rather than a verdict per event because `.includes(letter)` is
+   * the question the table already asks three times a row, and because both
+   * being optional is what keeps the stale-index case honest. Between shipping
+   * this bundle and the next sync the index in front of it has neither field —
+   * and neither does a guest on a current index who has answered nothing. Both
+   * read as "no response", which is the one reading that is true either way. A
+   * single field spelling out a verdict per event would have had to invent a
+   * value meaning "this index is too old to say", and anything else it invented
+   * would have been a claim about a guest.
+   *
+   * The same two words as `status` below, one level down: `status` is these
+   * collapsed together with the pellikuthuru answer, which has no column on the
+   * table. So a guest can be `attending` and still have declined an event here.
+   */
+  attending?: string
+  declined?: string
   status: GuestSummaryStatus
   /**
    * Opaque household id, absent for guests who travel alone. Not the party's

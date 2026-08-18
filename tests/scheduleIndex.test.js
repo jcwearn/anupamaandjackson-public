@@ -18,13 +18,16 @@ import {
   assertUniversalEventsMatch,
   buildGuestSummary,
   buildIndex,
+  EVENT_ANSWERS,
   gateMatches,
   golkondaStay,
+  guestEventAnswers,
   guestSummaryStatus,
   resolveBucket,
   resolveEventIds,
   resolveKeralaPayloads,
   sourceFingerprint,
+  summaryAnswersOutsideInvite,
 } from '../scripts/lib/scheduleIndex.js'
 import { normalizedKey } from '../src/lib/guestName.js'
 import {
@@ -274,6 +277,96 @@ describe('guest summary status', () => {
   })
 })
 
+describe('guest summary answers per event', () => {
+  let summary
+
+  beforeAll(() => {
+    summary = buildGuestSummary(guests)
+  })
+
+  const named = (name) => summary.find((entry) => entry.name === name)
+
+  it('answers each dot from its own RSVP column', () => {
+    // The tag is 'muhurtam' and the column beside it is 'muhurthamRsvp'.
+    // Deriving one from the other would leave the middle column unread and turn
+    // every guest grey on the one event nearly all of them are coming to.
+    expect(EVENT_ANSWERS).toEqual([
+      { letter: 'P', field: 'pellikuthuruRsvp' },
+      { letter: 'S', field: 'sangeetRsvp' },
+      { letter: 'M', field: 'muhurthamRsvp' },
+      { letter: 'R', field: 'receptionRsvp' },
+    ])
+  })
+
+  it("splits a guest's events into the ones they said yes to and the ones they said no", () => {
+    // The row the whole change exists for: coming to one of the two events they
+    // were invited to, and not to the other.
+    expect(named('Mary Ann Evans')).toMatchObject({ events: 'MR', attending: 'M', declined: 'R' })
+  })
+
+  it('leaves an event nobody has answered about out of both', () => {
+    // Invited to four, answered about one. The other three are not declines,
+    // and colouring them as such is the mistake this exists to stop — 'no
+    // response' is the answer the page is built to find.
+    expect(named('Katherine Johnson')).toMatchObject({ events: 'PSMR', attending: 'M' })
+    expect(named('Katherine Johnson').declined).toBeUndefined()
+    expect(named('Lise Meitner').attending).toBeUndefined()
+    expect(named('Lise Meitner').declined).toBeUndefined()
+  })
+
+  it('never claims an answer for an event the guest carries no tag for', () => {
+    // The fixture has it both ways round, as the real roster does: a row that
+    // declined events it carries no tag for, and rows that said yes to the
+    // muhurtham carrying no muhurtam tag at all. The table has one cell per
+    // invitation and no cell for either.
+    expect(named('Not Coming')).toMatchObject({ events: 'M', declined: 'M' })
+    expect(named('Not Coming').attending).toBeUndefined()
+    expect(named('Tagless Guest').attending).toBeUndefined()
+    expect(named('Tagless Guest').declined).toBeUndefined()
+  })
+
+  it('keeps both answers inside `events`, and apart from each other', () => {
+    // The invariant the page reads: three subsets of one string, so a dot can
+    // never be two colours at once and never a colour for an event nobody was
+    // asked about.
+    for (const entry of summary) {
+      for (const letter of entry.attending ?? '') expect(entry.events).toContain(letter)
+      for (const letter of entry.declined ?? '') expect(entry.events).toContain(letter)
+      for (const letter of entry.attending ?? '') expect(entry.declined ?? '').not.toContain(letter)
+    }
+  })
+
+  it('agrees with the whole-guest verdict wherever it can', () => {
+    // One direction only. A yes to any event makes the guest attending, but the
+    // converse still does not hold, even now that all four verdict columns have
+    // a column on the table: an answer about an event the guest carries no tag
+    // for counts towards the verdict and is intersected away here, so a guest
+    // can be 'attending' above four dots that say otherwise.
+    for (const entry of summary) if (entry.attending) expect(entry.status).toBe('attending')
+  })
+
+  it('drops a blank rather than reading it as a no', () => {
+    // Same reasoning as guestSummaryStatus, one level down, and the reason
+    // guestEventAnswers is worth a unit test of its own: a red dot beside a
+    // guest who has said nothing is the one thing this page must never draw.
+    const guest = { sangeetRsvp: '', muhurthamRsvp: 'Attending', receptionRsvp: 'Not Attending' }
+    expect(guestEventAnswers(guest, 'SMR')).toEqual({ attending: 'M', declined: 'R' })
+    expect(guestEventAnswers({}, 'SMR')).toEqual({ attending: '', declined: '' })
+  })
+
+  it('counts the rows whose answers reach past their tags, without naming them', () => {
+    // A warning rather than a failure, because the '… (tag)' columns and With
+    // Joy's own per-event lists drift apart in the ordinary course of things.
+    // The affirmative rows are the ones worth an afternoon: a yes to an event
+    // we do not think is theirs means either a missing tag — so the wrong
+    // printed invitation is going out — or a wrong list.
+    expect(summaryAnswersOutsideInvite(guests)).toEqual({
+      rows: [17, 18, 19, 27],
+      affirmativeRows: [18, 19],
+    })
+  })
+})
+
 describe('guest summary roster', () => {
   let summary
 
@@ -300,22 +393,35 @@ describe('guest summary roster', () => {
     // The page lists names and hands out invitations. Anything more here is
     // guest data shipped for no reason — and this payload leaves the generator.
     // Ada travels alone, so she does not even carry the household id.
-    const fields = ['events', 'name', 'side', 'status', 'tag']
+    const fields = ['attending', 'events', 'name', 'side', 'status', 'tag']
     expect(Object.keys(named('Ada Lovelace')).sort()).toEqual(fields)
     expect(Object.keys(named('John Smith')).sort()).toEqual([...fields, 'party'].sort())
     expect(Object.keys(named('Jane Doe')).sort()).toEqual([
+      'attending',
       'events',
       'name',
       'party',
       'side',
       'status',
     ])
+    // Neither answer field on a guest who has answered nothing, which is the
+    // commonest row on the real list — and, not by accident, the same shape an
+    // index built before the two fields existed has for everyone.
+    expect(Object.keys(named('Lise Meitner')).sort()).toEqual([
+      'events',
+      'name',
+      'side',
+      'status',
+      'tag',
+    ])
   })
 
   it("carries each guest's side and events, which is what names their invitation", () => {
     expect(named('Ada Lovelace')).toMatchObject({ side: 'anupama', events: 'MR' })
     expect(named('Grace Hopper')).toMatchObject({ side: 'anupama', events: 'SMR' })
-    expect(named('Alan Turing')).toMatchObject({ side: 'jackson', events: 'SMR' })
+    // 'PSMR', not 'SMR': `events` is every column on the table, and the
+    // pellikuthuru narrows no invitation — his page is still /invites/wearn/.
+    expect(named('Alan Turing')).toMatchObject({ side: 'jackson', events: 'PSMR' })
     expect(named('Prince')).toMatchObject({ side: 'anupama', events: 'M' })
   })
 
@@ -898,6 +1004,7 @@ describe('admin payload', () => {
     const serialized = JSON.stringify(index)
     expect(serialized).not.toContain('Lovelace')
     expect(serialized).not.toContain('attending')
+    expect(serialized).not.toContain('declined')
     expect(serialized).not.toContain('vidya')
     expect(serialized).not.toContain('venkat')
   })

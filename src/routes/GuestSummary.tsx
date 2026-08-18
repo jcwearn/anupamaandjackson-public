@@ -4,7 +4,7 @@ import { useAdminContext } from '../lib/adminContext'
 import { chipClass } from '../lib/chipClass'
 import { JUMP_NAV_SECTION_TOP, SITE_NAV_OFFSET, SITE_ORIGIN } from '../lib/constants'
 import { fold } from '../lib/guestName'
-import { INVITE_EVENTS, inviteLinkFor } from '../lib/inviteLink'
+import { SUMMARY_EVENTS, inviteEventsIn, inviteLinkFor } from '../lib/inviteLink'
 import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 import CopyButton from '../components/CopyButton'
 
@@ -30,6 +30,78 @@ const householdBox = (first: boolean, last: boolean) =>
     first ? 'top-1.5 rounded-t-xl' : 'top-0 border-t-0',
     last ? 'bottom-1.5 rounded-b-xl' : 'bottom-0 border-b-0',
   ].join(' ')
+
+/**
+ * What a dot says about one event, and which mark says it.
+ *
+ * Four states answering two different questions. Three are the guest's own
+ * answer — yes, no, nothing yet — and the fourth is that the question was never
+ * put to them: someone invited to the muhurtham alone has no answer to give
+ * about the sangeet and never will.
+ *
+ * The dots were two states until now, filled for invited and hollow for not,
+ * and the comment here argued against a red one on the grounds that most guests
+ * miss at least one event, so a column of red would read as something being
+ * wrong. That argument was about *invitation*, and it does not survive the move
+ * to attendance: a guest declining the reception is precisely what this page
+ * exists to be able to say, and there is nothing about it to soften. What does
+ * survive is the reason the ring was hollow — an event nobody was asked about is
+ * an absence, not a no — so 'not invited' keeps a mark of its own, and only the
+ * three answers carry colour.
+ *
+ * That mark is a dash rather than a fourth colour because it belongs to the
+ * other question. A row of dots invites you to compare their colours; a dash
+ * refuses the comparison, which is right, since there is no answer there to
+ * compare. It also means colour is never the only thing distinguishing the two
+ * states that mean the least alike.
+ *
+ * `mark` is the whole class list rather than just the fill, shape and all, so
+ * that the cell and the legend render every state through the same string and
+ * cannot drift into drawing the same state two ways.
+ */
+const MARK = 'inline-block shrink-0 rounded-full align-middle'
+
+const DOTS = {
+  attending: { mark: `${MARK} h-2.5 w-2.5 bg-fern`, say: 'Attending' },
+  declined: { mark: `${MARK} h-2.5 w-2.5 bg-clay`, say: 'Not attending' },
+  none: { mark: `${MARK} h-2.5 w-2.5 bg-zeus/30`, say: 'No response for' },
+  uninvited: { mark: `${MARK} h-0.5 w-2.5 bg-zeus/25`, say: 'Not invited to' },
+} as const
+
+type DotState = keyof typeof DOTS
+
+/**
+ * The legend under the filters, in the order the answers arrive at rather than
+ * the order DOTS declares them: invited, then answered, then answered which
+ * way. 'Not invited' last because it is the one that is not an answer.
+ */
+const LEGEND: readonly { state: DotState; label: string }[] = [
+  { state: 'none', label: 'No response' },
+  { state: 'attending', label: 'Attending' },
+  { state: 'declined', label: 'Not attending' },
+  { state: 'uninvited', label: 'Not invited' },
+]
+
+/**
+ * Which of the four an event is in for one guest.
+ *
+ * The invitation is tested first, before either answer, because that is the
+ * order the states are true in: `attending` and `declined` are subsets of
+ * `events` by construction, and testing this way round means nothing can claim
+ * an event the guest does not carry even if some later generator puts one
+ * there. A letter somehow in both reads as attending; no index produces one,
+ * and it is not worth a branch to say so.
+ *
+ * All three fields are absent on an index built before the answers existed,
+ * which lands every invited event on 'none'. That is the honest reading of an
+ * index that was never asked the question — see GuestSummaryEntry.
+ */
+const dotState = (member: GuestSummaryEntry, events: string, letter: string): DotState => {
+  if (!events.includes(letter)) return 'uninvited'
+  if (member.attending?.includes(letter)) return 'attending'
+  if (member.declined?.includes(letter)) return 'declined'
+  return 'none'
+}
 
 /**
  * Whose list to show. The four partition the roster: Vidya's and Venkat's guests
@@ -280,6 +352,29 @@ const GuestSummary: React.FC = () => {
         {visible.length} {visible.length === 1 ? 'guest' : 'guests'}
       </p>
 
+      {/* Four marks nobody chose to learn, on a table whose column headings only
+          say which event each column is. Until now the dots meant invitation and
+          the headings were enough; now they mean an answer, and nothing on the
+          page said so.
+
+          'Dots:' leads because the words after it repeat the RSVP chips above
+          almost exactly and the two mean different things — a chip is one
+          verdict for the whole guest, a dot is one event at a time. Outside the
+          empty-list branch below, so it is there to read while you are working
+          out why a filter emptied the table.
+
+          A list rather than a row of spans: it is four items, and a reader
+          should be told how many before it starts reading them. */}
+      <ul className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-zeus/60">
+        <li aria-hidden="true">Dots:</li>
+        {LEGEND.map(({ state, label }) => (
+          <li key={state} className="flex items-center gap-1.5">
+            <span aria-hidden="true" className={DOTS[state].mark} />
+            {label}
+          </li>
+        ))}
+      </ul>
+
       {visible.length === 0 ? (
         // Two sentences, because they are two different disappointments. With
         // the box empty the list itself is empty, which is worth knowing. With
@@ -289,7 +384,27 @@ const GuestSummary: React.FC = () => {
           {query.trim() ? `Nobody matching “${query.trim()}”.` : 'Nobody on this list right now.'}
         </p>
       ) : (
-        <div className="card mt-4">
+        /* Edge to edge on a phone. Four dot columns, a name and a copy button
+            do not fit inside the shell's px-4 gutter and the card's own padding
+            on top of it, and the first thing to give was the name column, which
+            is the one you scan. So below sm the card breaks out of the gutter
+            and drops the two borders and the rounding that would otherwise sit
+            against the screen edge; the table's existing 1rem bleed then runs it
+            to the glass, and the outer cells' pl-7/pr-4 are the only inset left.
+
+            The two overrides carry `!` because `.card` is unlayered in
+            globals.css, which outranks Tailwind's utilities layer outright — a
+            plain `rounded-none` here would lose silently. `max-sm:` rather than
+            a pair of overrides in both directions, so nothing has to be undone
+            at the breakpoint.
+
+            And at the other end it breaks out the other way. AdminLayout's
+            shell is a max-w-2xl reading column, which is the right width for
+            prose and 130px too narrow for six columns with the events spelled
+            out. -mx-16 buys the table 128px once there is that much slack
+            either side of the column to take it from, which at lg there is
+            three times over. */
+        <div className="card mt-4 max-sm:-mx-4 max-sm:rounded-none! max-sm:border-x-0! lg:-mx-16">
           {/* border-separate, not collapse, for two reasons the Kerala pricing
               table already documents one of: collapse discards the cell
               border-radius a household's box rounds off with, and it breaks
@@ -326,16 +441,25 @@ const GuestSummary: React.FC = () => {
                 </th>
                 {/* The heading is the only place the event is named, since the
                     cells below are dots — which is why it is worth pinning it.
-                    Spelled out where there is room, and down to its initial on
-                    a phone, where the three columns together have about 70px. */}
-                {INVITE_EVENTS.map(({ tag, letter, label }) => (
+                    Spelled out where there is room, and down to its initial
+                    everywhere else.
+
+                    'Where there is room' moved from sm to lg when the
+                    pellikuthuru became a fourth column. Four words cost about
+                    400px of a 670px table, which left the name column 148px and
+                    wrapped a quarter of the roster onto two lines — and the
+                    names are the column you actually run a finger down. Below
+                    lg the letters cost about 90px instead; at lg the card
+                    widens (see below) and the words fit again with room to
+                    spare for the longest name on the roster. */}
+                {SUMMARY_EVENTS.map(({ tag, letter, label }) => (
                   <th
                     key={tag}
                     scope="col"
                     className="sticky top-[inherit] border-b-2 border-rosewood/40 px-1.5 py-2 text-center text-xs font-normal uppercase tracking-wide text-zeus/60 sm:px-3"
                   >
-                    <span className="sm:hidden">{letter}</span>
-                    <span className="hidden sm:inline">{label}</span>
+                    <span className="lg:hidden">{letter}</span>
+                    <span className="hidden lg:inline">{label}</span>
                   </th>
                 ))}
                 <th
@@ -367,7 +491,11 @@ const GuestSummary: React.FC = () => {
                     // GuestSummaryEntry. Reads as a guest invited to nothing,
                     // which is what an unsynced index in fact knows about them.
                     const events = member.events ?? ''
-                    const link = inviteLinkFor(member.side, events)
+                    // The invitation is the narrower question: `events` covers
+                    // every column on the table, and the pellikuthuru narrows no
+                    // invitation, so a 'PSMR' guest and an 'SMR' one are handed
+                    // the same page.
+                    const link = inviteLinkFor(member.side, inviteEventsIn(events))
 
                     // One rule per household, not per name: a household reads
                     // as one block to run a finger down, which is the point of
@@ -412,26 +540,19 @@ const GuestSummary: React.FC = () => {
                           )}
                           {member.name}
                         </th>
-                        {INVITE_EVENTS.map(({ tag, letter, label }) => {
-                          const invited = events.includes(letter)
+                        {SUMMARY_EVENTS.map(({ tag, letter, label }) => {
+                          const { mark, say } = DOTS[dotState(member, events, letter)]
                           return (
                             <td key={tag} className={`${cell}px-1.5 text-center sm:px-3`}>
-                              <span className="sr-only">
-                                {invited ? `Invited to ${label}` : `Not invited to ${label}`}
-                              </span>
-                              {/* A dot, not the letter: the column heading
+                              {/* The words are the row's actual claim, and the
+                                  only one a screen reader gets — the colour
+                                  says the same thing to everyone else. */}
+                              <span className="sr-only">{`${say} ${label}`}</span>
+                              {/* A mark, not the letter: the column heading
                                   already says which event this is, and 352 rows
-                                  spelling out S M R again read as noise. Filled
-                                  for yes; a hollow ring for no, rather than a
-                                  red one, because on a list where most guests
-                                  miss at least one event a column of red reads
-                                  as something being wrong. */}
-                              <span
-                                aria-hidden="true"
-                                className={`inline-block h-2.5 w-2.5 rounded-full align-middle ${
-                                  invited ? 'bg-fern' : 'border border-zeus/25'
-                                }`}
-                              />
+                                  spelling out S M R again read as noise. Which
+                                  mark, and why, is DOTS above. */}
+                              <span aria-hidden="true" className={mark} />
                             </td>
                           )
                         })}

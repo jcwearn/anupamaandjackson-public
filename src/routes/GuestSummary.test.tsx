@@ -124,7 +124,7 @@ const search = (query: string) => fireEvent.change(searchBox(), { target: { valu
  * The names on screen, in order.
  *
  * The name is each row's header cell, so this reads the column without having
- * to know anything about the three event cells and the button beside it.
+ * to know anything about the four event cells and the button beside it.
  */
 const listed = () => [...guestTable().querySelectorAll('tbody th')].map((cell) => cell.textContent)
 
@@ -148,17 +148,45 @@ const rowFor = (name: string) =>
 const boxOf = (name: string) => rowFor(name).querySelector('th span[aria-hidden]')?.className ?? ''
 
 /**
- * Which of the three event columns a row reads as invited to.
- *
- * Both states render the letter — a blank cell reads as missing data where a
- * faint one reads as a no — so this goes by the screen-reader text, which is
- * the row's actual claim rather than its opacity.
+ * The four event cells of a row, not the Invite one beside them — that one
+ * holds a copy button with an aria-hidden span of its own.
  */
+const eventCells = (name: string) => [...rowFor(name).querySelectorAll('td')].slice(0, 4)
+
+/**
+ * What each state of a dot says in words. Duplicated from the page on purpose:
+ * a test that imported DOTS could not tell four identically-worded marks apart,
+ * which is the one thing worth pinning here.
+ */
+const SAYS = {
+  attending: 'Attending ',
+  declined: 'Not attending ',
+  none: 'No response for ',
+  uninvited: 'Not invited to ',
+} as const
+
+/**
+ * What a row's four event cells claim, read off the screen-reader text rather
+ * than the colour. That line is the row's actual claim, and it is what a guest's
+ * family would be told if anyone ran this page through a reader.
+ */
+const answers = (name: string) =>
+  eventCells(name).map((cell) => {
+    const text = cell.querySelector('.sr-only')?.textContent ?? ''
+    const found = Object.entries(SAYS).find(([, prefix]) => text.startsWith(prefix))
+    if (!found) throw new Error(`no dot state in '${text}'`)
+    return { state: found[0] as keyof typeof SAYS, label: text.slice(found[1].length) }
+  })
+
+/** The classes on each of a row's four marks — the shape and fill, nothing else. */
+const marksOf = (name: string) =>
+  eventCells(name).map((cell) => cell.querySelector('[aria-hidden]')!.className)
+
+/** Which of the four event columns a row reads as invited to at all. */
 const invitedTo = (name: string) =>
-  [...rowFor(name).querySelectorAll('td')]
-    .map((cell) => cell.querySelector('.sr-only')?.textContent ?? '')
-    .filter((label) => label.startsWith('Invited to'))
-    .map((label) => label.replace('Invited to ', ''))
+  answers(name)
+    .filter(({ state: dot }) => dot !== 'uninvited')
+    .map(({ label }) => label)
 
 describe('GuestSummary filters', () => {
   beforeEach(() => {
@@ -407,7 +435,7 @@ describe('GuestSummary filters', () => {
     const rest = [...rowFor('Ama Household').querySelectorAll('td')].map(
       (cell) => (cell as HTMLElement).style.boxShadow,
     )
-    expect(rest).toEqual(['', '', '', ''])
+    expect(rest).toEqual(['', '', '', '', ''])
   })
 
   it('keeps two adjacent households apart', () => {
@@ -591,10 +619,13 @@ describe('GuestSummary invitations', () => {
     asAdmin()
     setUnlock('unlocked', {
       summary: [
-        { name: 'Full Tadanki', side: 'anupama', events: 'SMR', status: 'none' },
+        // The two 'Full' rows carry the pellikuthuru as well, which is what
+        // makes them the proof that the copy link ignores it: 'PSMR' and 'SMR'
+        // are the same invitation, because no page is narrowed by that event.
+        { name: 'Full Tadanki', side: 'anupama', events: 'PSMR', status: 'none' },
         { name: 'Reception Tadanki', side: 'anupama', events: 'MR', status: 'none' },
         { name: 'Muhurtham Tadanki', side: 'anupama', events: 'M', status: 'none' },
-        { name: 'Full Wearn', side: 'jackson', events: 'SMR', status: 'none' },
+        { name: 'Full Wearn', side: 'jackson', events: 'PSMR', status: 'none' },
       ],
     })
   })
@@ -625,19 +656,26 @@ describe('GuestSummary invitations', () => {
     expect(button.textContent).toBe('CopiedCopied')
   })
 
-  it('names the three events in both widths', () => {
+  it('names the four events in both widths', () => {
     // The letters are the mobile column headings and the words are the desktop
     // ones; both are always in the DOM, and CSS picks.
     renderPage()
 
     const headers = [...guestTable().querySelectorAll('thead th')].map((cell) => cell.textContent)
-    expect(headers).toEqual(['Name', 'SSangeet', 'MMuhurtham', 'RReception', 'Invite'])
+    expect(headers).toEqual([
+      'Name',
+      'PPellikuthuru',
+      'SSangeet',
+      'MMuhurtham',
+      'RReception',
+      'Invite',
+    ])
   })
 
   it('says which events each guest is invited to', () => {
     renderPage()
 
-    expect(invitedTo('Full Tadanki')).toEqual(['Sangeet', 'Muhurtham', 'Reception'])
+    expect(invitedTo('Full Tadanki')).toEqual(['Pellikuthuru', 'Sangeet', 'Muhurtham', 'Reception'])
     expect(invitedTo('Reception Tadanki')).toEqual(['Muhurtham', 'Reception'])
     expect(invitedTo('Muhurtham Tadanki')).toEqual(['Muhurtham'])
   })
@@ -655,20 +693,13 @@ describe('GuestSummary invitations', () => {
 
   it('marks the events with a dot rather than repeating the letter', () => {
     // The heading already says which event the column is; 352 rows spelling it
-    // out again is noise. Filled for yes, hollow for no.
+    // out again is noise. None of these four has answered, so the invited
+    // events are all the same mark and the uninvited one is not.
     renderPage()
 
-    // The three event cells, not the Invite one beside them — its copy button
-    // has an aria-hidden span of its own.
-    const eventCells = (name: string) => [...rowFor(name).querySelectorAll('td')].slice(0, 3)
-    const dots = (name: string) =>
-      eventCells(name).map((cell) =>
-        cell.querySelector('[aria-hidden]')!.className.includes('bg-fern') ? 'filled' : 'hollow',
-      )
-
-    expect(dots('Reception Tadanki')).toEqual(['hollow', 'filled', 'filled'])
-    expect(dots('Full Tadanki')).toEqual(['filled', 'filled', 'filled'])
-    // The dot carries no text; the letter survives only in the column heading.
+    expect(new Set(marksOf('Reception Tadanki')).size).toBe(2)
+    expect(new Set(marksOf('Full Tadanki')).size).toBe(1)
+    // The mark carries no text; the letter survives only in the column heading.
     for (const cell of eventCells('Full Tadanki'))
       expect(cell.querySelector('[aria-hidden]')!.textContent).toBe('')
   })
@@ -713,5 +744,125 @@ describe('GuestSummary invitations', () => {
     expect(within(rowFor('Unsynced Guest')).queryByRole('button')).not.toBeInTheDocument()
     expect(invitedTo('Unsynced Guest')).toEqual([])
     expect(rowFor('Unsynced Guest').textContent).toContain('—')
+  })
+})
+
+describe('GuestSummary attendance', () => {
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked', {
+      summary: [
+        {
+          name: 'Grace Hopper',
+          side: 'anupama',
+          events: 'PSMR',
+          attending: 'PSMR',
+          status: 'attending',
+        },
+        // The row the whole thing exists for: coming to one, not to another,
+        // and silent on the third.
+        {
+          name: 'Ada Lovelace',
+          side: 'anupama',
+          events: 'PSMR',
+          attending: 'PM',
+          declined: 'R',
+          status: 'attending',
+        },
+        { name: 'Alan Turing', side: 'anupama', events: 'MR', declined: 'MR', status: 'declined' },
+        { name: 'Vera Rubin', side: 'anupama', events: 'M', status: 'none' },
+      ],
+    })
+  })
+
+  /**
+   * Clear the RSVP row. The page opens on No Response, and three of these four
+   * have answered — clicking the chip you are already on is how a row says
+   * "no filter", which is the opposite of what `choose` does.
+   */
+  const showEveryone = () => fireEvent.click(screen.getByRole('button', { name: 'No Response' }))
+
+  it('colours each dot by the answer to that event, not by the guest', () => {
+    // Ada is 'attending' as a whole guest and still has a decline among her
+    // three dots. Reading her row off her verdict would paint all three green
+    // and lose the only thing on it worth knowing.
+    renderPage()
+    showEveryone()
+
+    const states = (name: string) => answers(name).map(({ state: dot }) => dot)
+
+    expect(states('Ada Lovelace')).toEqual(['attending', 'none', 'attending', 'declined'])
+    expect(states('Grace Hopper')).toEqual(['attending', 'attending', 'attending', 'attending'])
+    expect(states('Alan Turing')).toEqual(['uninvited', 'uninvited', 'declined', 'declined'])
+    expect(states('Vera Rubin')).toEqual(['uninvited', 'uninvited', 'none', 'uninvited'])
+  })
+
+  it('keeps the four states visibly apart', () => {
+    // Which colour each one is belongs to the eye, not to a test. That no two
+    // are the same mark does not — with four states and three colours the page
+    // would be lying about one of them.
+    renderPage()
+    showEveryone()
+
+    expect(
+      new Set(['Grace Hopper', 'Ada Lovelace', 'Alan Turing', 'Vera Rubin'].flatMap(marksOf)).size,
+    ).toBe(4)
+  })
+
+  it('says the answer in words beside the mark', () => {
+    // The colour is the whole message for everyone else, so this line has to
+    // carry all four states on its own rather than only naming the invitation.
+    renderPage()
+    showEveryone()
+
+    expect(
+      eventCells('Ada Lovelace').map((cell) => cell.querySelector('.sr-only')!.textContent),
+    ).toEqual([
+      'Attending Pellikuthuru',
+      'No response for Sangeet',
+      'Attending Muhurtham',
+      'Not attending Reception',
+    ])
+  })
+
+  it('reads an index built before the answers existed as no response, not as a no', () => {
+    // This bundle and schedule-index.json deploy separately, so between
+    // shipping the JS and the next sync every entry the page sees has neither
+    // field. Grey says "we have not heard", which is true of that index; red
+    // would be the page inventing a decline for 649 people at once.
+    setUnlock('unlocked', {
+      summary: [{ name: 'Emmy Noether', side: 'anupama', events: 'PSMR', status: 'attending' }],
+    })
+    renderPage()
+    showEveryone()
+
+    expect(answers('Emmy Noether').map(({ state: dot }) => dot)).toEqual([
+      'none',
+      'none',
+      'none',
+      'none',
+    ])
+  })
+
+  it('keys the marks it draws', () => {
+    // Four marks nobody chose to learn, on a table whose headings only say
+    // which event each column is.
+    renderPage()
+    showEveryone()
+
+    const legend = screen.getByRole('list')
+    expect([...legend.querySelectorAll('li')].map((item) => item.textContent)).toEqual([
+      'Dots:',
+      'No response',
+      'Attending',
+      'Not attending',
+      'Not invited',
+    ])
+    // Every mark in the key is one the table actually draws, and every mark the
+    // table draws is in the key — a legend that keys three of four states would
+    // be worse than none.
+    const keyed = [...legend.querySelectorAll('li [aria-hidden]')].map((mark) => mark.className)
+    const drawn = ['Grace Hopper', 'Ada Lovelace', 'Alan Turing', 'Vera Rubin'].flatMap(marksOf)
+    expect(new Set(keyed)).toEqual(new Set(drawn))
   })
 })

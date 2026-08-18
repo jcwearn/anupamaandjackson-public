@@ -200,11 +200,34 @@ async function main() {
         .map(([tag, count]) => `${count} ${tag}`)
         .join(', '),
   )
+  // The line above is one verdict per guest; this one is per event, which is
+  // what the dots on /admin/guest-summary now show. They will not add up to it
+  // and are not meant to: a guest can be attending the muhurtham and not the
+  // reception, and the pellikuthuru answer counts towards the verdict without
+  // having a column here at all.
+  for (const [label, counts] of Object.entries(stats.summaryPerEvent)) {
+    console.log(
+      `  ${label.padEnd(14)}  ${counts.invited} invited — ${counts.attending} attending, ` +
+        `${counts.declined} not, ${counts.invited - counts.attending - counts.declined} ` +
+        `no response`,
+    )
+  }
   if (stats.unresolvedRows.length > 0) {
     console.warn(
       `\nWarning: ${stats.unresolvedRows.length} guest(s) carry no gating tag and are absent ` +
         `from the index (sheet row(s) ${stats.unresolvedRows.join(', ')}) — they will be told ` +
         `we can't find them. Check their tags in With Joy.\n`,
+    )
+  }
+  if (stats.summaryOutsideInvite.rows.length > 0) {
+    const { rows, affirmativeRows } = stats.summaryOutsideInvite
+    console.warn(
+      `\nWarning: ${rows.length} guest(s) have answered about an event they carry no tag for ` +
+        `(sheet row(s) ${rows.join(', ')}), ${affirmativeRows.length} of them saying yes` +
+        (affirmativeRows.length > 0 ? ` (row(s) ${affirmativeRows.join(', ')})` : '') +
+        `. /admin/guest-summary shows those events as not invited, which is all it can say. ` +
+        `A yes is the one worth chasing: either the tag is missing — and they are getting the ` +
+        `wrong printed invitation — or the With Joy list is wrong.\n`,
     )
   }
   console.log('Invited per event:')
