@@ -1,0 +1,11 @@
+{
+  // The Cloudflare Pages PROJECT name, which is NOT this repo's name. The repo
+  // is anupamaandjackson; the project is anupama-and-jackson.
+  //
+  // `wrangler pages deploy` CREATES a project that does not exist rather than
+  // failing, so the repo name here would produce a second, empty project while
+  // anupamaandjackson.com kept serving its last build and never updated again.
+  "name": "anupama-and-jackson",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-08-19",
+}
