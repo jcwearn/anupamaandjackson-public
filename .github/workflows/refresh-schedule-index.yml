@@ -141,7 +141,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: jcwearn/workflows/.github/workflows/cloudflare-pages-deploy.yaml@v1
+    uses: jcwearn/workflows/.github/workflows/cloudflare-pages-deploy.yaml@c9e49bd4c2226fa829a0179277df707b4585ce9e # v1
     with:
       project-name: anupama-and-jackson
       timeout-minutes: 15
