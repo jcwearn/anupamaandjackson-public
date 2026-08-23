@@ -442,14 +442,16 @@ const ROOM_LEFT = [1, 2, 3]
 const NO_UNIT_PRICE = '—'
 
 /**
- * Why a share of the total is ours. Four different situations, four different
- * follow-ups — one is ours by definition, one is a quote that aged, one we
- * chose and owe nobody an explanation for, and one is a guest who sent the
- * wrong amount and might simply be asked for the rest.
+ * Why a share of the total is ours. Five different situations, five different
+ * follow-ups — one is ours by definition, one is a quote that aged, one is a
+ * quote that aged the other way and leaves us holding money, one we chose and
+ * owe nobody an explanation for, and one is a guest who sent the wrong amount
+ * and might simply be asked for the rest.
  */
 const COVERED_REASON: Record<CoveredLine['reason'], (amount: number) => string> = {
   host: () => 'your own place',
   shortfall: () => 'quoted before the sole-use night was costed',
+  surplus: () => 'quoted above what the agent went on to invoice',
   gift: () => 'part of their price is on you',
   settlement: (amount) =>
     amount < 0 ? 'sent more than they were asked' : 'sent less than they were asked',
@@ -742,9 +744,12 @@ const BreakdownTable: React.FC<{
                           {format(part.working.fullSingle)} &minus;{' '}
                           {format(part.working.shortSingle)}) and {format(part.working.doubleNight)}{' '}
                           double ({format(part.working.fullDouble)} &minus;{' '}
-                          {format(part.working.shortDouble)}), so the occupancy is worth{' '}
-                          {format(part.working.perNight)}. Everything about the day that is not the
-                          room appears in both and cancels.
+                          {format(part.working.shortDouble)}); everything about the day that is not
+                          the room appears in both and cancels. Their invoice charges the double
+                          figure, {format(part.working.perNight)} &mdash; the room taken afresh
+                          &mdash; rather than the{' '}
+                          {format(part.working.singleNight - part.working.doubleNight)} that the
+                          occupancy alone is worth.
                         </p>
                       ) : !part.quoted ? (
                         <p
@@ -793,6 +798,24 @@ const BreakdownTable: React.FC<{
                             <dd className="text-right font-medium tabular-nums text-rosewood">
                               {format(
                                 bucket.total - bucket.guestPrice - bucket.hosts * bucket.each,
+                              )}
+                            </dd>
+                          </>
+                        )}
+                        {/* The same residual the other way up, and it needed
+                            saying rather than leaving as two figures that do
+                            not tie. This row's guests were quoted off a single
+                            return fare before the invoice split it by
+                            itinerary, so they are paying us more than the agent
+                            is going to ask for — and a row whose guest prices
+                            sit above its own total, with no line explaining it,
+                            reads as a bug in the arithmetic. */}
+                        {bucket.total - bucket.guestPrice - bucket.hosts * bucket.each < 0 && (
+                          <>
+                            <dt className="font-medium text-zeus/80">Quoted above the invoice</dt>
+                            <dd className="text-right font-medium tabular-nums text-zeus">
+                              {format(
+                                bucket.guestPrice + bucket.hosts * bucket.each - bucket.total,
                               )}
                             </dd>
                           </>

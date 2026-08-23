@@ -29,8 +29,33 @@ export const LAND_COST = {
   short: { double: 24700, single: 44540 },
 } as const
 
-/** Their per-person airfare, one figure per leg. The legs differ. */
+/**
+ * Their per-person airfare for the legs the rate card was quoted off. The legs
+ * differ.
+ */
 export const AIRFARE = { out: 8352, back: 7968 } as const
+
+/**
+ * What the return leg actually costs, which is not one figure.
+ *
+ * The two itineraries fly home on different days on different aircraft — 6E 951
+ * on 1 November and 6E 6681 on 31 October, both already spelled out in
+ * keralaFlights.ts — and the agent's invoice prices them apart: 7,968 and 6,895.
+ * The rate card was built before that invoice arrived, off the one return fare
+ * we had, so every shortened round trip on it is 1,073 too dear.
+ *
+ * Both figures stay, because both are true of different things. `AIRFARE.back`
+ * is what three guests were quoted, told in dollars, and in two cases have
+ * already paid; they are not being re-invoiced over eleven dollars each, so the
+ * price they see must not move. This one is what the agent bills us, and it is
+ * the only one the /admin/kerala-trip total may use. The gap between them is
+ * money we are holding above the invoice, and the page says so rather than
+ * quietly keeping it.
+ *
+ * `full` is written as `AIRFARE.back` and not as 7,968 so a correction to one
+ * cannot leave the other behind.
+ */
+export const INVOICED_BACK = { full: AIRFARE.back, short: 6895 } as const
 
 /** How many nights on the ground each itinerary buys. */
 export const NIGHTS = { full: 3, short: 2 } as const
@@ -146,36 +171,50 @@ export type PriceChoice = Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'>
  */
 export const QUOTED_AT_INR_PER_USD = 95.31
 
-/** The rate the table quotes, ignoring any override. */
-const tableRate = (trip: 'full' | 'short', occ: 'double' | 'single', flight: 'rt' | 'ow') =>
-  keralaPrice({ trip, occupancy: occ, flight }) ?? 0
+/**
+ * What the agent invoices for one ordinary stay, before anything exceptional.
+ *
+ * Deliberately not `keralaPrice`, which this used to go through. That function
+ * answers what the *guest* pays, and since the invoice arrived the two have come
+ * apart on the shortened round trip — see `INVOICED_BACK`. Routing the agent's
+ * total through the guests' rate card would bill us for the eleven dollars each
+ * that we are holding, which is the one direction an invoice must never be
+ * wrong in.
+ */
+const invoicedRate = (trip: 'full' | 'short', occ: 'double' | 'single', flight: 'rt' | 'ow') =>
+  LAND_COST[trip][occ] + AIRFARE.out + (flight === 'rt' ? INVOICED_BACK[trip] : 0)
 
 /**
  * What sole use of a shared room costs for the trip's final night.
  *
  * One respondent is in this position: their roommate leaves after night two, so
  * their third night is a single room they are not being charged a single rate
- * for. Not a figure the agent sent — they have never priced a part-night — but
- * one their own numbers determine, by subtraction, two ways over:
+ * for. Not a rate the agent ever sent — they have never priced a part-night —
+ * but one their own numbers bracket, by subtraction:
  *
  *   night three, single: 73,680 − 44,540 = 29,140
  *   night three, double: 39,840 − 24,700 = 15,140
  *   occupancy delta:                       14,000
  *
- * — and it cross-checks against their supplements, 33,840 − 19,840 = 14,000.
- *
- * The subtraction is what makes it trustworthy. Everything about that day which
- * does not depend on occupancy (the extra day's transport, meals, sightseeing)
- * appears in both marginals and cancels; only the room survives. That is why
- * this replaced an earlier figure of 11,280, which came from spreading the full
- * supplement evenly over three nights — an assumption their own numbers
+ * The subtraction is what makes any of these trustworthy. Everything about that
+ * day which does not depend on occupancy (the extra day's transport, meals,
+ * sightseeing) appears in both marginals and cancels; only the room survives.
+ * That is why an earlier figure of 11,280 was wrong: it came from spreading the
+ * full supplement evenly over three nights, an assumption their own numbers
  * contradict, since the same split over the shortened itinerary gives 9,920.
  *
- * It also confirms the third night is the dear one: an even split would put it
- * at 13,280, and it actually costs 15,140.
+ * What subtraction could not settle is *which* of the survivors they charge, and
+ * this was 14,000 for a while — the occupancy delta, on the reasoning that the
+ * room is bought at the double rate either way and only the empty bed is new. It
+ * cross-checked against their supplements, 33,840 − 19,840 = 14,000, and it was
+ * still wrong. Their invoice bills that guest's land at 54,980, which is
+ * 39,840 + 15,140: they charge the whole third night at the double rate, as
+ * though the room were being taken afresh. So it is the double-occupancy
+ * marginal, the two cross-checking derivations agreed with each other and not
+ * with the invoice, and the moral is that a figure nobody has been billed for
+ * yet is a hypothesis however many ways it is reachable.
  */
-export const SOLE_USE_FINAL_NIGHT =
-  LAND_COST.full.single - LAND_COST.short.single - (LAND_COST.full.double - LAND_COST.short.double)
+export const SOLE_USE_FINAL_NIGHT = LAND_COST.full.double - LAND_COST.short.double
 
 /**
  * What the agent bills us for one person — which is not always what the guest
@@ -187,14 +226,23 @@ export const SOLE_USE_FINAL_NIGHT =
  * number. A `priceOverride` with no sole-use nights still stands in, for an
  * exception of some other kind that nothing here can derive.
  *
- * `hostCovers` is added straight back on, which is the whole point of it being
- * its own field: it is a transfer between us and the guest and the agent is not
- * party to it, so it must not reach a figure the agent is going to invoice.
+ * `hostCovers` is absent from every branch, which is the whole point of it being
+ * its own field: it is a transfer between us and the guest, the agent is not
+ * party to it, and it must not reach a figure they are going to invoice. It used
+ * to be added back on here, because the old spelling went through `keralaPrice`
+ * and had to undo that function's subtraction. Nothing subtracts it now, so
+ * nothing puts it back.
+ *
+ * Which is the point of the rewrite. This used to read
+ * `(keralaPrice(choice) ?? base) + hostCovers`, and that was only ever shorthand
+ * for "the rate" — it stopped meaning the same thing the moment a guest's price
+ * and their invoice line came apart on the shortened round trip.
  */
 export const keralaAgentCost = (choice: PriceChoice): number => {
-  const base = tableRate(choice.trip, choice.occupancy, choice.flight)
+  const base = invoicedRate(choice.trip, choice.occupancy, choice.flight)
   if (choice.soleUseNights) return base + choice.soleUseNights * SOLE_USE_FINAL_NIGHT
-  return (keralaPrice(choice) ?? base) + (choice.hostCovers ?? 0)
+  if (choice.priceOverride !== undefined) return choice.priceOverride
+  return base
 }
 
 /**
@@ -264,7 +312,13 @@ export const rateComponents = (choice: PriceChoice): RateComponent[] => {
     { label: 'Airfare · HYD → COK', amount: AIRFARE.out, quoted: true },
   ]
   if (flight === 'rt') {
-    parts.push({ label: 'Airfare · COK → HYD', amount: AIRFARE.back, quoted: true })
+    // The invoiced fare, not the quoted one. These parts itemise
+    // `keralaAgentCost`, and this breakdown is what gets read back against the
+    // agent's invoice; the rate card's single return fare would leave every
+    // shortened round trip 1,073 short of its own total and fire the
+    // "Unaccounted for" line below at three guests who have no exception
+    // between them.
+    parts.push({ label: 'Airfare · COK → HYD', amount: INVOICED_BACK[trip], quoted: true })
   }
   if (choice.soleUseNights) {
     parts.push({
@@ -302,5 +356,9 @@ export const quotedFigures = (): { label: string; amount: number }[] => [
     })),
   ),
   { label: 'Airfare · HYD → COK', amount: AIRFARE.out },
-  { label: 'Airfare · COK → HYD', amount: AIRFARE.back },
+  // Two return fares and one outbound, because the itineraries fly home on
+  // different days and the agent prices those apart. Listing one would misstate
+  // what they have told us, which is the one thing this list is for.
+  { label: 'Airfare · COK → HYD · Full itinerary', amount: INVOICED_BACK.full },
+  { label: 'Airfare · COK → HYD · Shortened itinerary', amount: INVOICED_BACK.short },
 ]

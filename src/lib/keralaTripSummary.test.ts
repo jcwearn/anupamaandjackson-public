@@ -220,30 +220,80 @@ describe('billing', () => {
     ]
     const { billing } = summarizeKeralaTrip(bothReasons, null)
 
+    // The roommate is a shortened round trip, so they bring the third reason
+    // along: quoted off the rate card's single return fare, invoiced at the
+    // cheaper one the shortened itinerary actually flies.
     expect(billing.coveredBy).toEqual([
       { name: 'Guest 1.0', amount: 7440, reason: 'gift' },
-      { name: 'Guest 1.0', amount: 2720, reason: 'shortfall' },
+      { name: 'Guest 1.0', amount: 3860, reason: 'shortfall' },
+      { name: 'Guest 1.1', amount: -1073, reason: 'surplus' },
     ])
-    expect(billing.covered).toBe(7440 + 2720)
+    expect(billing.covered).toBe(7440 + 3860 - 1073)
     expect(billing.guestPrices + billing.covered).toBe(billing.total)
   })
 
-  it('works a percentage row out of the total and leaves the rest to the balance', () => {
+  it('files a guest quoted above the invoice as a negative, not as nothing', () => {
+    // The direction this only ever tested one way. `guestPrices` is derived as
+    // `total - covered`, so a surplus that never reaches `coveredBy` does not
+    // round to zero — it silently overstates what the guests here are paying by
+    // exactly the amount we are holding.
+    const { billing } = summarizeKeralaTrip([room(1, 'twin', ['short', 'short'])], null)
+
+    expect(billing.total).toBe(39947 * 2)
+    expect(billing.buckets[0]).toMatchObject({ people: 2, each: 39947, guestPrice: 41020 * 2 })
+    expect(billing.coveredBy).toEqual([
+      { name: 'Guest 1.0', amount: -1073, reason: 'surplus' },
+      { name: 'Guest 1.1', amount: -1073, reason: 'surplus' },
+    ])
+    expect(billing.covered).toBe(-2146)
+    expect(billing.guestPrices).toBe(41020 * 2)
+    expect(billing.guestPrices + billing.covered).toBe(billing.total)
+  })
+
+  it('nets a percentage row against what has already been paid', () => {
+    // `pct` is the share of the total that should stand settled *by* that date,
+    // not the size of the instalment: the payment is whatever brings the running
+    // total up to it. The agent writes their September call as 70% of the whole
+    // and then subtracts the advances; read as a slice standing on its own it
+    // asks for 70% on top of them, which on the real figures is 57,810 more than
+    // they are owed.
     const { billing } = summarizeKeralaTrip(rooms, {
       payments: [{ amount: 50000, note: 'Advance' }],
       schedule: [
-        { due: '2026-09-05', pct: 40, note: '40% of the total' },
+        { due: '2026-09-05', pct: 70, note: 'Brings what has been paid to 70% of the total' },
         { due: '2026-09-30', note: 'Balance' },
       ],
     })
 
     expect(billing.paid).toBe(50000)
     expect(billing.outstanding).toBe(billing.total - 50000)
-    expect(billing.due[0].amount).toBe(Math.round(billing.total * 0.4))
+    expect(billing.due[0].amount).toBe(Math.round(billing.total * 0.7) - 50000)
     // The balance is what is left once the advance and the fixed share are
     // accounted for — not another percentage, and not the whole remainder.
     expect(billing.due[1].amount).toBe(billing.total - 50000 - billing.due[0].amount)
+    // The invariant that catches a cumulative/slice mix-up from either side.
     expect(billing.paid + billing.due[0].amount + billing.due[1].amount).toBe(billing.total)
+  })
+
+  it('nets each percentage row against the ones scheduled before it too', () => {
+    // Two in sequence, because "brings the running total to" has to count what
+    // is scheduled as well as what is received, or the second call re-bills the
+    // whole of the first.
+    const { billing } = summarizeKeralaTrip(rooms, {
+      payments: [{ amount: 50000 }],
+      schedule: [
+        { due: '2026-09-05', pct: 40 },
+        { due: '2026-09-30', pct: 70 },
+        { due: '2026-10-15', note: 'Balance' },
+      ],
+    })
+
+    expect(billing.due.map((row) => row.amount)).toEqual([
+      Math.round(billing.total * 0.4) - 50000,
+      Math.round(billing.total * 0.7) - Math.round(billing.total * 0.4),
+      billing.total - Math.round(billing.total * 0.7),
+    ])
+    expect(billing.paid + billing.due.reduce((sum, row) => sum + row.amount, 0)).toBe(billing.total)
   })
 
   it('survives an index with no billing recorded at all', () => {

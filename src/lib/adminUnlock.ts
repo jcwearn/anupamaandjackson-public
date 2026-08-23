@@ -135,7 +135,13 @@ export interface KeralaPayment {
   note?: string
 }
 
-/** `pct` of the total; a row without one is the remainder. */
+/**
+ * `pct` is the share of the total that should stand paid *by* this date, not the
+ * size of this instalment. The agent's September call is the payment that brings
+ * the running total to 70% — so the row works out to that target less everything
+ * settled or scheduled before it, which is a smaller number than 70% of the
+ * trip. A row without a `pct` is the remainder.
+ */
 export interface KeralaScheduledPayment {
   due: string
   pct?: number

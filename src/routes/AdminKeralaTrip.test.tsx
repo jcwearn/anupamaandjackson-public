@@ -146,7 +146,7 @@ const kerala: KeralaTrip = {
   billing: {
     payments: [{ amount: 100000, note: 'Advance' }],
     schedule: [
-      { due: '2026-09-05', pct: 40, note: '40% of the total' },
+      { due: '2026-09-05', pct: 40, note: 'Brings what has been paid to 40% of the total' },
       { due: '2026-09-30', note: 'Balance' },
     ],
   },
@@ -159,20 +159,30 @@ const kerala: KeralaTrip = {
  * 2 × full/double/rt + 2 × full/double/ow + 1 short/double/rt + 2 ×
  * short/double/ow + 1 full/single/rt, and then Carl twice over: what the agent
  * bills for him against what he was quoted and has paid.
+ *
+ * The agent's figures throughout, which is not the same list as the rate card
+ * any more: Enrico's shortened round trip is invoiced at 39,947 and was quoted
+ * at 41,020, and the 1,073 between them is `SURPLUS` below.
  */
-const PLAIN = 56160 * 2 + 48192 * 2 + 41020 + 33052 * 2 + 90000
-const AGENT_TOTAL = PLAIN + 56160 + 14000
+const PLAIN = 56160 * 2 + 48192 * 2 + 39947 + 33052 * 2 + 90000
+const AGENT_TOTAL = PLAIN + 56160 + 15140
 // The two hosts are on full/double/rt, so their own places come out of what
 // the guests owe and land in what we are covering, along with the shortfall.
 const HOSTS = 56160 * 2
+// Carl, quoted 67,440 before the sole-use night was costed and billed 71,300.
+const SHORTFALL = 71300 - 67440
+// Enrico, the other way about: quoted off a single return fare, invoiced at the
+// cheaper leg the shortened itinerary actually flies. Money we are holding, so
+// it nets *against* what we cover rather than adding to it.
+const SURPLUS = 41020 - 39947
 // Three payments: the room-2 pair settles exactly, room 3 overpaid by $2 and
 // room 5 underpaid by $44. Settlement converts at the rate guests were quoted.
 const TRANSFERRED = 1012 + 710 + 900
 // Rounded the way the page rounds them: a dollar gap converts to a fractional
 // number of rupees, and `inr` shows whole ones.
 const SETTLEMENT = (44 - 2) * 95.31
-const COVERED = Math.round(HOSTS + 2720 + SETTLEMENT)
-const GUEST_TOTAL = Math.round(AGENT_TOTAL - (HOSTS + 2720 + SETTLEMENT))
+const COVERED = Math.round(HOSTS + SHORTFALL - SURPLUS + SETTLEMENT)
+const GUEST_TOTAL = Math.round(AGENT_TOTAL - (HOSTS + SHORTFALL - SURPLUS + SETTLEMENT))
 // Enrico, Marie and Lise have sent nothing.
 const TO_COLLECT = 430 + 347 + 347
 
@@ -299,12 +309,15 @@ describe('payments', () => {
     expect(moneyFor('Total quoted')?.textContent).toContain(total.toLocaleString('en-IN'))
   })
 
-  it('works the schedule out of that total', () => {
+  it('works the schedule out of that total, net of the advance', () => {
+    // `pct` is the share that should stand settled *by* that date, so the
+    // September call is whatever brings the running total up to it: the target
+    // less the 1,00,000 already sent, the way the agent works theirs out.
     renderPage()
-    const forty = Math.round(total * 0.4)
+    const forty = Math.round(total * 0.4) - 100000
     expect(rowCells('Sep 5, 2026')).toEqual([
       `₹${forty.toLocaleString('en-IN')}`,
-      '40% of the total',
+      'Brings what has been paid to 40% of the total',
     ])
     expect(rowCells('Sep 30, 2026')).toEqual([
       `₹${(total - 100000 - forty).toLocaleString('en-IN')}`,
@@ -402,7 +415,7 @@ describe('payments', () => {
     // The rate and the row total are the same figure there, and printing both
     // invites reading the pair as a quantity.
     renderPage()
-    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '₹70,160'])
+    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '₹71,300'])
     expect(rowCells('Full · single occupancy · round trip')).toEqual(['1', '—', '₹90,000'])
   })
 
@@ -485,9 +498,9 @@ describe('the price breakdown', () => {
 
     expect(
       rows.getByText(/Sole use of the room · final night/).nextElementSibling,
-    ).toHaveTextContent('₹14,000')
-    // 56,160 + 14,000.
-    expect(rows.getByText('Per person').nextElementSibling).toHaveTextContent('₹70,160')
+    ).toHaveTextContent('₹15,140')
+    // 56,160 + 15,140.
+    expect(rows.getByText('Per person').nextElementSibling).toHaveTextContent('₹71,300')
     // Three badges, not four: the sole-use night is their figures subtracted
     // from each other rather than one they sent, and it shows its working
     // instead of claiming to be quoted.
@@ -506,16 +519,24 @@ describe('the price breakdown', () => {
     expect(detail()!.getByText(/Land · 3 nights, double occupancy/)).toBeInTheDocument()
   })
 
-  it('shows how the sole-use night was costed', () => {
+  it('shows how the sole-use night was costed, and which reading the invoice took', () => {
     // The arithmetic that replaced an assumed 11,280: the same night at each
-    // occupancy, differenced, so the day's non-room costs cancel.
+    // occupancy, differenced, so the day's non-room costs cancel. That left two
+    // candidates and no way to choose between them, and the page now says which
+    // one the agent actually billed rather than presenting the working as
+    // though it settled the question.
     renderPage()
     expand('Price exception · Carl Sagan')
 
     expect(screen.getByText(/The final night, alone in a shared room/)).toBeInTheDocument()
     expect(screen.getByText(/₹29,140 single \(₹73,680 − ₹44,540\)/)).toBeInTheDocument()
     expect(screen.getByText(/₹15,140 double \(₹39,840 − ₹24,700\)/)).toBeInTheDocument()
-    expect(screen.getByText(/occupancy is worth ₹14,000/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/charges the double figure, ₹15,140 — the room taken afresh/),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/rather than the ₹14,000 that the occupancy alone is worth/),
+    ).toBeInTheDocument()
   })
 
   it('shows what the guest owes and what we absorb, where those differ', () => {
@@ -525,7 +546,7 @@ describe('the price breakdown', () => {
     expand('Price exception · Carl Sagan')
 
     expect(moneyFor('What the guests here owe')).toHaveTextContent('₹67,440')
-    expect(moneyFor('You cover the difference')).toHaveTextContent('₹2,720')
+    expect(moneyFor('You cover the difference')).toHaveTextContent('₹3,860')
     // Nobody's own place is in this row, so that line stays off it. Scoped to
     // the itemisation: the room table calls a host's cell "Your own place,
     // still to be paid", which is a different statement about the same fact.
@@ -582,10 +603,13 @@ describe('the price breakdown', () => {
     expect(coveredRow('Ada Lovelace')).toBeUndefined()
 
     fireEvent.click(screen.getByRole('button', { name: /You are covering/ }))
-    // Two of our own places at the full rate, and the gap on the aged quote.
+    // Two of our own places at the full rate, the gap on the aged quote, and
+    // the one line that runs the other way: Enrico is paying us above what the
+    // agent will invoice for him, so it nets off rather than adding on.
     expect(coveredRow('Ada Lovelace')).toHaveTextContent('₹56,160')
     expect(coveredRow('Grace Hopper')).toHaveTextContent('₹56,160')
-    expect(coveredRow('Carl Sagan')).toHaveTextContent('₹2,720')
+    expect(coveredRow('Carl Sagan')).toHaveTextContent('₹3,860')
+    expect(coveredRow('Enrico Fermi')).toHaveTextContent('1,073')
   })
 
   it('says why each of those falls to you, since the reasons differ', () => {
@@ -667,21 +691,26 @@ describe('the price breakdown', () => {
   })
 
   it('lists every figure the agent has actually sent, and only those', () => {
-    // Four land costs and two airfares. Everything else on the page is these
-    // six applied to the rooming, so the rates they add up to are not repeated
-    // here — those are on the guest-facing itinerary page already.
+    // Four land costs and three airfares — one out, and a return apiece,
+    // because the itineraries fly home on different days and their invoice
+    // prices those apart. Everything else on the page is these seven applied to
+    // the rooming, so the rates they add up to are not repeated here; those are
+    // on the guest-facing itinerary page already.
     renderPage()
     const quoted = screen.getByRole('table', { name: 'What the agent charges, per person' })
-    // Six figures and the heading row.
-    expect(within(quoted).getAllByRole('row')).toHaveLength(7)
+    // Seven figures and the heading row.
+    expect(within(quoted).getAllByRole('row')).toHaveLength(8)
     expect(rowCells('Land · Shortened itinerary, double occupancy')).toEqual(['₹24,700'])
     expect(rowCells('Land · Full itinerary, single occupancy')).toEqual(['₹73,680'])
     expect(rowCells('Airfare · HYD → COK', 'What the agent charges, per person')).toEqual([
       '₹8,352',
     ])
-    expect(rowCells('Airfare · COK → HYD', 'What the agent charges, per person')).toEqual([
-      '₹7,968',
-    ])
+    expect(
+      rowCells('Airfare · COK → HYD · Full itinerary', 'What the agent charges, per person'),
+    ).toEqual(['₹7,968'])
+    expect(
+      rowCells('Airfare · COK → HYD · Shortened itinerary', 'What the agent charges, per person'),
+    ).toEqual(['₹6,895'])
   })
 })
 
@@ -784,7 +813,7 @@ describe('the PNG export', () => {
       '₹1,12,320',
     ])
     // The exception is billed at what the agent charges, not what he paid.
-    expect(spec.rows).toContainEqual(['Price exception · Carl Sagan', '1', '—', '₹70,160'])
+    expect(spec.rows).toContainEqual(['Price exception · Carl Sagan', '1', '—', '₹71,300'])
     expect(spec.footer).toEqual(['Total', '9', '—', `₹${total.toLocaleString('en-IN')}`])
   })
 
@@ -813,7 +842,7 @@ describe('the currency switch', () => {
     )
     // The breakdown is a separate card below, and follows the same switch —
     // two controls able to disagree would let the page contradict itself.
-    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '$736.12'])
+    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '$748.09'])
   })
 
   it('recalculates from a rate typed in over the baked-in one', () => {
@@ -821,7 +850,7 @@ describe('the currency switch', () => {
     fireEvent.click(screen.getByRole('button', { name: '$ USD' }))
     fireEvent.change(screen.getByLabelText('Rupees per dollar'), { target: { value: '80' } })
 
-    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '$877.00'])
+    expect(rowCells('Price exception · Carl Sagan')).toEqual(['1', '—', '$891.25'])
   })
 
   it('ignores a rate box mid-retype rather than dividing by nothing', () => {

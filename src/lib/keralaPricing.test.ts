@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   AIRFARE,
+  INVOICED_BACK,
   LAND_COST,
   askedUsd,
   keralaAgentCost,
@@ -40,13 +41,18 @@ describe('keralaPrice', () => {
     // The whole claim behind the expandable rows on /admin/kerala-trip. If the
     // parts ever stop summing to the rate, this fails here rather than the page
     // quietly showing a breakdown that misses its own total.
+    //
+    // Against `keralaAgentCost` and not `keralaPrice`, which is what it used to
+    // compare with. Those were the same function for every guest until the
+    // invoice split the return fare by itinerary; the breakdown itemises the
+    // agent's line, so the agent's figure is what it has to foot to.
     for (const option of pricing) {
       for (const row of option.rows) {
         for (const flight of ['rt', 'ow'] as const) {
           const choice = { trip: option.trip, occupancy: row.occ, flight }
           const parts = rateComponents(choice)
           expect(parts.map((part) => part.label)).not.toContain('Unaccounted for')
-          expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(keralaPrice(choice))
+          expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(keralaAgentCost(choice))
         }
       }
     }
@@ -65,25 +71,69 @@ describe('keralaPrice', () => {
       { label: 'Airfare · HYD → COK', amount: 8352, quoted: true },
       { label: 'Airfare · COK → HYD', amount: 7968, quoted: true },
     ])
+    // The shortened itinerary flies home a day earlier on a different aircraft,
+    // and the invoice prices that leg apart. A breakdown carrying 7,968 here
+    // would be itemising a flight nobody on this row is booked on.
+    expect(rateComponents({ trip: 'short', occupancy: 'double', flight: 'rt' })).toEqual([
+      { label: 'Land · 2 nights, double occupancy', amount: 24700, quoted: true },
+      { label: 'Airfare · HYD → COK', amount: 8352, quoted: true },
+      { label: 'Airfare · COK → HYD', amount: 6895, quoted: true },
+    ])
   })
 
-  it('costs the final night of sole use out of their figures alone', () => {
+  it('bills the shortened return leg at the fare the invoice puts on it', () => {
+    // The 2,079 that had our total disagreeing with the agent's, one of two
+    // halves. We quoted the whole party off a single return fare before their
+    // priced package arrived; it turned out to hold two, and the shortened
+    // itinerary's is 1,073 cheaper.
+    expect(INVOICED_BACK.short).toBe(6895)
+    // Not a second copy of 7,968. Written off `AIRFARE.back`, so a correction to
+    // the quoted fare cannot leave the invoiced one behind.
+    expect(INVOICED_BACK.full).toBe(AIRFARE.back)
+    expect(keralaAgentCost({ trip: 'short', occupancy: 'double', flight: 'rt' })).toBe(39947)
+    expect(keralaAgentCost({ trip: 'short', occupancy: 'single', flight: 'rt' })).toBe(59787)
+  })
+
+  it('leaves the price three guests were quoted exactly where it was', () => {
+    // The half of this that must not move. Three guests were told 41,020 and
+    // $430, two rooms have paid at it, and nobody is being re-invoiced over
+    // eleven dollars — so the guest-facing card holds still while the agent's
+    // figure drops beneath it. If this and the test above ever agree again,
+    // somebody has quietly re-quoted three people.
+    const short = { trip: 'short', occupancy: 'double', flight: 'rt' } as const
+    expect(keralaPrice(short)).toBe(41020)
+    expect(askedUsd(short)).toBe(430)
+    expect(keralaAgentCost(short)).toBe(39947)
+    // Negative: they are paying us above what the agent will ask for, which is
+    // the opposite of every other gap on the page and has to survive as a sign
+    // rather than as an absolute value.
+    expect(keralaShortfall(short)).toBe(-1073)
+  })
+
+  it('costs the final night of sole use the way the invoice costs it', () => {
     // The night a roommate leaves early. Both marginals are theirs, and
     // everything about that day which is not the room — the extra day's
     // transport, meals, sightseeing — appears in both and cancels, which is
-    // what makes this trustworthy where the earlier 11,280 was not. That one
-    // came from spreading the full supplement evenly over three nights, an
-    // assumption their own figures contradict: the same split over the
-    // shortened itinerary gives 9,920.
+    // what makes either of them trustworthy where the earlier 11,280 was not.
+    // That one came from spreading the full supplement evenly over three
+    // nights, an assumption their own figures contradict: the same split over
+    // the shortened itinerary gives 9,920.
     expect(LAND_COST.full.single - LAND_COST.short.single).toBe(29140)
     expect(LAND_COST.full.double - LAND_COST.short.double).toBe(15140)
-    expect(SOLE_USE_FINAL_NIGHT).toBe(14000)
-    // The same figure by a second route, through their two supplements.
+    expect(SOLE_USE_FINAL_NIGHT).toBe(15140)
+    // Which of the two marginals they charge was the open question, and this
+    // asserted the other one — 14,000, the occupancy delta, on the reasoning
+    // that the room is bought at the double rate either way. Their invoice
+    // settles it: the land line for that guest is 54,980, which is the full
+    // itinerary's 39,840 plus a whole third night at the double rate.
+    expect(LAND_COST.full.double + SOLE_USE_FINAL_NIGHT).toBe(54980)
+    // Pinned as the reading that lost, so a future edit reaching for the
+    // elegant derivation has to walk past the invoice to get there.
     expect(
       LAND_COST.full.single -
         LAND_COST.full.double -
         (LAND_COST.short.single - LAND_COST.short.double),
-    ).toBe(SOLE_USE_FINAL_NIGHT)
+    ).toBe(14000)
   })
 
   it('does not pass the sole-use night off as one of their own figures', () => {
@@ -95,7 +145,7 @@ describe('keralaPrice', () => {
     })
     expect(parts.at(-1)).toMatchObject({
       label: 'Sole use of the room · final night',
-      amount: 14000,
+      amount: 15140,
     })
     // Their figures subtracted from each other is a weaker claim than a figure
     // they sent, so it does not wear the same badge — it carries the working
@@ -103,7 +153,7 @@ describe('keralaPrice', () => {
     expect(parts.at(-1)?.quoted).toBeUndefined()
     expect(parts.at(-1)?.working).toBeDefined()
     expect(parts.filter((part) => part.quoted)).toHaveLength(3)
-    expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(56160 + 14000)
+    expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(56160 + 15140)
   })
 
   it('keeps what the agent bills apart from what the guest was asked to pay', () => {
@@ -121,14 +171,26 @@ describe('keralaPrice', () => {
       soleUseNights: 1,
     } as const
     expect(keralaPrice(carl)).toBe(67440)
-    expect(keralaAgentCost(carl)).toBe(70160)
-    expect(keralaShortfall(carl)).toBe(2720)
+    expect(keralaAgentCost(carl)).toBe(71300)
+    expect(keralaShortfall(carl)).toBe(3860)
   })
 
   it('bills the rate card for everyone whose price has not come apart', () => {
+    // Every full-itinerary row, which is 42 of the 45 people on the invoice.
+    // Only the shortened round trip diverges.
     const plain = { trip: 'full', occupancy: 'double', flight: 'rt' } as const
     expect(keralaAgentCost(plain)).toBe(keralaPrice(plain))
     expect(keralaShortfall(plain)).toBe(0)
+    for (const occupancy of ['double', 'single'] as const) {
+      for (const flight of ['rt', 'ow'] as const) {
+        expect(keralaShortfall({ trip: 'full', occupancy, flight })).toBe(0)
+      }
+    }
+    // And the one-way rows of the shortened itinerary: they never fly the
+    // return leg, so the fare that split cannot reach them.
+    for (const occupancy of ['double', 'single'] as const) {
+      expect(keralaShortfall({ trip: 'short', occupancy, flight: 'ow' })).toBe(0)
+    }
   })
 
   it('still takes an override at face value when it cannot derive the exception', () => {
@@ -191,7 +253,7 @@ describe('keralaPrice', () => {
       hostCovers: 7440,
     } as const
     expect(keralaPrice(both)).toBe(60000)
-    expect(keralaAgentCost(both)).toBe(70160)
+    expect(keralaAgentCost(both)).toBe(71300)
   })
 
   it('says so rather than lying when the parts do not add up', () => {

@@ -84,10 +84,13 @@ export interface CoveredLine {
    * `gift` is a guest we decided to pay part of for — the agent charged the
    * ordinary rate and we took some of it off their side, which is why it is not
    * a `shortfall`: nothing about the quote went wrong.
+   * `surplus` is the mirror of `shortfall`, and exists because the two are
+   * owed opposite follow-ups: a guest quoted *above* what the agent went on to
+   * charge. Its amount is negative and nets against the rest.
    * `settlement` is a guest who sent less than they were asked — or more, in
    * which case the amount is negative and nets against the rest.
    */
-  reason: 'host' | 'shortfall' | 'gift' | 'settlement'
+  reason: 'host' | 'shortfall' | 'surplus' | 'gift' | 'settlement'
 }
 
 /** A guest who owes us their share and has not sent it. */
@@ -264,9 +267,17 @@ const summarizeBilling = (rooms: KeralaRoom[], billing: KeralaBilling | null): B
     if (occupant.hostCovers) {
       lines.push({ name: occupant.name, amount: occupant.hostCovers, reason: 'gift' as const })
     }
+    // Both directions, which this only tested one of. `guestPrices` is derived
+    // as `total - covered`, so a guest quoted above the invoice has to land here
+    // as a negative or that figure quietly reads low — which is exactly how the
+    // shortened round trip's 1,073 each would have gone missing.
     const shortfall = cost - (keralaPrice(occupant) ?? cost) - (occupant.hostCovers ?? 0)
-    if (shortfall > 0) {
-      lines.push({ name: occupant.name, amount: shortfall, reason: 'shortfall' as const })
+    if (shortfall !== 0) {
+      lines.push({
+        name: occupant.name,
+        amount: shortfall,
+        reason: shortfall > 0 ? ('shortfall' as const) : ('surplus' as const),
+      })
     }
     return lines
   })
@@ -317,12 +328,29 @@ const summarizeBilling = (rooms: KeralaRoom[], billing: KeralaBilling | null): B
   const payments = billing?.payments ?? []
   const paid = payments.reduce((sum, payment) => sum + payment.amount, 0)
 
-  // A row with a percentage is that share of the whole; the rows without one
-  // split whatever is left after the paid instalments and the fixed shares.
+  // A row with a percentage is the share of the whole that should stand paid *by*
+  // that date, so the instalment is whatever brings the running total up to it:
+  // the target less everything already settled or scheduled ahead of it. The
+  // rows without one split whatever is left.
+  //
+  // Cumulative rather than a slice standing on its own, because that is how the
+  // agent writes it: their sheet works the September instalment as
+  // "70% = 1651555.5" and then subtracts the 650,000 they have received, leaving
+  // 1001555 to pay. Read the other way it asks for 70% of the whole trip on top
+  // of the advances, and that reading had the page 57,810 under what they are
+  // about to invoice.
+  //
+  // `remainder` below needs no adjustment for this: total − paid − Σfixed
+  // telescopes to total − (the last target), which is what is left either way.
   const scheduled = billing?.schedule ?? []
-  const fixed: (number | null)[] = scheduled.map((row) =>
-    row.pct === undefined ? null : Math.round((total * row.pct) / 100),
-  )
+  let cumulative = paid
+  const fixed: (number | null)[] = scheduled.map((row) => {
+    if (row.pct === undefined) return null
+    const target = Math.round((total * row.pct) / 100)
+    const amount = target - cumulative
+    cumulative = target
+    return amount
+  })
   const remainderRows = fixed.filter((amount) => amount === null).length
   const remainder = total - paid - fixed.reduce<number>((sum, amount) => sum + (amount ?? 0), 0)
 
