@@ -40,6 +40,20 @@
     // exported beside a component, either of which breaks fast refresh.
     "react/only-export-components": ["error", { "allowConstantExport": true }],
 
+    // Off because its model of an "extra" dependency has no room for the one
+    // this repo leans on: a dep listed purely to re-run the effect, not because
+    // the body reads it. useNavItems re-reads localStorage on `pathname` so a
+    // nav that survives client-side navigation notices a flag set after it
+    // mounted; JumpNav keys on `jump` so a second jump does not yank the spacer
+    // out from under a scroll still in flight; WhatToWear waits on `status` and
+    // `events` for the anchor to exist at all, since it only appears once the
+    // guest's schedule is decrypted. Delete those deps to satisfy the rule and
+    // all three features quietly stop working. eslint's exhaustive-deps allows
+    // extra deps for exactly this reason; this rule does not, and takes no
+    // options, so "off" is the only lever. The comments at each of the three
+    // sites say what the dep is for -- read them before adding a fourth.
+    "react/exhaustive-effect-dependencies": "off",
+
     // A naming preference rather than a defect, and it fights a universal
     // convention: scripts/prerender.js reconstructs `__dirname` from
     // import.meta.url, which is how every ESM file in Node spells it.

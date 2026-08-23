@@ -47,6 +47,7 @@ export function useNavItems(): NavItem[] {
   const [showKerala, setShowKerala] = useState(false)
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setShowKerala(isKeralaInvited())
   }, [pathname])
 

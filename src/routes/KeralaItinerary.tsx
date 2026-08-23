@@ -260,6 +260,10 @@ const KeralaItineraryContent: React.FC = () => {
   const { kerala, displayName } = useGuestScheduleContext()
 
   React.useEffect(() => {
+    // The prerendered HTML has no guest, so anything keyed on one has to wait
+    // for the client. Flipping a flag in a mount effect is how you say "we are
+    // past hydration" -- the render it costs is the point, not a mistake.
+    // oxlint-disable-next-line react/set-state-in-effect
     setHydrated(true)
   }, [])
 

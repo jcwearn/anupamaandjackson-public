@@ -31,21 +31,29 @@ export const GuestScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const identified = guest.status === 'identified'
 
-  const rememberTrigger = () => {
+  // useCallback rather than a plain function, so that listing it in the two
+  // callbacks below -- which react(memo-dependencies) rightly wants, since a
+  // plain one is a new closure every render and the empty arrays were hiding
+  // that -- does not then make those callbacks unstable in turn. They feed the
+  // context value, so a fresh identity here re-renders every consumer.
+  const rememberTrigger = useCallback(() => {
     const active = document.activeElement
     triggerRef.current = active instanceof HTMLElement ? active : null
-  }
-
-  const openUnlock = useCallback((copy?: UnlockCopy) => {
-    rememberTrigger()
-    setUnlockCopy(copy ?? {})
   }, [])
+
+  const openUnlock = useCallback(
+    (copy?: UnlockCopy) => {
+      rememberTrigger()
+      setUnlockCopy(copy ?? {})
+    },
+    [rememberTrigger],
+  )
 
   const openJoy = useCallback(() => {
     rememberTrigger()
     setUnlockCopy(null)
     setJoyOpen(true)
-  }, [])
+  }, [rememberTrigger])
 
   const closeUnlock = useCallback(() => {
     setUnlockCopy(null)
@@ -57,6 +65,7 @@ export const GuestScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
   // opened it, which on the Schedule page is the button that just disappeared —
   // hence the optional chaining in closeUnlock rather than a required ref.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     if (identified) setUnlockCopy(null)
   }, [identified])
 

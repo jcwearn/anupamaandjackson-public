@@ -346,6 +346,7 @@ const BoxButton: React.FC<{
   // leave event never fires once the button is hidden, so without this the
   // stale glow survives the pull-out and relights alongside the next hover.
   React.useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     if (pulled) setLit(false)
   }, [pulled])
 

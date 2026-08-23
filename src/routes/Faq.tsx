@@ -336,6 +336,12 @@ const Faq: React.FC = () => {
       </header>
 
       <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-12 font-body">
+        {/*
+          openRsvp writes rsvpTriggerRef, so react(refs) assumes handing it to a
+          function means reading a ref during render. `groups` only hangs it off
+          an onClick; nothing calls it until someone clicks.
+        */}
+        {/* oxlint-disable-next-line react/refs */}
         {groups(openRsvp).map((group) => (
           <DisclosureGroup key={group.id} id={group.id} title={group.title} blurb={group.blurb}>
             {group.questions.map((question) => (
