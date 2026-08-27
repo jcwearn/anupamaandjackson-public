@@ -314,7 +314,7 @@ describe('payments', () => {
     // September call is whatever brings the running total up to it: the target
     // less the 1,00,000 already sent, the way the agent works theirs out.
     renderPage()
-    const forty = Math.round(total * 0.4) - 100000
+    const forty = Math.floor(total * 0.4) - 100000
     expect(rowCells('Sep 5, 2026')).toEqual([
       `₹${forty.toLocaleString('en-IN')}`,
       'Brings what has been paid to 40% of the total',

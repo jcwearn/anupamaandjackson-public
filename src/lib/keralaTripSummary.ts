@@ -342,11 +342,21 @@ const summarizeBilling = (rooms: KeralaRoom[], billing: KeralaBilling | null): B
   //
   // `remainder` below needs no adjustment for this: total − paid − Σfixed
   // telescopes to total − (the last target), which is what is left either way.
+  //
+  // Truncated and not rounded, for the same reason it is cumulative: it is their
+  // arithmetic we are reproducing, and they drop the fraction. 70% of the party
+  // total lands on exactly 1,651,555.5, and `Math.round` takes a half up — so
+  // the page asked for 1,001,556 against a sheet that says 1,001,555, and
+  // disagreed with the paragraph above it by a rupee. Every figure here is
+  // non-negative, so flooring is that truncation. The direction matters more
+  // than the rupee does: an invoice may be under what they will ask for, never
+  // over, and a guest-facing total that rounds *up* into money nobody billed is
+  // the failure worth designing against.
   const scheduled = billing?.schedule ?? []
   let cumulative = paid
   const fixed: (number | null)[] = scheduled.map((row) => {
     if (row.pct === undefined) return null
-    const target = Math.round((total * row.pct) / 100)
+    const target = Math.floor((total * row.pct) / 100)
     const amount = target - cumulative
     cumulative = target
     return amount

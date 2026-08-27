@@ -267,7 +267,7 @@ describe('billing', () => {
 
     expect(billing.paid).toBe(50000)
     expect(billing.outstanding).toBe(billing.total - 50000)
-    expect(billing.due[0].amount).toBe(Math.round(billing.total * 0.7) - 50000)
+    expect(billing.due[0].amount).toBe(Math.floor(billing.total * 0.7) - 50000)
     // The balance is what is left once the advance and the fixed share are
     // accounted for — not another percentage, and not the whole remainder.
     expect(billing.due[1].amount).toBe(billing.total - 50000 - billing.due[0].amount)
@@ -289,11 +289,41 @@ describe('billing', () => {
     })
 
     expect(billing.due.map((row) => row.amount)).toEqual([
-      Math.round(billing.total * 0.4) - 50000,
-      Math.round(billing.total * 0.7) - Math.round(billing.total * 0.4),
-      billing.total - Math.round(billing.total * 0.7),
+      Math.floor(billing.total * 0.4) - 50000,
+      Math.floor(billing.total * 0.7) - Math.floor(billing.total * 0.4),
+      billing.total - Math.floor(billing.total * 0.7),
     ])
     expect(billing.paid + billing.due.reduce((sum, row) => sum + row.amount, 0)).toBe(billing.total)
+  })
+
+  it('drops the half rupee rather than rounding it up', () => {
+    // The bug this exists for: 70% of the real party total is 1,651,555.5, the
+    // agent's sheet chops it to 1,651,555, and `Math.round` took the half up —
+    // so the page invoiced a rupee more than they had asked for. None of the
+    // fixtures above land on a half, which is exactly why it survived them; the
+    // override here is only a way to make a total odd enough to.
+    const { billing } = summarizeKeralaTrip(
+      [
+        {
+          room: 1,
+          occupants: [
+            {
+              name: 'Solo 1',
+              trip: 'full',
+              flight: 'rt',
+              occupancy: 'single',
+              priceOverride: 100005,
+            },
+          ],
+        },
+      ],
+      { payments: [{ amount: 10000 }], schedule: [{ due: '2026-09-05', pct: 70 }] },
+    )
+
+    expect(billing.total).toBe(100005)
+    // 70,003.5 truncated, not 70,004 — and then less the advance.
+    expect(billing.due[0].amount).toBe(70003 - 10000)
+    expect(billing.paid + billing.due[0].amount).toBe(70003)
   })
 
   it('survives an index with no billing recorded at all', () => {
