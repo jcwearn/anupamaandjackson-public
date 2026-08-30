@@ -69,8 +69,9 @@ const Travel: React.FC = () => {
         <section className="space-y-4">
           <IconHeading icon={CarIcon} title="Once you land" anchorId="once-you-land" />
           <p>
-            For our out-of-town guests, we’d be happy to coordinate an airport pickup to Golkonda
-            Resort. Just let us know if that would be helpful.
+            If you’d rather not sort out a ride after a long flight, it’s worth asking your hotel
+            whether they can arrange an airport pickup when you book — many properties in Hyderabad
+            can, usually for a fee added to your stay.
           </p>
           <p>
             Otherwise, Uber is a great option for getting around anywhere in Hyderabad — including
