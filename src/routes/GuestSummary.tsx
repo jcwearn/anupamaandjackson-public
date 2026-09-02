@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import type { GuestSummaryEntry, GuestSummaryStatus } from '../lib/adminUnlock'
 import { useAdminContext } from '../lib/adminContext'
 import { chipClass } from '../lib/chipClass'
@@ -142,6 +142,41 @@ const STATUSES: { value: GuestSummaryStatus; label: string }[] = [
   { value: 'none', label: 'No Response' },
 ]
 
+/**
+ * The events the table has a column for, as chips.
+ *
+ * Mapped out of SUMMARY_EVENTS rather than written out a second time, so the
+ * chips cannot fall out of order with the columns above them or quietly miss
+ * one: a fifth column added there arrives here with it, in the same place.
+ *
+ * Keyed by `letter` and not by `tag`, because the letter is what an entry's
+ * `events`, `attending` and `declined` are spelled in — the tag is a With Joy
+ * detail that never reaches the browser at all.
+ */
+const EVENTS: readonly { value: string; label: string }[] = SUMMARY_EVENTS.map(
+  ({ letter, label }) => ({ value: letter, label }),
+)
+
+/**
+ * 'the Muhurtham'; 'the Muhurtham and the Reception'; 'the Sangeet, the
+ * Muhurtham and the Reception'.
+ *
+ * Hand-rolled rather than Intl.ListFormat, on exactly the reasoning
+ * formatEventDate gives for dates: this string is built once in Node during the
+ * prerender and again in the browser on hydration, and the two only agree if
+ * nothing about it is locale-dependent.
+ *
+ * Never called with an empty list — the breakdown that calls it is null when no
+ * chip is pressed.
+ */
+const joinLabels = (labels: string[]) =>
+  labels.length < 3
+    ? labels.map((label) => `the ${label}`).join(' and ')
+    : `${labels
+        .slice(0, -1)
+        .map((label) => `the ${label}`)
+        .join(', ')} and the ${labels.at(-1)}`
+
 type Side = (typeof SIDES)[number]['value']
 
 /**
@@ -175,17 +210,49 @@ const onSide = (entry: GuestSummaryEntry, side: Side) => {
 }
 
 /**
- * One labelled row of filter chips.
+ * The shell every row of filter chips is drawn in: its label, and the group
+ * semantics that tie the two together.
  *
- * The label is what the two rows were missing: on their own they were chips in
- * a heap, and nothing on the page said that the top row and the bottom one
- * answer different questions.
+ * The label is what the rows were missing: on their own they were chips in a
+ * heap, and nothing on the page said that one row and the next answer different
+ * questions.
  *
  * `role="group"` with aria-labelledby rather than a fieldset and legend. These
  * are buttons carrying aria-pressed, not radios, and a fieldset would announce
  * them as a set of form controls to fill in rather than a view to switch. That
  * is also what makes an empty row possible at all: a radio group cannot be
  * emptied once answered, and emptying it is how you say "no filter" here.
+ *
+ * Split out from FilterRow when the Event row arrived, because that row differs
+ * from the other two only in how many chips may be pressed at once. Everything
+ * a reader can see or hear about the three rows is this component, which is the
+ * point — rows that look alike and announce alike should not be free to drift
+ * apart in the markup underneath.
+ */
+function ChipRow({ label, children }: { label: string; children: React.ReactNode }) {
+  const labelId = React.useId()
+  return (
+    // The label sits above the chips on a phone and beside them once there is
+    // room. Fixed width and right-aligned there, so every row's chips start at
+    // the same place instead of stepping in and out with the label's length.
+    <div
+      role="group"
+      aria-labelledby={labelId}
+      className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
+    >
+      <span
+        id={labelId}
+        className="text-xs uppercase tracking-wide text-zeus/60 sm:w-24 sm:shrink-0 sm:text-right"
+      >
+        {label}
+      </span>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  )
+}
+
+/**
+ * A row where one chip at a time is pressed, and pressing it again releases it.
  *
  * A function declaration, not an arrow: the generic keeps each row's value tied
  * to its own options, so a handler cannot be passed the other row's values.
@@ -201,38 +268,77 @@ function FilterRow<T extends string>({
   selected: T | null
   onSelect: (value: T | null) => void
 }) {
-  const labelId = React.useId()
   return (
-    // The label sits above the chips on a phone and beside them once there is
-    // room. Fixed width and right-aligned there, so both rows' chips start at
-    // the same place instead of stepping in and out with the label's length.
-    <div
-      role="group"
-      aria-labelledby={labelId}
-      className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4"
-    >
-      <span
-        id={labelId}
-        className="text-xs uppercase tracking-wide text-zeus/60 sm:w-24 sm:shrink-0 sm:text-right"
-      >
-        {label}
-      </span>
-      <div className="flex flex-wrap gap-2">
-        {options.map(({ value, label: option }) => (
+    <ChipRow label={label}>
+      {options.map(({ value, label: option }) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={selected === value}
+          onClick={() => onSelect(selected === value ? null : value)}
+          // Every chip in this component is a toggle — that is what the row
+          // being emptiable means — so the hover cue is unconditional here.
+          className={chipClass(selected === value, { toggles: true })}
+        >
+          {option}
+        </button>
+      ))}
+    </ChipRow>
+  )
+}
+
+/**
+ * A row where any number of chips can be pressed at once.
+ *
+ * The events are the one axis where the useful question is a combination:
+ * "who is invited to both the muhurtham and the reception and has answered
+ * about neither" has no single-select spelling, and asking it two chips at a
+ * time would mean reading two lists and intersecting them by eye.
+ *
+ * Deliberately identical to FilterRow to look at and to hear — same shell, same
+ * chipClass, same aria-pressed. Only the exclusivity differs, and it is the one
+ * difference a reader discovers by pressing a second chip. A row that announced
+ * itself differently would be the surprise; a chip that looked different would
+ * be a second thing to learn about a control that behaves the same in every
+ * other respect.
+ *
+ * Emits a fresh Set rather than mutating the one it was handed. A mutated Set
+ * keeps its identity, and the memos downstream would have no way to tell that
+ * anything had happened — the list would simply stop responding to the chips.
+ */
+function EventRow({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string
+  options: readonly { value: string; label: string }[]
+  selected: ReadonlySet<string>
+  onToggle: (next: ReadonlySet<string>) => void
+}) {
+  return (
+    <ChipRow label={label}>
+      {options.map(({ value, label: option }) => {
+        const pressed = selected.has(value)
+        return (
           <button
             key={value}
             type="button"
-            aria-pressed={selected === value}
-            onClick={() => onSelect(selected === value ? null : value)}
-            // Every chip in this component is a toggle — that is what the row
-            // being emptiable means — so the hover cue is unconditional here.
-            className={chipClass(selected === value, { toggles: true })}
+            aria-pressed={pressed}
+            onClick={() => {
+              const next = new Set(selected)
+              if (pressed) next.delete(value)
+              else next.add(value)
+              onToggle(next)
+            }}
+            className={chipClass(pressed, { toggles: true })}
           >
             {option}
           </button>
-        ))}
-      </div>
-    </div>
+        )
+      })}
+    </ChipRow>
   )
 }
 
@@ -242,10 +348,16 @@ function FilterRow<T extends string>({
 const GuestSummary: React.FC = () => {
   const { summary } = useAdminContext()
 
-  // Both start as they always have: no list chosen, and the answer nobody has
-  // given yet. null is the empty row rather than a sentinel value in the option
-  // lists, so "no filter" cannot be typo'd into a filter that matches nothing.
+  // All three start as they always have: no list chosen, no event chosen, and
+  // the answer nobody has given yet. null is the empty row rather than a
+  // sentinel value in the option lists, so "no filter" cannot be typo'd into a
+  // filter that matches nothing.
   const [side, setSide] = useState<Side | null>(null)
+  // An empty Set is the Event row's way of saying the same thing, and it is the
+  // starting state on purpose: this row is an addition to the page rather than
+  // a change of default, so /admin/guest-summary still opens on exactly the
+  // list it has always opened on — everyone who has answered nothing at all.
+  const [chosenEvents, setChosenEvents] = useState<ReadonlySet<string>>(() => new Set())
   const [status, setStatus] = useState<GuestSummaryStatus | null>('none')
   const [query, setQuery] = useState('')
 
@@ -262,7 +374,8 @@ const GuestSummary: React.FC = () => {
   const needle = useMemo(() => fold(query), [query])
 
   /**
-   * The rows on screen: the chips first, then the search box within them.
+   * The rows the filters leave, for a given RSVP answer: the chips first, then
+   * the search box within them.
    *
    * The search narrows what the chips left rather than reaching past them, which
    * is the only reading that keeps the count line honest — a box that searched
@@ -272,21 +385,97 @@ const GuestSummary: React.FC = () => {
    * around one of four names reads as a mistake. It pulls them from `kept`, not
    * from `summary`: a housemate the chips already excluded stays excluded, on
    * the same principle the grouping below is built on.
+   *
+   * Takes the answer as an argument rather than reading `status` off the state,
+   * and that is what the breakdown below needs. A breakdown counted off the rows
+   * on screen with 'Not Attending' pressed would report nought attending — a
+   * fact about the chip, not about the event. So it runs this same pipeline a
+   * second time with the RSVP row released, rather than the page keeping two
+   * filters that have to be remembered to agree.
    */
-  const visible = useMemo(() => {
-    const kept = summary.filter(
-      (entry: GuestSummaryEntry) =>
-        (status === null || entry.status === status) && (side === null || onSide(entry, side)),
-    )
-    if (!needle) return kept
-    const hit = (entry: GuestSummaryEntry) => fold(entry.name).includes(needle)
-    const parties = new Set(
-      kept.filter((entry) => entry.party !== undefined && hit(entry)).map((entry) => entry.party),
-    )
-    return kept.filter(
-      (entry) => hit(entry) || (entry.party !== undefined && parties.has(entry.party)),
-    )
-  }, [summary, side, status, needle])
+  const select = useCallback(
+    (want: GuestSummaryStatus | null) => {
+      const kept = summary.filter((entry: GuestSummaryEntry) => {
+        if (side !== null && !onSide(entry, side)) return false
+        // No event pressed: the RSVP row is the whole-guest verdict, which is
+        // the only thing this page has ever meant by it.
+        if (chosenEvents.size === 0) return want === null || entry.status === want
+        /*
+         * One or more pressed, and they combine with AND on both questions at
+         * once: invited to every one of them, and — if a chip is pressed on the
+         * row below — answering the same way about every one of them.
+         *
+         * Chosen over OR because the two useful questions are both universal.
+         * 'Muhurtham + Reception, No Response' is the list worth a phone call:
+         * people who owe an answer on both. Under OR it would also hold guests
+         * who have already confirmed the ceremony and merely not the reception,
+         * which is a different conversation. And 'all four, Attending' means
+         * coming to everything, which OR cannot say at all.
+         *
+         * `uninvited` short-circuits before the answer is even looked at, so a
+         * guest never appears under an event nobody asked them about. That is
+         * the same order dotState tests in, and for the same reason.
+         */
+        for (const letter of chosenEvents) {
+          const state = dotState(entry, entry.events ?? '', letter)
+          if (state === 'uninvited') return false
+          if (want !== null && state !== want) return false
+        }
+        return true
+      })
+      if (!needle) return kept
+      const hit = (entry: GuestSummaryEntry) => fold(entry.name).includes(needle)
+      const parties = new Set(
+        kept.filter((entry) => entry.party !== undefined && hit(entry)).map((entry) => entry.party),
+      )
+      return kept.filter(
+        (entry) => hit(entry) || (entry.party !== undefined && parties.has(entry.party)),
+      )
+    },
+    [summary, side, chosenEvents, needle],
+  )
+
+  /** The rows on screen. */
+  const visible = useMemo(() => select(status), [select, status])
+
+  /**
+   * How the events the chips name have actually been answered, over the guests
+   * the rest of the filters left.
+   *
+   * The cohort is `select(null)` — the same guest list as the table with the
+   * RSVP row released — so the three numbers on each line sum to it, and none of
+   * them moves when you press a chip on the RSVP row. Pressing one changes which
+   * of these guests you are looking at, not how many of them there are.
+   *
+   * It does follow the Guest list chip and the search box, for the reason the
+   * guest count above it follows them: a breakdown counting people the chips say
+   * are not on this list would be a lie about the list you are reading.
+   *
+   * Driven off SUMMARY_EVENTS rather than by iterating the Set, so the lines
+   * come out in the table's own order however the chips happened to be pressed.
+   *
+   * The same derivation the sync log prints as `summaryPerEvent`, so with no
+   * other filter set the two can be read against each other.
+   */
+  const breakdown = useMemo(() => {
+    if (chosenEvents.size === 0) return null
+    const cohort = select(null)
+    const chosen = SUMMARY_EVENTS.filter(({ letter }) => chosenEvents.has(letter))
+    return {
+      cohort: cohort.length,
+      scope: joinLabels(chosen.map(({ label }) => label)),
+      rows: chosen.map(({ letter, label }) => {
+        const state = (entry: GuestSummaryEntry) => dotState(entry, entry.events ?? '', letter)
+        return {
+          letter,
+          label,
+          attending: cohort.filter((entry) => state(entry) === 'attending').length,
+          declined: cohort.filter((entry) => state(entry) === 'declined').length,
+          none: cohort.filter((entry) => state(entry) === 'none').length,
+        }
+      }),
+    }
+  }, [select, chosenEvents])
 
   /**
    * The visible rows, with households drawn together.
@@ -354,6 +543,18 @@ const GuestSummary: React.FC = () => {
             />
           </label>
           <FilterRow label="Guest list" options={SIDES} selected={side} onSelect={setSide} />
+          {/* Above the RSVP row, because it scopes it: with a chip pressed here
+              the three answers below stop being the guest's one verdict and
+              become their answer about these events. The label stays a plain
+              "RSVP" rather than naming them — several can be pressed at once and
+              there is no short label for that — so the cohort line under the
+              count is what says which events are being answered about. */}
+          <EventRow
+            label="Event"
+            options={EVENTS}
+            selected={chosenEvents}
+            onToggle={setChosenEvents}
+          />
           <FilterRow label="RSVP" options={STATUSES} selected={status} onSelect={setStatus} />
         </div>
       </div>
@@ -361,6 +562,32 @@ const GuestSummary: React.FC = () => {
       <p aria-live="polite" className="mt-6 text-center text-sm text-zeus/70">
         {visible.length} {visible.length === 1 ? 'guest' : 'guests'}
       </p>
+
+      {/* Outside the live region above deliberately. The guest count is one
+          number and worth announcing on every keystroke; this is up to four
+          lines of them, and read out that often it would bury the count it sits
+          under rather than add to it.
+
+          The cohort line leads because it is what says the chips combine with
+          AND — 'invited to the Muhurtham and the Reception', not either — and it
+          is why every line below it sums to the same total. */}
+      {breakdown && (
+        <div className="mt-1 text-center">
+          <p className="text-sm text-zeus/70">
+            {breakdown.cohort} invited to {breakdown.scope}
+          </p>
+          <ul className="mt-1 flex flex-col items-center gap-0.5 text-xs text-zeus/60">
+            {breakdown.rows.map(({ letter, label, attending, declined, none }) => (
+              <li key={letter}>
+                {/* The same three words as the RSVP chips and the legend, in the
+                    same order, so all three rows of the page can be read down. */}
+                <span className="text-zeus/75">{label}</span> — {attending} attending · {declined}{' '}
+                not attending · {none} no response
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Four marks nobody chose to learn, on a table whose column headings only
           say which event each column is. Until now the dots meant invitation and

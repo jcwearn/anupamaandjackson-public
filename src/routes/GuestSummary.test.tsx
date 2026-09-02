@@ -182,6 +182,25 @@ const answers = (name: string) =>
 const marksOf = (name: string) =>
   eventCells(name).map((cell) => cell.querySelector('[aria-hidden]')!.className)
 
+/**
+ * The per-event breakdown under the guest count, or null when no event chip is
+ * pressed and the page draws none.
+ *
+ * Found by the cohort line rather than by a test hook, and narrowed to a `p` so
+ * the wrapper around it — whose text starts the same way and then runs on
+ * through every event line — cannot match as well.
+ */
+const breakdown = () => {
+  const line = screen.queryByText(/^\d+ invited to /, { selector: 'p' })
+  if (!line) return null
+  return {
+    cohort: line.textContent ?? '',
+    events: [...line.parentElement!.querySelectorAll('li')].map((item) =>
+      (item.textContent ?? '').replace(/\s+/g, ' ').trim(),
+    ),
+  }
+}
+
 /** Which of the four event columns a row reads as invited to at all. */
 const invitedTo = (name: string) =>
   answers(name)
@@ -295,14 +314,20 @@ describe('GuestSummary filters', () => {
     const rows = screen.getAllByRole('group')
     expect(rows.map((row) => row.getAttribute('aria-label') ?? row.textContent)).toEqual([
       'Guest listAnupamaJacksonVidyaVenkat',
+      'EventPellikuthuruSangeetMuhurthamReception',
       'RSVPAttendingNot AttendingNo Response',
     ])
     expect(screen.getByRole('group', { name: 'Guest list' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Event' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'RSVP' })).toBeInTheDocument()
-    // The search box is the third control and deliberately not a third group —
-    // one input has nothing to group with, and the two groups on the page stay
-    // the two questions the chips ask.
-    expect(rows).toHaveLength(2)
+    // Event sits between the other two because it scopes the one below it: with
+    // a chip pressed there, the three answers underneath stop being the guest's
+    // one verdict and become their answer about those events.
+    //
+    // The search box is a fourth control and deliberately not a fourth group —
+    // one input has nothing to group with, and the groups on the page stay the
+    // questions the chips ask.
+    expect(rows).toHaveLength(3)
     expect(searchBox()).toBeInTheDocument()
   })
 
@@ -311,7 +336,9 @@ describe('GuestSummary filters', () => {
 
     // Nothing is pressed on the Guest list row until something is chosen; the
     // row opens empty rather than on a chip that means "no filter".
-    for (const chip of ['Anupama', 'Jackson', 'Vidya', 'Venkat']) {
+    // The Event row opens empty for the same reason, and that is what keeps
+    // this an addition to the page rather than a change of default.
+    for (const chip of ['Anupama', 'Jackson', 'Vidya', 'Venkat', 'Sangeet', 'Muhurtham']) {
       expect(screen.getByRole('button', { name: chip })).toHaveAttribute('aria-pressed', 'false')
     }
     expect(screen.getByRole('button', { name: 'No Response' })).toHaveAttribute(
@@ -322,6 +349,12 @@ describe('GuestSummary filters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
     expect(screen.getByRole('button', { name: 'Venkat' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Vidya' })).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Muhurtham' }))
+    expect(screen.getByRole('button', { name: 'Muhurtham' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it('offers a hover cue on the chip you are already on', () => {
@@ -335,9 +368,14 @@ describe('GuestSummary filters', () => {
     renderPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Venkat' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Muhurtham' }))
 
     expect(screen.getByRole('button', { name: 'Venkat' }).className).toContain('hover:bg-')
     expect(screen.getByRole('button', { name: 'Vidya' }).className).toContain('hover:bg-')
+    // The Event chips promise the same gesture — pressing one again releases it
+    // — so they ask for the same cue.
+    expect(screen.getByRole('button', { name: 'Muhurtham' }).className).toContain('hover:bg-')
+    expect(screen.getByRole('button', { name: 'Reception' }).className).toContain('hover:bg-')
   })
 
   it('keeps the two filters independent', () => {
@@ -872,5 +910,197 @@ describe('GuestSummary attendance', () => {
     const keyed = [...legend.querySelectorAll('li [aria-hidden]')].map((mark) => mark.className)
     const drawn = ['Grace Hopper', 'Ada Lovelace', 'Alan Turing', 'Vera Rubin'].flatMap(marksOf)
     expect(new Set(keyed)).toEqual(new Set(drawn))
+  })
+})
+
+describe('GuestSummary event filter', () => {
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked', {
+      summary: [
+        // Invited to everything and coming to everything.
+        {
+          name: 'Ada Lovelace',
+          side: 'anupama',
+          events: 'PSMR',
+          attending: 'PSMR',
+          status: 'attending',
+        },
+        // The disagreement the chips exist for: 'attending' as a whole guest,
+        // and a decline sitting inside it.
+        {
+          name: 'Grace Hopper',
+          side: 'anupama',
+          events: 'PSMR',
+          attending: 'PSM',
+          declined: 'R',
+          status: 'attending',
+        },
+        // Invited to both and silent about both — the phone call worth making.
+        { name: 'Alan Turing', side: 'jackson', events: 'MR', status: 'none' },
+        // Invited to both, has answered about one. Under OR she would join Alan
+        // on the 'no response' list, which is the reading the AND rules out.
+        { name: 'Vera Rubin', side: 'jackson', events: 'MR', attending: 'M', status: 'attending' },
+        // Never asked about the reception, so it must never claim her.
+        { name: 'Emmy Noether', side: 'jackson', events: 'M', declined: 'M', status: 'declined' },
+        // An index built before the answers existed: no events, no answers.
+        { name: 'Carl Sagan', side: 'jackson', status: 'none' },
+      ],
+    })
+  })
+
+  /** Clear the RSVP row, which opens on No Response. */
+  const showEveryone = () => fireEvent.click(screen.getByRole('button', { name: 'No Response' }))
+
+  const press = (name: string) => fireEvent.click(screen.getByRole('button', { name }))
+
+  it('opens with no event pressed, on the whole-guest reading', () => {
+    // The row is an addition to the page, not a change of default: the page
+    // still lands on everyone who has answered nothing at all, and draws no
+    // breakdown until an event is asked about.
+    renderPage()
+
+    for (const chip of ['Pellikuthuru', 'Sangeet', 'Muhurtham', 'Reception']) {
+      expect(screen.getByRole('button', { name: chip })).toHaveAttribute('aria-pressed', 'false')
+    }
+    expect(listed()).toEqual(['Alan Turing', 'Carl Sagan'])
+    expect(breakdown()).toBeNull()
+  })
+
+  it('narrows to the guests invited to the chosen event', () => {
+    renderPage()
+    showEveryone()
+    press('Reception')
+
+    // Emmy was never asked about the reception and Carl's index is too old to
+    // say he was asked about anything. Neither belongs on a reception list.
+    expect(listed()).toEqual(['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Vera Rubin'])
+  })
+
+  it('answers about the event, not about the guest', () => {
+    // Grace is 'attending' as a whole guest and has declined the reception.
+    // The RSVP row alone could never find her; that is the whole point.
+    renderPage()
+    press('Reception')
+    choose('Not Attending')
+
+    expect(listed()).toEqual(['Grace Hopper'])
+
+    choose('Attending')
+    expect(listed()).toEqual(['Ada Lovelace'])
+
+    choose('No Response')
+    expect(listed()).toEqual(['Alan Turing', 'Vera Rubin'])
+  })
+
+  it('presses events independently rather than one at a time', () => {
+    renderPage()
+
+    press('Muhurtham')
+    press('Reception')
+    const pressed = () =>
+      ['Pellikuthuru', 'Sangeet', 'Muhurtham', 'Reception'].filter(
+        (chip) =>
+          screen.getByRole('button', { name: chip }).getAttribute('aria-pressed') === 'true',
+      )
+    expect(pressed()).toEqual(['Muhurtham', 'Reception'])
+
+    // And pressing a pressed one releases just that one, the way the other two
+    // rows release the chip you are already on.
+    press('Muhurtham')
+    expect(pressed()).toEqual(['Reception'])
+  })
+
+  it('combines several events with AND, on the invitation and on the answer', () => {
+    renderPage()
+    showEveryone()
+    press('Muhurtham')
+    press('Reception')
+
+    // Invited to both. Emmy carries the muhurtham alone, so an OR would keep
+    // her here and put a reception answer beside a question nobody asked her.
+    expect(listed()).toEqual(['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Vera Rubin'])
+
+    // Silent on both. Vera has answered the muhurtham, so she owes one reply
+    // rather than two and this is not her list.
+    choose('No Response')
+    expect(listed()).toEqual(['Alan Turing'])
+  })
+
+  it('gives the whole-guest reading back when the last event is released', () => {
+    renderPage()
+    press('Reception')
+    press('Reception')
+
+    expect(listed()).toEqual(['Alan Turing', 'Carl Sagan'])
+    expect(breakdown()).toBeNull()
+  })
+
+  it('breaks the cohort down by event, in the table’s order', () => {
+    renderPage()
+    showEveryone()
+    // Pressed out of order on purpose: the lines still come out in the order
+    // the columns run, so the breakdown can be read against the dots.
+    press('Reception')
+    press('Muhurtham')
+
+    expect(breakdown()).toEqual({
+      cohort: '4 invited to the Muhurtham and the Reception',
+      events: [
+        'Muhurtham — 3 attending · 0 not attending · 1 no response',
+        'Reception — 1 attending · 1 not attending · 2 no response',
+      ],
+    })
+  })
+
+  it('holds the breakdown still while the RSVP row moves', () => {
+    // The three numbers describe the event. Counted off the rows on screen they
+    // would describe the chip instead, and 'Not Attending' would report nought
+    // attending — which is true of the list and false about the reception.
+    renderPage()
+    showEveryone()
+    press('Reception')
+
+    const released = breakdown()
+    choose('Not Attending')
+    expect(listed()).toEqual(['Grace Hopper'])
+    expect(breakdown()).toEqual(released)
+  })
+
+  it('follows the guest list chip and the search box', () => {
+    // A breakdown counting people the other chips say are not on this list
+    // would be a lie about the list you are reading.
+    renderPage()
+    showEveryone()
+    press('Reception')
+    choose('Jackson')
+
+    expect(breakdown()).toEqual({
+      cohort: '2 invited to the Reception',
+      events: ['Reception — 0 attending · 0 not attending · 2 no response'],
+    })
+
+    choose('Jackson')
+    search('vera')
+    expect(breakdown()).toEqual({
+      cohort: '1 invited to the Reception',
+      events: ['Reception — 0 attending · 0 not attending · 1 no response'],
+    })
+  })
+
+  it('lets no event claim a guest whose index predates the answers', () => {
+    // Carl's record has no `events` at all, which reads as invited to nothing.
+    // Every chip has to leave him out rather than file him under an answer he
+    // was never asked for.
+    renderPage()
+    showEveryone()
+
+    for (const chip of ['Pellikuthuru', 'Sangeet', 'Muhurtham', 'Reception']) {
+      press(chip)
+      expect(listed()).not.toContain('Carl Sagan')
+      press(chip)
+    }
+
+    expect(listed()).toContain('Carl Sagan')
   })
 })
