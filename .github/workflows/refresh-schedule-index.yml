@@ -37,9 +37,18 @@ jobs:
       # deploy.yml never sees this commit and the published schedule would
       # silently stop updating while this job reported success every morning.
       changed: ${{ steps.commit.outputs.changed }}
+      # The commit this run pushed. The deploy job cannot work it out for
+      # itself: github.sha is the head this RUN started at, which is the
+      # commit BEFORE the one below. See the comment on `deploy:`.
+      sha: ${{ steps.commit.outputs.sha }}
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth 0 rather than checkout's default of 1: the push below
+      # rebases when main has moved, and a one-commit repo has nothing to
+      # rebase onto.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       # Same .node-version as CI and the Pages build. The generator runs
       # against Node builtins only, so the exact patch matters less here than
@@ -112,17 +121,51 @@ jobs:
           git add public/schedule-index.json
           git commit -m "Refresh schedule index"
 
-          # Not `git verify-commit`: verifying an SSH signature locally needs a
-          # gpg.ssh.allowedSignersFile the runner does not have, so it would
-          # fail on a perfectly good signature. Checking the header is attached
-          # is what can be established here; GitHub verifies it server-side.
-          if ! git cat-file commit HEAD | grep -q '^gpgsig'; then
-            echo "::error::Signing was configured but HEAD carries no signature."
-            exit 1
-          fi
-          echo "Commit is signed."
+          # commit.gpgsign does not cover the commits a rebase RE-creates, and
+          # the loop below rebases. Without this, one push race turns a signed
+          # commit into an unsigned one.
+          git config rebase.gpgSign true
 
-          git push
+          # main moves under this job: a PR merge, another dispatch, the
+          # exporter's "run both" button. The push was previously a single
+          # attempt, so any of those rejected it, failed the job, and dropped
+          # that day's index on the floor -- the site kept serving the old one
+          # behind a red run nobody watches.
+          for attempt in 1 2 3; do
+            # Not `git verify-commit`: verifying an SSH signature locally needs
+            # a gpg.ssh.allowedSignersFile the runner does not have, so it
+            # would fail on a perfectly good signature. Checking the header is
+            # attached is what can be established here; GitHub verifies it
+            # server-side.
+            #
+            # Inside the loop, not before it: a rebase re-creates the commit,
+            # so a check that ran only once would not be checking the commit
+            # that actually gets pushed.
+            if ! git cat-file commit HEAD | grep -q '^gpgsig'; then
+              echo "::error::Signing was configured but HEAD carries no signature."
+              exit 1
+            fi
+            echo "Commit is signed."
+
+            if git push; then break; fi
+
+            if [ "$attempt" = 3 ]; then
+              echo "::error::main kept moving under us; gave up after 3 pushes."
+              exit 1
+            fi
+
+            echo "Push rejected -- main moved. Rebasing and retrying."
+            git fetch origin main
+            # FETCH_HEAD, not origin/main: a fetch with an explicit refspec
+            # only updates the remote-tracking ref opportunistically, and the
+            # one ref it is guaranteed to write is this one.
+            git rebase FETCH_HEAD
+          done
+
+          # Read AFTER the push, and after any rebase. A rebase rewrites the
+          # commit, so a SHA captured before this point names an object the
+          # deploy job would fail to check out.
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Remove signing key
@@ -134,6 +177,14 @@ jobs:
   # Calling the deploy workflow directly needs no extra credential. Pushing with
   # a PAT or a GitHub App token so `on: push` fires would buy the same outcome
   # for the cost of another long-lived secret.
+  #
+  # `ref` is not optional here, whatever the input says. A reusable workflow
+  # inherits the CALLER's github context, so github.sha inside it is the head
+  # this run started at -- the commit BEFORE the refresh above. Without `ref`
+  # it checked that out, built its public/schedule-index.json, and shipped it:
+  # every run published the index the previous run had generated. It went green
+  # every time, and the only thing that ever caught the site up was an
+  # unrelated merge to main firing deploy.yml against the real head.
   deploy:
     name: Publish the refreshed schedule
     needs: refresh
@@ -141,10 +192,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: jcwearn/workflows/.github/workflows/cloudflare-pages-deploy.yaml@6a75f6e6fde803f32b2ed2987e2142e77abdc4c0 # v1
+    uses: jcwearn/workflows/.github/workflows/cloudflare-pages-deploy.yaml@d88dd60ddaeeb65b628758a975492fb6a4f67b89 # v1
     with:
       project-name: anupama-and-jackson
       timeout-minutes: 15
+      ref: ${{ needs.refresh.outputs.sha }}
     secrets:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
