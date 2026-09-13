@@ -44,6 +44,16 @@
 # rather than by someone remembering to add a line.
 data/
 
+# Working plans. Tracked and reviewable in a PR, like CLAUDE.md above, but a
+# plan for anything touching rooming or the roster is mostly a list of which
+# real person maps to which roster row and who shares a room with whom, and it
+# is only useful if it says so. Sanitizing that into scientists would leave the
+# next agent re-deriving it against the live sheet, which is the work the plan
+# exists to save. Held back as a directory for the same reason data/ is: the
+# next plan is private by default. Root-anchored, so a docs/plans/ that later
+# appears somewhere else is not silently swept up with it.
+/docs/plans/
+
 # The encrypted per-guest index: 621 guests under a key derived from each
 # guest's own name. The live site serves this already, but names are guessable
 # and the repo's own comment concedes it will not withstand a determined
