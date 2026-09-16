@@ -1,6 +1,12 @@
 import type { KeralaBilling, KeralaPayment, KeralaRoom, KeralaRoomOccupant } from './adminUnlock'
 import { flights } from './keralaFlights'
-import { askedUsd, keralaAgentCost, keralaPrice, QUOTED_AT_INR_PER_USD } from './keralaPricing'
+import {
+  askedUsd,
+  keralaAgentCost,
+  keralaPrice,
+  QUOTED_AT_INR_PER_USD,
+  usdToCollect,
+} from './keralaPricing'
 
 /**
  * Everything /admin/kerala-trip tells the travel agent, counted off the rooming.
@@ -287,12 +293,17 @@ const summarizeBilling = (rooms: KeralaRoom[], billing: KeralaBilling | null): B
   // `outstanding` — what the agent is owed — exactly where it was.
   const transferred = occupants.reduce((sum, occupant) => sum + (occupant.payment?.usd ?? 0), 0)
 
+  // Rounded up, unlike everything below it. Nobody here has sent anything yet,
+  // so there is no quote to hold still — and a figure rounded down would ask
+  // for less than the rupees the agent is billing us for them. See
+  // `usdToCollect` for why that stops at this list and does not reach the
+  // settlement loop, where the guests have paid and their arithmetic is fixed.
   const toCollectFrom: UncollectedLine[] = occupants
     .filter((occupant) => !occupant.host && !occupant.payment)
     .map((occupant) => ({
       name: occupant.name,
       room: rooms.find((room) => room.occupants.includes(occupant))?.room ?? 0,
-      usd: askedUsd(occupant),
+      usd: usdToCollect(occupant),
     }))
     .sort((a, b) => a.room - b.room)
 

@@ -9,7 +9,9 @@ import {
   keralaShortfall,
   SOLE_USE_FINAL_NIGHT,
   pricing,
+  QUOTED_AT_INR_PER_USD,
   rateComponents,
+  usdToCollect,
 } from './keralaPricing'
 
 /**
@@ -223,6 +225,47 @@ describe('keralaPrice', () => {
     // rather than a dollar either side of it.
     expect(askedUsd(subsidised)).toBe(700)
     expect(askedUsd({ trip: 'full', occupancy: 'single', flight: 'rt' })).toBe(944)
+  })
+
+  it('asks a guest who has not paid for the dollar above their price, never the one below', () => {
+    // The whole reason `usdToCollect` is not `askedUsd`. A price that converts
+    // to a fraction of a dollar has to be asked for as the dollar above it, or
+    // the ask lands under the rupees the agent bills us and we quietly eat the
+    // difference: 56,160 is $589.23, and $589 collects 22 rupees short.
+    const full = { trip: 'full', occupancy: 'double', flight: 'rt' } as const
+    expect(keralaPrice(full)).toBe(56160)
+    expect(askedUsd(full)).toBe(589)
+    expect(usdToCollect(full)).toBe(590)
+
+    // It rounds up from below the halfway mark as readily as from above it,
+    // which is the case plain rounding gets wrong in our favour and this one
+    // does not: 47,508 is $498.46.
+    const override = { ...full, flight: 'ow', priceOverride: 47508 } as const
+    expect(askedUsd(override)).toBe(498)
+    expect(usdToCollect(override)).toBe(499)
+
+    // A price already sitting on a whole dollar must not be pushed to the next
+    // one. 66,717 is exactly $700, and a ceiling that charged 701 for it would
+    // be inventing a dollar rather than covering a fraction.
+    const exact = { trip: 'full', occupancy: 'single', flight: 'rt', hostCovers: 23283 } as const
+    expect(keralaPrice(exact)).toBe(66717)
+    expect(usdToCollect(exact)).toBe(700)
+    expect(usdToCollect(exact)).toBe(askedUsd(exact))
+  })
+
+  it('never asks less than the price on any row of the card', () => {
+    // The invariant the function exists for, pinned across the whole table
+    // rather than at the two rows that happen to be interesting today.
+    for (const option of pricing) {
+      for (const row of option.rows) {
+        for (const flight of ['rt', 'ow'] as const) {
+          const choice = { trip: option.trip, occupancy: row.occ, flight }
+          const price = keralaPrice(choice) ?? 0
+          expect(usdToCollect(choice) * QUOTED_AT_INR_PER_USD).toBeGreaterThanOrEqual(price)
+          expect(usdToCollect(choice)).toBeGreaterThanOrEqual(askedUsd(choice))
+        }
+      }
+    }
   })
 
   it('itemises a subsidised guest as the plain rate they are billed at', () => {

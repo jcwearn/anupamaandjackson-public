@@ -257,6 +257,38 @@ export const keralaAgentCost = (choice: PriceChoice): number => {
 export const askedUsd = (choice: PriceChoice): number =>
   Math.round((keralaPrice(choice) ?? 0) / QUOTED_AT_INR_PER_USD)
 
+/**
+ * The whole dollars we ask of a guest who has not paid yet.
+ *
+ * Rounded *up*, where `askedUsd` above rounds to nearest, and the two are
+ * separate functions rather than one with a flag because they answer questions
+ * about different moments: what somebody was quoted, and what we are about to
+ * ask for.
+ *
+ * Up, because a dollar figure that rounds down lands under the rupee price it
+ * came from, and the difference is ours. ₹47,508 is $498.46; asking $498
+ * collects ₹47,464 and leaves ₹44 of the agent's bill on us. The few cents over
+ * are also the only hedge we have on the conversion: the rate a guest was
+ * quoted at is fixed here, the rate their transfer actually lands at is not, and
+ * it has further to fall than to rise before anyone notices.
+ *
+ * Emphatically not applied to anyone who has already paid. Twenty-one of this
+ * party sent the rounded figure they were quoted; re-deriving their ask with a
+ * ceiling would post a dollar shortfall against every one of them and bury the
+ * two who are genuinely short — the same failure the note on `askedUsd`
+ * describes, reintroduced from the other side. Whoever has paid keeps the
+ * arithmetic they paid under, which is why the settlement loop in
+ * keralaTripSummary.ts still reads `askedUsd` and only `toCollectFrom` reads
+ * this.
+ *
+ * The corollary is that one of these guests paying exactly what we asked will
+ * show a dollar of surplus against their rounded price. That is true, not a
+ * glitch: they did send more than the rupees required, and a page built to
+ * surface the gaps should not be the one place that hides this one.
+ */
+export const usdToCollect = (choice: PriceChoice): number =>
+  Math.ceil((keralaPrice(choice) ?? 0) / QUOTED_AT_INR_PER_USD)
+
 /** What the guest is out of pocket beyond their own price, and we absorb. */
 export const keralaShortfall = (choice: PriceChoice): number =>
   keralaAgentCost(choice) - (keralaPrice(choice) ?? 0)

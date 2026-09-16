@@ -496,7 +496,12 @@ describe('what each guest has sent', () => {
         room: 1,
         bed: 'double',
         occupants: [
-          // full/double/rt is asked as $589; this settles exactly.
+          // Two guests on the same rate, asked different dollars, and that is
+          // the point. full/double/rt is ₹56,160, which is $589.23: the one who
+          // has paid settles against the $589 they were quoted, while the one
+          // who has not is asked the $590 that covers the rupees. If these two
+          // ever agree again, either a payer has been re-quoted or we are back
+          // to asking for less than the agent bills.
           { name: 'Paid Up', trip: 'full', flight: 'rt', occupancy: 'double', ...paid(589) },
           { name: 'Owes', trip: 'full', flight: 'rt', occupancy: 'double' },
         ],
@@ -504,8 +509,8 @@ describe('what each guest has sent', () => {
     ]
     const before = summarizeKeralaTrip(rooms, null).billing
     expect(before.transferred).toBe(589)
-    expect(before.toCollect).toBe(589)
-    expect(before.toCollectFrom).toEqual([{ name: 'Owes', room: 1, usd: 589 }])
+    expect(before.toCollect).toBe(590)
+    expect(before.toCollectFrom).toEqual([{ name: 'Owes', room: 1, usd: 590 }])
     expect(before.outstanding).toBe(before.total)
     expect(before.coveredBy).toEqual([])
   })

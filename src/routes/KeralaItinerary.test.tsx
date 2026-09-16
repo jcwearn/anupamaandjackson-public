@@ -382,8 +382,11 @@ describe('Kerala pricing', () => {
     // numbers, so the check above would pass even if both drifted together.
     render()
 
+    // $431 and not $430: ₹41,020 is $430.39, and the table rounds a part-dollar
+    // up so it never quotes under the rupees. The one-way column is $346.78 and
+    // rounds to $347 either way, which is why only one of these two moved.
     expect(priceRow('Shortened itinerary', 'Double occupancy (per person)')).toEqual([
-      '$430',
+      '$431',
       '$347',
     ])
   })
@@ -391,9 +394,12 @@ describe('Kerala pricing', () => {
   it('derives the dollar figures from the exchange rate', () => {
     // Guards against someone editing a displayed figure without moving the rate,
     // or bumping the rate and leaving stale numbers behind.
+    // Rounded up, not to nearest: ₹90,000 is $944.29 and shows as $945, while
+    // ₹60,860 is $638.55 and would have reached $639 under either rule — so the
+    // first of these is the one that pins the direction.
+    expect(usd(90000)).toBe('$945')
     expect(usd(60860)).toBe('$639')
-    expect(usd(90000)).toBe('$944')
-    expect(Math.round(56160 / INR_PER_USD)).toBe(589)
+    expect(Math.ceil(56160 / INR_PER_USD)).toBe(590)
   })
 
   it('gives every section heading a copy button', () => {
@@ -531,7 +537,7 @@ describe('Kerala itinerary filters', () => {
 
     expect(screen.getByText('IndiGo 6E 6682')).toBeInTheDocument()
     expect(screen.getByText('IndiGo 6E 951')).toBeInTheDocument()
-    expect(priceRow('Full itinerary', 'Single occupancy')).toEqual(['$944'])
+    expect(priceRow('Full itinerary', 'Single occupancy')).toEqual(['$945'])
     expect(screen.queryByRole('columnheader', { name: /One way/ })).toBeNull()
   })
 
@@ -746,7 +752,7 @@ describe('Kerala personalization', () => {
     expect(screen.getByText(note)).toBeInTheDocument()
     // A regex, because this is the guest's own row and so carries the "Your
     // rate" marker in its accessible name.
-    expect(priceRow('Full itinerary', /Single occupancy/)).toEqual(['$944'])
+    expect(priceRow('Full itinerary', /Single occupancy/)).toEqual(['$945'])
   })
 
   it('leaves the page untouched for a trip guest with no form response', () => {

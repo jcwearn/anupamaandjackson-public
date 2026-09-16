@@ -183,8 +183,12 @@ const TRANSFERRED = 1012 + 710 + 900
 const SETTLEMENT = (44 - 2) * 95.31
 const COVERED = Math.round(HOSTS + SHORTFALL - SURPLUS + SETTLEMENT)
 const GUEST_TOTAL = Math.round(AGENT_TOTAL - (HOSTS + SHORTFALL - SURPLUS + SETTLEMENT))
-// Enrico, Marie and Lise have sent nothing.
-const TO_COLLECT = 430 + 347 + 347
+// Enrico, Marie and Lise have sent nothing. Asked at the ceiling rather than
+// the rounded figure the rate card shows, because nobody here has been held to
+// a quote yet: Enrico's ₹41,020 is $430.39, so he is asked $431 and not the
+// $430 a guest who had already paid it would settle against. The other two are
+// whole-dollar either way and say nothing about the rounding on their own.
+const TO_COLLECT = 431 + 347 + 347
 
 beforeEach(() => {
   vi.clearAllMocks()
