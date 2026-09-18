@@ -9,7 +9,11 @@ import keralaFixture from '../../tests/fixtures/kerala-responses.sample.json'
 import { parseCsv, rowsToGuests } from '../../scripts/lib/roster.js'
 import { buildIndex } from '../../scripts/lib/scheduleIndex.js'
 import { useGuestSchedule } from './useGuestSchedule'
-import { universalEvents } from '../data/scheduleEvents'
+import {
+  GOLKONDA_STAY_EVENT_ID,
+  PELLIKUTHURU_EVENT_ID,
+  universalEvents,
+} from '../data/scheduleEvents'
 
 // Low iterations keep the suite fast; production uses KDF_ITERATIONS. Matches
 // what tests/scheduleIndex.test.js does.
@@ -413,6 +417,30 @@ describe('useGuestSchedule', () => {
     expect(result.current.golkonda).toBeUndefined()
     // She still has the hotel events; only /hotels changes.
     expect(result.current.events.some((event) => event.id === 'check-in')).toBe(true)
+  })
+
+  it('resolves the two event ids /hotels gates on from the real catalog', async () => {
+    // /hotels reads "invited to the Pellikuthuru" and "tagged for a room at
+    // the resort" off these ids because the catalog gates them on exactly those
+    // tags. Nothing else ties the constants to the catalog, so this is the
+    // test that goes red if the gate moves instead of the page silently
+    // showing the wrong hotels.
+    const ids = (events: { id: string }[]) => events.map((event) => event.id)
+    const { result } = renderHook(() => useGuestSchedule())
+    await waitFor(() => expect(result.current.status).toBe('anonymous'))
+
+    // Tagged pellikuthuru and hotel-golkonda-covered.
+    act(() => result.current.lookup('Alan', 'Turing'))
+    await waitFor(() => expect(result.current.status).toBe('identified'))
+    expect(ids(result.current.events)).toEqual(
+      expect.arrayContaining([PELLIKUTHURU_EVENT_ID, GOLKONDA_STAY_EVENT_ID]),
+    )
+
+    // Tagged muhurtam and reception only.
+    act(() => result.current.lookup('Ada', 'Lovelace'))
+    await waitFor(() => expect(result.current.displayName).toBe('Ada'))
+    expect(ids(result.current.events)).not.toContain(PELLIKUTHURU_EVENT_ID)
+    expect(ids(result.current.events)).not.toContain(GOLKONDA_STAY_EVENT_ID)
   })
 
   it('omits a guest carrying no gating tag', async () => {

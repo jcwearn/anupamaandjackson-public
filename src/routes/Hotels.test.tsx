@@ -3,7 +3,12 @@ import { render, screen, within } from '@testing-library/react'
 import Hotels from './Hotels'
 import { GOLKONDA_SLUG, hotels } from '../data/hotels'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
-import { universalEvents } from '../data/scheduleEvents'
+import {
+  GOLKONDA_STAY_EVENT_ID,
+  PELLIKUTHURU_EVENT_ID,
+  universalEvents,
+  type ScheduleEvent,
+} from '../data/scheduleEvents'
 import type { GuestScheduleState } from '../lib/useGuestSchedule'
 
 const state = vi.hoisted(() => ({ current: null as GuestScheduleState | null }))
@@ -41,9 +46,25 @@ const setState = (overrides: Partial<GuestScheduleState> = {}) => {
   }
 }
 
-const withRoom = (golkonda: 'covered' | 'own') => ({
+// The page only reads ids off these, so the rest is filler.
+const stubEvent = (id: string): ScheduleEvent => ({
+  id,
+  date: '2026-10-27',
+  time: '',
+  title: id,
+  location: '',
+  sortKey: 0,
+})
+
+const withEvents = (displayName: string, ...ids: string[]) => ({
   status: 'identified' as const,
-  displayName: 'Alan',
+  displayName,
+  events: [...universalEvents, ...ids.map(stubEvent)],
+})
+
+// A guest with a room is always tagged, so always carries the check-in event.
+const withRoom = (golkonda: 'covered' | 'own') => ({
+  ...withEvents('Alan', PELLIKUTHURU_EVENT_ID, GOLKONDA_STAY_EVENT_ID),
   golkonda,
 })
 
@@ -56,15 +77,24 @@ const renderPage = () =>
     </GuestScheduleProvider>,
   )
 
+const jumpBar = () => screen.queryByRole('navigation', { name: 'Jump to section' })
+const TAJ_BLOCK = /held a block of rooms at the Taj Krishna/
+
 beforeEach(() => {
   setState()
 })
 
 describe('Hotels anchors', () => {
+  // Every section and card is on the page for a guest invited to everything;
+  // what the gates hide is covered below.
+  beforeEach(() => {
+    setState(withEvents('Alan', PELLIKUTHURU_EVENT_ID, GOLKONDA_STAY_EVENT_ID))
+  })
+
   it('every in-page jump link points at an element that exists', () => {
     // The jump buttons, the section ids and the headings' anchorIds are written
     // out in three separate places, so they can drift apart silently.
-    const { container } = render(<Hotels />)
+    const { container } = renderPage()
 
     const hrefs = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
       a.getAttribute('href')!.slice(1),
@@ -77,7 +107,7 @@ describe('Hotels anchors', () => {
   })
 
   it('names the section anchors after hotels, not events', () => {
-    const { container } = render(<Hotels />)
+    const { container } = renderPage()
 
     expect(container.querySelector('#pre-wedding-hotels')).not.toBeNull()
     expect(container.querySelector('#wedding-hotels')).not.toBeNull()
@@ -86,7 +116,7 @@ describe('Hotels anchors', () => {
   })
 
   it('gives each section heading a copy button matching its section id', () => {
-    const { container } = render(<Hotels />)
+    const { container } = renderPage()
 
     for (const [id, title] of [
       ['pre-wedding-hotels', 'Pre-Wedding Hotels'],
@@ -98,9 +128,10 @@ describe('Hotels anchors', () => {
   })
 
   it('reaches both sections from the pinned jump bar', () => {
-    render(<Hotels />)
+    renderPage()
 
-    const bar = screen.getByRole('navigation', { name: 'Jump to section' })
+    const bar = jumpBar()!
+    expect(bar).not.toBeNull()
     expect(within(bar).getByRole('link', { name: 'Pre-Wedding' })).toHaveAttribute(
       'href',
       '#pre-wedding-hotels',
@@ -114,13 +145,15 @@ describe('Hotels anchors', () => {
   it('no longer duplicates those links as buttons in the header', () => {
     // The pinned bar replaced them; keeping both would be two sets of controls
     // doing one job, stacked on top of each other.
-    const { container } = render(<Hotels />)
+    // Scoped to the header: through the provider, the unlock modal's own
+    // submit button wears the same class.
+    const { container } = renderPage()
 
-    expect(container.querySelectorAll('.btn-primary')).toHaveLength(0)
+    expect(container.querySelector('header')!.querySelectorAll('.btn-primary')).toHaveLength(0)
   })
 
   it('renders every hotel as its own anchor target', () => {
-    const { container } = render(<Hotels />)
+    const { container } = renderPage()
 
     for (const hotel of hotels) {
       expect(container.querySelector(`#${hotel.slug}`), `missing #${hotel.slug}`).not.toBeNull()
@@ -136,22 +169,77 @@ const header = (container: HTMLElement) => within(container.querySelector('heade
 const golkondaCard = (container: HTMLElement) =>
   within(container.querySelector(`#${GOLKONDA_SLUG}`) as HTMLElement)
 
+describe('Hotels invitation gates', () => {
+  // The other wedding hotels are for everyone; only the resort's card is gated.
+  const otherWeddingHotels = hotels.filter(
+    (h) => h.section === 'wedding' && h.slug !== GOLKONDA_SLUG,
+  )
+
+  const expectLockedView = (container: HTMLElement) => {
+    expect(container.querySelector('#pre-wedding-hotels')).toBeNull()
+    expect(container.querySelector(`#${GOLKONDA_SLUG}`)).toBeNull()
+    expect(header(container).queryByText(TAJ_BLOCK)).not.toBeInTheDocument()
+    expect(jumpBar()).toBeNull()
+    expect(container.querySelector('#wedding-hotels')).not.toBeNull()
+    for (const hotel of otherWeddingHotels) {
+      expect(container.querySelector(`#${hotel.slug}`), `missing #${hotel.slug}`).not.toBeNull()
+    }
+    // The header is deliberately unchanged: it still reads like the page it
+    // always was, RSVP punt included.
+    expect(header(container).getByText(RSVP_PUNT)).toBeInTheDocument()
+  }
+
+  it('withholds the pre-wedding hotels and the resort from a visitor who has not signed in', () => {
+    // Also what the prerender bakes in: the server never has a record.
+    const { container } = renderPage()
+    expectLockedView(container)
+  })
+
+  it('withholds them from a guest invited to neither', () => {
+    setState(withEvents('Ada'))
+    const { container } = renderPage()
+    expectLockedView(container)
+  })
+
+  it('shows the pre-wedding hotels, and only those, to a Pellikuthuru guest', () => {
+    setState(withEvents('Ana', PELLIKUTHURU_EVENT_ID))
+    const { container } = renderPage()
+
+    expect(container.querySelector('#pre-wedding-hotels')).not.toBeNull()
+    expect(header(container).getByText(TAJ_BLOCK)).toBeInTheDocument()
+    for (const hotel of hotels.filter((h) => h.section === 'pre-wedding')) {
+      expect(container.querySelector(`#${hotel.slug}`), `missing #${hotel.slug}`).not.toBeNull()
+    }
+    expect(container.querySelector(`#${GOLKONDA_SLUG}`)).toBeNull()
+
+    // Two sections again, so the bar is back with both chips.
+    const bar = jumpBar()!
+    expect(bar).not.toBeNull()
+    expect(within(bar).getAllByRole('link')).toHaveLength(2)
+  })
+
+  it('shows the resort, and only that, to a guest tagged for a room', () => {
+    // Tagged and attending, but she declined the room: the card is hers to
+    // see because the tag is what admits her, and it reads exactly as it
+    // does for everyone — no reservation, no price.
+    setState(withEvents('Katherine', GOLKONDA_STAY_EVENT_ID))
+    const { container } = renderPage()
+
+    expect(container.querySelector(`#${GOLKONDA_SLUG}`)).not.toBeNull()
+    expect(golkondaCard(container).getByText(RSVP_PUNT)).toBeInTheDocument()
+    expect(screen.queryByText('Your room is reserved')).not.toBeInTheDocument()
+    expect(container.textContent).not.toContain('$350')
+
+    expect(container.querySelector('#pre-wedding-hotels')).toBeNull()
+    expect(header(container).queryByText(TAJ_BLOCK)).not.toBeInTheDocument()
+    expect(jumpBar()).toBeNull()
+  })
+})
+
 describe('Hotels room personalization', () => {
   it('looks like an ordinary page to a guest with no room', () => {
     // The whole point of the feature: nothing about the untagged page hints
     // that it can be read any other way.
-    const { container } = renderPage()
-
-    expect(screen.queryByText('Your room is reserved')).not.toBeInTheDocument()
-    expect(header(container).getByText(RSVP_PUNT)).toBeInTheDocument()
-    expect(golkondaCard(container).getByText(RSVP_PUNT)).toBeInTheDocument()
-    expect(container.textContent).not.toContain('$350')
-  })
-
-  it('looks the same to a guest who is identified but has no room', () => {
-    // Everyone tagged who declined the room or is not attending still carries
-    // the four hotel events, so the events alone would not have been a gate.
-    setState({ status: 'identified', displayName: 'Katherine' })
     const { container } = renderPage()
 
     expect(screen.queryByText('Your room is reserved')).not.toBeInTheDocument()
