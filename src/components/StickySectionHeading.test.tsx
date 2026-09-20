@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import StickySectionHeading from './StickySectionHeading'
 import { JumpNavOffset } from '../lib/jumpNavOffset'
-import { JUMP_NAV_SECTION_TOP } from '../lib/constants'
+import { JUMP_NAV_SECTION_TOP, SITE_NAV_OFFSET } from '../lib/constants'
 
 beforeAll(() => {
   // The component pins itself using an IntersectionObserver, which jsdom
@@ -16,6 +16,22 @@ beforeAll(() => {
     },
   )
 })
+
+/**
+ * The constant as jsdom's CSS parser will have rewritten it once the component
+ * sets it inline, so both sides of the assertion come out of the same mangle.
+ *
+ * Not toHaveStyle: jest-dom normalises the expected value through an inline
+ * style but reads the received one through getComputedStyle, and from jsdom
+ * 30.1 those disagree — computed resolves the rem inside the calc() to px,
+ * inline leaves it alone. The component only sets the inline value, so that is
+ * the one to check.
+ */
+const pinnedTop = (value: string) => {
+  const reference = document.createElement('div')
+  reference.style.top = value
+  return reference.style.top
+}
 
 describe('StickySectionHeading', () => {
   it('renders no copy button when no anchorId is given', () => {
@@ -35,9 +51,9 @@ describe('StickySectionHeading', () => {
   it('pins under SiteNav by default', () => {
     const { container } = render(<StickySectionHeading title="Inclusions" />)
 
-    expect(container.querySelector('.sticky')).toHaveStyle({
-      top: 'calc(env(safe-area-inset-top, 0px) + 5rem)',
-    })
+    expect(container.querySelector<HTMLElement>('.sticky')!.style.top).toBe(
+      pinnedTop(SITE_NAV_OFFSET),
+    )
   })
 
   it('pins below a jump bar when one is above it', () => {
@@ -50,7 +66,9 @@ describe('StickySectionHeading', () => {
       </JumpNavOffset.Provider>,
     )
 
-    expect(container.querySelector('.sticky')).toHaveStyle({ top: JUMP_NAV_SECTION_TOP })
+    expect(container.querySelector<HTMLElement>('.sticky')!.style.top).toBe(
+      pinnedTop(JUMP_NAV_SECTION_TOP),
+    )
   })
 
   it('takes a whole element as the eyebrow, not just a string', () => {

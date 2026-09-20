@@ -10,7 +10,11 @@ const renderShelf = (items: ShelfItem[], variant: 'spine' | 'case') =>
 const box = (container: HTMLElement, title: string) =>
   container.querySelector<HTMLElement>(`button[aria-label^="${title}"]`)!
 
-/** A face is identified by the rotation that turns it out of the front board. */
+/**
+ * A face is identified by the rotation that turns it out of the front board.
+ * Its paint is read as background-image — the layers are all gradients, and
+ * CASE_SIDE is declared through that longhand (see the note on it).
+ */
 const face = (item: HTMLElement, rotation: string) =>
   [...item.querySelectorAll<HTMLElement>('span')].find((s) => s.style.transform.includes(rotation))!
 
@@ -44,8 +48,8 @@ describe('a film case', () => {
     const { container } = renderShelf(films, 'case')
     const item = box(container, films[0].title)
 
-    const side = seamPct(face(item, 'rotateY(90deg)').style.background)
-    const top = seamPct(face(item, 'rotateX(90deg)').style.background)
+    const side = seamPct(face(item, 'rotateY(90deg)').style.backgroundImage)
+    const top = seamPct(face(item, 'rotateX(90deg)').style.backgroundImage)
 
     expect(side, 'the opening edge has no seam').not.toBeNull()
     expect(top, 'the top face has no seam').not.toBeNull()
@@ -63,8 +67,8 @@ describe('a film case', () => {
 
     // The top looks at the ceiling and the opening edge looks sideways into the
     // cabinet, so the top has to stay the lit one of the pair.
-    const side = luminances(face(item, 'rotateY(90deg)').style.background)
-    const top = luminances(face(item, 'rotateX(90deg)').style.background)
+    const side = luminances(face(item, 'rotateY(90deg)').style.backgroundImage)
+    const top = luminances(face(item, 'rotateX(90deg)').style.backgroundImage)
 
     expect(side.length).toBeGreaterThan(0)
     expect(top.length).toBeGreaterThan(0)
@@ -76,7 +80,9 @@ describe('a film case', () => {
 
     for (const film of films) {
       for (const span of box(container, film.title).querySelectorAll<HTMLElement>('span')) {
-        for (const [, deg] of span.style.background.matchAll(/linear-gradient\((-?[\d.]+)deg/g)) {
+        for (const [, deg] of span.style.backgroundImage.matchAll(
+          /linear-gradient\((-?[\d.]+)deg/g,
+        )) {
           // A diagonal highlight painted into a face is pinned to the artwork
           // rather than to the geometry: it cannot answer the angle the box is
           // turned at, it sits still while the box animates, and it lands
@@ -95,8 +101,10 @@ describe('a book', () => {
     const cases = renderShelf(films, 'case')
     const shelf = renderShelf(books, 'spine')
 
-    const caseEdge = face(box(cases.container, films[0].title), 'rotateY(90deg)').style.background
-    const bookEdge = face(box(shelf.container, books[0].title), 'rotateY(90deg)').style.background
+    const caseEdge = face(box(cases.container, films[0].title), 'rotateY(90deg)').style
+      .backgroundImage
+    const bookEdge = face(box(shelf.container, books[0].title), 'rotateY(90deg)').style
+      .backgroundImage
 
     // The thumb indent is the only radial gradient on either edge, and the seam
     // is the only place rgba(0,0,0,0.66) appears — a book's fore-edge is

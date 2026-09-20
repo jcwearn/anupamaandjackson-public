@@ -109,7 +109,13 @@ const seamLayer = (deg: number, at: number) =>
 // is on the left, at the rounded end of the borderRadius below — so it carries
 // the seam and the thumb indent you hook a finger into.
 const CASE_SIDE: React.CSSProperties = {
-  background: [
+  // The longhand, where every other face uses the shorthand: jsdom 30.1's
+  // `background` parser drops a `radial-gradient(<pct> <pct> at …)` layer
+  // whole, which took the thumb indent with it and left the test for this face
+  // asserting on something jsdom had already thrown away. The `background-image`
+  // parser keeps it. Same paint either way — the shorthand only ever carried
+  // images here.
+  backgroundImage: [
     // The thumb indent: a channel down the middle of the opening edge rather
     // than a dimple, which is the shape a real case's scoop actually has.
     //
