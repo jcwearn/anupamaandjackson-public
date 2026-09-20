@@ -221,6 +221,7 @@ const groups: {
           <Bullets
             items={[
               'Let your bank and card issuers know your travel dates so nothing gets frozen mid-trip — most banks let you do this in the app.',
+              'Bring a Visa or Mastercard — they’re the most widely accepted for foreign visitors. Some larger hotels and restaurants take American Express, but it’s far less common, so don’t rely on it as your only card.',
               'Check what your cards charge in foreign transaction fees, and bring a second card as a backup.',
             ]}
           />
