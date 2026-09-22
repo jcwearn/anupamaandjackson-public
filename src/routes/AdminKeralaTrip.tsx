@@ -450,7 +450,7 @@ const NO_UNIT_PRICE = '—'
  */
 const COVERED_REASON: Record<CoveredLine['reason'], (amount: number) => string> = {
   host: () => 'your own place',
-  shortfall: () => 'quoted before the sole-use night was costed',
+  shortfall: () => 'quoted below what the agent went on to invoice',
   surplus: () => 'quoted above what the agent went on to invoice',
   gift: () => 'part of their price is on you',
   settlement: (amount) =>

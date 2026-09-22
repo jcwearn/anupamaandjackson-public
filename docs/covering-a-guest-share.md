@@ -8,16 +8,28 @@ This is the process for setting one up. It is data-only — no code change.
 
 ## Which field to reach for
 
-Three fields can move a Kerala price, and picking the wrong one puts the money in
+Four fields can move a Kerala price, and picking the wrong one puts the money in
 the wrong column. They live on a row in `data/kerala-trip-responses.json`.
 
-| Field           | Means                                                 | Moves what the agent bills? |
-| --------------- | ----------------------------------------------------- | --------------------------- |
-| `hostCovers`    | We are paying part of this guest's share ourselves    | **No**                      |
-| `soleUseNights` | The agent charges us more than the card for this stay | Yes, upward                 |
-| `priceOverride` | The guest was quoted a figure nothing else can derive | Yes                         |
+| Field           | Means                                                  | Moves what the agent bills? | Moves what the guest pays? |
+| --------------- | ------------------------------------------------------ | --------------------------- | -------------------------- |
+| `hostCovers`    | We are paying part of this guest's share ourselves     | **No**                      | Yes                        |
+| `soleUseNights` | The agent charges us more than the card for this stay  | Yes, upward                 | No                         |
+| `priceOverride` | The guest was quoted a figure nothing else can derive  | Yes                         | Yes                        |
+| `invoiced`      | The agent has named a figure for this guest, in rupees | Yes — it _is_ the bill      | **No**                     |
 
-`hostCovers` is the only one of the three that changes what a guest owes without
+`hostCovers` and `invoiced` are the two ends of the same ledger: one changes what
+a guest owes without changing what we owe, the other changes what we owe without
+changing what any guest was told. `invoiced` is for when the agent's own message
+gives a figure the rate card cannot reach — a late booking whose outbound fare
+came in below the card's, say — and it wins over every derived figure, because
+they are all reconstructions of what the agent bills and it is the thing itself.
+Where the guest was quoted the card rate and the invoice differs, the difference
+lands under **You are covering** as a `surplus` (negative, we hold money above
+the bill) or a `shortfall` (we owe more than we asked), and the guest is filed as
+a **Price exception** in the breakdown, itemised as the one line the agent sent.
+
+`hostCovers` is the only one of the four that changes what a guest owes without
 changing what we owe. That is the whole reason it is its own field rather than a
 smaller `priceOverride`:
 
@@ -76,8 +88,8 @@ generator is plain Node), so check the ceiling yourself.
 3. `npm run sync:schedule:local:dry`, read it, then `npm run sync:schedule:local`.
 4. Check the three places on `/admin/kerala-trip`:
    - **You are covering** gains a line for them, hinted "part of their price is on
-     you" — distinct from the "quoted before the sole-use night was costed" hint,
-     which is a different situation.
+     you" — distinct from the "quoted below what the agent went on to invoice"
+     hint, which is a different situation.
    - **Still to collect** shows them at the reduced figure.
    - **How the total breaks down** is unchanged: same total, same rate rows, no
      new "Price exception" row, and they stay in the rate bucket they were always

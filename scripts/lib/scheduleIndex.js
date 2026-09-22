@@ -30,9 +30,10 @@ import {
 // `declined`, the per-event answers /admin/guest-summary colours its dots from,
 // and to 12 when their `events` widened from the three events an invitation is
 // narrowed by to the four the table has a column for — the pellikuthuru joined
-// them. Feeds sourceFingerprint, so bumping it is what makes a shape change
-// actually republish.
-export const INDEX_VERSION = 12
+// them, and to 13 when the room occupants gained `invoiced`. Feeds
+// sourceFingerprint, so bumping it is what makes a shape change actually
+// republish.
+export const INDEX_VERSION = 13
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -813,6 +814,19 @@ export function resolveKeralaPayloads(guests, responses) {
         )
       }
     }
+    // What the agent bills for this guest, when they have said so and the
+    // figure is not one the rate card reaches. The other end of the ledger from
+    // `hostCovers`: this moves what we owe and nothing the guest is told. Only
+    // the arithmetic is checked here, for the same reason as above -- the rate
+    // card it departs from is TypeScript this file cannot read.
+    if (response.invoiced !== undefined) {
+      if (!Number.isFinite(response.invoiced) || response.invoiced <= 0) {
+        throw new Error(
+          `Kerala response for '${email}' has invoiced=${JSON.stringify(response.invoiced)}, ` +
+            `which must be a positive number of rupees. Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
     // Separate from the check above so the message can say which way it is
     // wrong: the agent asks about beds only for the shared rooms, and a `bed`
     // on a single is as much a mistake as a missing one on a double.
@@ -974,6 +988,7 @@ export function resolveKeralaPayloads(guests, responses) {
           ...(response.soleUseNights !== undefined
             ? { soleUseNights: response.soleUseNights }
             : {}),
+          ...(response.invoiced !== undefined ? { invoiced: response.invoiced } : {}),
           ...(response.host ? { host: true } : {}),
           ...(response.payment
             ? { payment: { ...response.payment, ...(payer ? { paidBy: payer.firstName } : {}) } }

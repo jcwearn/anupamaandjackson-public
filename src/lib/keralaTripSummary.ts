@@ -63,7 +63,7 @@ export interface PriceBucket {
    */
   choice: Pick<
     KeralaRoomOccupant,
-    'trip' | 'occupancy' | 'flight' | 'priceOverride' | 'soleUseNights'
+    'trip' | 'occupancy' | 'flight' | 'priceOverride' | 'soleUseNights' | 'invoiced'
   >
   /** What these guests owe us, which is nil for our own places. */
   guestPrice: number
@@ -222,7 +222,10 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
     // them -- and a guest we are subsidising is an ordinary line on it at an
     // ordinary rate. Calling them an exception would describe an arrangement
     // the agent is not part of and cannot see in their own figures.
-    const exception = occupant.priceOverride !== undefined || occupant.soleUseNights !== undefined
+    const exception =
+      occupant.priceOverride !== undefined ||
+      occupant.soleUseNights !== undefined ||
+      occupant.invoiced !== undefined
     const label = exception
       ? `Price exception · ${occupant.name}`
       : `${TRIP_LABEL[occupant.trip]} · ${occupant.occupancy} occupancy · ${FLIGHT_LABEL[occupant.flight]}`
@@ -239,6 +242,7 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
         flight: occupant.flight,
         ...(occupant.priceOverride !== undefined ? { priceOverride: occupant.priceOverride } : {}),
         ...(occupant.soleUseNights !== undefined ? { soleUseNights: occupant.soleUseNights } : {}),
+        ...(occupant.invoiced !== undefined ? { invoiced: occupant.invoiced } : {}),
       },
     }
     // Nil for a host: their place is not money a guest owes us. Otherwise the

@@ -100,6 +100,13 @@ export interface KeralaRoomOccupant {
    */
   soleUseNights?: number
   /**
+   * What the agent bills for them, in rupees, when they have said so in as many
+   * words and the figure is not one the rate card can reach. Moves the total
+   * and nothing the guest sees — the opposite end of the ledger from
+   * `hostCovers`. See `PriceChoice` in keralaPricing.ts.
+   */
+  invoiced?: number
+  /**
    * Whose trip this is. Their places are not money a guest owes us, so the
    * billing counts them as covered rather than as guests paying.
    */

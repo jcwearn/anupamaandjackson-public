@@ -150,11 +150,21 @@ export const keralaPrice = (
  * would quietly take the difference off the total we owe — money the agent is
  * still going to ask for — and would file them under "price exception" in a
  * breakdown meant for the agent, who has no exception to hear about.
+ *
+ * `invoiced` is the fourth, and the only one that is the agent's own figure for
+ * this guest rather than something derived from their rate card. It exists
+ * because the card stopped being able to describe what they bill: a guest who
+ * joined late was invoiced 47,379 — the land cost plus an outbound fare of 7,539,
+ * not the 8,352 every earlier ticket was quoted at — and flies home on a return
+ * seat the agent had already sold to someone who no longer wants it. No card
+ * arrangement produces that number without moving somebody's price. This field
+ * moves nothing but what the agent is owed, which is the mirror of `hostCovers`.
  */
 export type PriceChoice = Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & {
   priceOverride?: number
   soleUseNights?: number
   hostCovers?: number
+  invoiced?: number
 }
 
 /**
@@ -237,8 +247,14 @@ export const SOLE_USE_FINAL_NIGHT = LAND_COST.full.double - LAND_COST.short.doub
  * `(keralaPrice(choice) ?? base) + hostCovers`, and that was only ever shorthand
  * for "the rate" — it stopped meaning the same thing the moment a guest's price
  * and their invoice line came apart on the shortened round trip.
+ *
+ * `invoiced` wins over all of it. Everything below is a reconstruction of what
+ * the agent will bill from figures they sent for other purposes; this is what
+ * they said they bill for this person, and a reconstruction has no business
+ * overruling the thing it was reconstructing.
  */
 export const keralaAgentCost = (choice: PriceChoice): number => {
+  if (choice.invoiced !== undefined) return choice.invoiced
   const base = invoicedRate(choice.trip, choice.occupancy, choice.flight)
   if (choice.soleUseNights) return base + choice.soleUseNights * SOLE_USE_FINAL_NIGHT
   if (choice.priceOverride !== undefined) return choice.priceOverride
@@ -335,6 +351,14 @@ export interface RateComponent {
  */
 export const rateComponents = (choice: PriceChoice): RateComponent[] => {
   const { trip, occupancy, flight } = choice
+  // A figure the agent sent for this one guest is not built from anything the
+  // card knows, so itemising it off the card would print the parts of a rate
+  // they are not being charged and an "Unaccounted for" line to make up the
+  // difference — a breakdown that is wrong in every line and right in total.
+  // One line, badged as theirs, because it is.
+  if (choice.invoiced !== undefined) {
+    return [{ label: 'As invoiced by the agent', amount: choice.invoiced, quoted: true }]
+  }
   const parts: RateComponent[] = [
     {
       label: `Land · ${NIGHTS[trip]} nights, ${occupancy} occupancy`,

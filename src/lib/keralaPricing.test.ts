@@ -206,6 +206,30 @@ describe('keralaPrice', () => {
     expect(rateComponents(odd).at(-1)?.working).toBeUndefined()
   })
 
+  it('takes the figure the agent named over anything rebuilt from their card', () => {
+    // A late booking: the land cost the card knows, an outbound fare it does
+    // not (7,539 where every earlier ticket was 8,352), and no return fare at
+    // all because the seat was bought under someone else's name. The guest
+    // was still quoted, and pays, the round-trip card rate — so the two figures
+    // come apart in the direction that leaves us holding money, and the field
+    // has to move only the agent's side to say so.
+    const late = { trip: 'full', occupancy: 'double', flight: 'rt', invoiced: 47379 } as const
+    expect(keralaPrice(late)).toBe(56160)
+    expect(keralaAgentCost(late)).toBe(47379)
+    expect(keralaShortfall(late)).toBe(-8781)
+    expect(askedUsd(late)).toBe(589)
+    // Itemised as the one line they sent rather than as card parts plus a
+    // remainder: those parts would be a rate this guest is not being charged.
+    expect(rateComponents(late)).toEqual([
+      { label: 'As invoiced by the agent', amount: 47379, quoted: true },
+    ])
+    // And it overrules every reconstruction, including the ones that would
+    // otherwise overrule each other.
+    const stacked = { ...late, priceOverride: 67440, soleUseNights: 1 } as const
+    expect(keralaAgentCost(stacked)).toBe(47379)
+    expect(keralaPrice(stacked)).toBe(67440)
+  })
+
   it('takes what we cover off the guest without taking it off the agent', () => {
     // The distinction the field exists for. The agent invoices this guest at
     // the ordinary single rate; we have simply decided to pay part of their

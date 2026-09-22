@@ -624,7 +624,7 @@ describe('the price breakdown', () => {
 
     const list = screen.getByText('You are covering').closest('dl') as HTMLElement
     expect(within(list).getAllByText('your own place')).toHaveLength(2)
-    expect(screen.getByText('quoted before the sole-use night was costed')).toBeInTheDocument()
+    expect(screen.getByText('quoted below what the agent went on to invoice')).toBeInTheDocument()
   })
 
   it('names a guest whose share you are partly paying, without inventing a rate', () => {

@@ -250,6 +250,35 @@ describe('billing', () => {
     expect(billing.guestPrices + billing.covered).toBe(billing.total)
   })
 
+  it('bills the figure the agent named and files that guest as an exception', () => {
+    // The other end of the ledger from `hostCovers`: the total moves to what
+    // the agent actually said, the guest's price stays at the card rate they
+    // were quoted, and the gap is ours to hold. Filed as an exception because
+    // this table is read back against the invoice, and on the invoice this
+    // guest is not a round trip at the round-trip rate.
+    const late: KeralaRoom[] = [
+      {
+        ...room(1, 'twin', ['full', 'full']),
+        occupants: [
+          { ...room(1, 'twin', ['full', 'full']).occupants[0], invoiced: 47379 },
+          room(1, 'twin', ['full', 'full']).occupants[1],
+        ],
+      },
+    ]
+    const { billing } = summarizeKeralaTrip(late, null)
+
+    expect(billing.total).toBe(47379 + 56160)
+    expect(billing.buckets.map((bucket) => bucket.label)).toEqual([
+      'Full · double occupancy · round trip',
+      'Price exception · Guest 1.0',
+    ])
+    expect(billing.buckets[1]).toMatchObject({ people: 1, each: 47379, guestPrice: 56160 })
+    expect(billing.buckets[1].choice).toMatchObject({ invoiced: 47379 })
+    expect(billing.coveredBy).toEqual([{ name: 'Guest 1.0', amount: -8781, reason: 'surplus' }])
+    expect(billing.guestPrices).toBe(56160 * 2)
+    expect(billing.guestPrices + billing.covered).toBe(billing.total)
+  })
+
   it('nets a percentage row against what has already been paid', () => {
     // `pct` is the share of the total that should stand settled *by* that date,
     // not the size of the instalment: the payment is whatever brings the running

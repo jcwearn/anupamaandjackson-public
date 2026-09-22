@@ -1196,6 +1196,36 @@ describe('kerala payload', () => {
     expect([...payloads.values()][0]).not.toHaveProperty('soleUseNights')
   })
 
+  it('carries the figure the agent named to the admin rooms and nowhere else', () => {
+    // What they bill, in their own words, when the card cannot reach it. Admin
+    // side only, like the sole-use night: the guest's price has not moved and
+    // what we are charged for them is not theirs to see.
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [response('vera@example.com', { invoiced: 47379 }), response('carl@example.com')],
+    )
+    expect(rooms[0].occupants[0]).toMatchObject({ invoiced: 47379 })
+    expect(rooms[0].occupants[1]).not.toHaveProperty('invoiced')
+    expect([...payloads.values()][0]).not.toHaveProperty('invoiced')
+  })
+
+  it('refuses an invoiced figure that is not a positive number', () => {
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    const pair = (overrides) => [
+      response('vera@example.com', overrides),
+      response('carl@example.com'),
+    ]
+    expect(() => resolveKeralaPayloads(roster, pair({ invoiced: 0 }))).toThrow(/invoiced/)
+    expect(() => resolveKeralaPayloads(roster, pair({ invoiced: -47379 }))).toThrow(/invoiced/)
+    expect(() => resolveKeralaPayloads(roster, pair({ invoiced: '47379' }))).toThrow(/invoiced/)
+  })
+
   it('carries what we cover to the guest as well as to the admin rooms', () => {
     // The one price field that belongs in both. The guest has to see it —
     // it changes the figure they are being asked for — and the admin page has
