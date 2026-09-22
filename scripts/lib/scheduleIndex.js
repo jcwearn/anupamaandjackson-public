@@ -30,10 +30,10 @@ import {
 // `declined`, the per-event answers /admin/guest-summary colours its dots from,
 // and to 12 when their `events` widened from the three events an invitation is
 // narrowed by to the four the table has a column for — the pellikuthuru joined
-// them, and to 13 when the room occupants gained `invoiced`. Feeds
-// sourceFingerprint, so bumping it is what makes a shape change actually
-// republish.
-export const INDEX_VERSION = 13
+// them, to 13 when the room occupants gained `invoiced`, and to 14 when they
+// gained `seatTransfer`. Feeds sourceFingerprint, so bumping it is what makes a
+// shape change actually republish.
+export const INDEX_VERSION = 14
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -827,6 +827,19 @@ export function resolveKeralaPayloads(guests, responses) {
         )
       }
     }
+    // Rupees of this guest's invoice line that belong on somebody else's,
+    // because one of them is flying a seat the other was billed for. Only the
+    // per-row shape is checked here; that the party's transfers cancel is a
+    // question about all of them at once, and is asked once they are gathered.
+    if (response.seatTransfer !== undefined) {
+      if (!Number.isFinite(response.seatTransfer) || response.seatTransfer === 0) {
+        throw new Error(
+          `Kerala response for '${email}' has seatTransfer=${JSON.stringify(response.seatTransfer)}, ` +
+            `which must be a non-zero number of rupees — negative on the line handing a seat ` +
+            `over, positive on the line taking it. Fix data/kerala-trip-responses.json.`,
+        )
+      }
+    }
     // Separate from the check above so the message can say which way it is
     // wrong: the agent asks about beds only for the shared rooms, and a `bed`
     // on a single is as much a mistake as a missing one on a double.
@@ -876,6 +889,21 @@ export function resolveKeralaPayloads(guests, responses) {
       )
     }
     matched.set(guest, response)
+  }
+
+  // A seat moved between two invoice lines has to arrive somewhere. Summed over
+  // the whole party rather than checked in pairs, because the field deliberately
+  // does not name the other guest -- what has to hold is that the total the
+  // agent bills is untouched, and a sum of zero is exactly that claim. A typo in
+  // one of the two figures otherwise silently moves the trip's total, which is
+  // the one number on the page nothing else would catch.
+  const transferred = responses.reduce((sum, response) => sum + (response.seatTransfer ?? 0), 0)
+  if (transferred !== 0) {
+    throw new Error(
+      `Kerala seat transfers sum to ${transferred} rather than 0, so they move the total the ` +
+        `agent bills instead of moving cost between two guests. Every seat handed over needs a ` +
+        `matching one taken. Fix data/kerala-trip-responses.json.`,
+    )
   }
 
   const rooms = new Map()
@@ -989,6 +1017,7 @@ export function resolveKeralaPayloads(guests, responses) {
             ? { soleUseNights: response.soleUseNights }
             : {}),
           ...(response.invoiced !== undefined ? { invoiced: response.invoiced } : {}),
+          ...(response.seatTransfer !== undefined ? { seatTransfer: response.seatTransfer } : {}),
           ...(response.host ? { host: true } : {}),
           ...(response.payment
             ? { payment: { ...response.payment, ...(payer ? { paidBy: payer.firstName } : {}) } }

@@ -230,6 +230,72 @@ describe('keralaPrice', () => {
     expect(keralaPrice(stacked)).toBe(67440)
   })
 
+  it('moves a transferred seat between two invoice lines without moving either price', () => {
+    // A couple switched to one-way tickets the agent could not refund, and one
+    // of the return seats they had already bought went to a guest who joined
+    // later. The agent still invoices the seat under its original name, so the
+    // cost has to be moved to the person on the plane -- otherwise the guest who
+    // is not flying it looks like money we are out, and the guest who is looks
+    // like a windfall of the same size.
+    const handedOver = {
+      trip: 'full',
+      occupancy: 'double',
+      flight: 'ow',
+      invoiced: 56160,
+      seatTransfer: -7968,
+    } as const
+    const tookIt = {
+      trip: 'full',
+      occupancy: 'double',
+      flight: 'rt',
+      invoiced: 47379,
+      seatTransfer: 7968,
+    } as const
+
+    expect(keralaAgentCost(handedOver)).toBe(48192)
+    expect(keralaAgentCost(tookIt)).toBe(55347)
+    // The pair still bills exactly what the agent invoiced for the two of them.
+    expect(keralaAgentCost(handedOver) + keralaAgentCost(tookIt)).toBe(56160 + 47379)
+    // Neither price moves: one pays the one-way rate, the other the round trip.
+    expect(keralaPrice(handedOver)).toBe(48192)
+    expect(keralaPrice(tookIt)).toBe(56160)
+    // Which leaves one gap between them, and it is the cheaper outbound fare
+    // rather than the seat -- the thing we are actually holding.
+    expect(keralaShortfall(handedOver)).toBe(0)
+    expect(keralaShortfall(tookIt)).toBe(-813)
+
+    // Both rows itemise the move, so each still reads back against the invoice.
+    expect(rateComponents(handedOver)).toEqual([
+      { label: 'As invoiced by the agent', amount: 56160, quoted: true },
+      { label: 'Seat flown by another guest', amount: -7968 },
+    ])
+    expect(rateComponents(tookIt)).toEqual([
+      { label: 'As invoiced by the agent', amount: 47379, quoted: true },
+      { label: 'Seat invoiced under another guest', amount: 7968 },
+    ])
+    // Ours to state, not theirs to confirm: they invoiced two people and we are
+    // the ones saying which of them is on the plane.
+    expect(rateComponents(tookIt).at(-1)?.quoted).toBeUndefined()
+  })
+
+  it('adds a transferred seat to a rate it rebuilt as readily as one they sent', () => {
+    // No `invoiced` here, so the cost comes off the card -- and the transfer
+    // still lands, itemised beside the parts rather than swallowed into a
+    // remainder line.
+    const fromCard = {
+      trip: 'full',
+      occupancy: 'double',
+      flight: 'ow',
+      seatTransfer: 7968,
+    } as const
+    expect(keralaAgentCost(fromCard)).toBe(48192 + 7968)
+    expect(keralaPrice(fromCard)).toBe(48192)
+    const parts = rateComponents(fromCard)
+    expect(parts.at(-1)).toEqual({ label: 'Seat invoiced under another guest', amount: 7968 })
+    expect(parts.some((part) => part.label === 'Unaccounted for')).toBe(false)
+    expect(parts.reduce((sum, part) => sum + part.amount, 0)).toBe(keralaAgentCost(fromCard))
+  })
+
   it('takes what we cover off the guest without taking it off the agent', () => {
     // The distinction the field exists for. The agent invoices this guest at
     // the ordinary single rate; we have simply decided to pay part of their

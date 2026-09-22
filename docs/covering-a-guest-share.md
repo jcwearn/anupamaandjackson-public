@@ -11,12 +11,13 @@ This is the process for setting one up. It is data-only — no code change.
 Four fields can move a Kerala price, and picking the wrong one puts the money in
 the wrong column. They live on a row in `data/kerala-trip-responses.json`.
 
-| Field           | Means                                                  | Moves what the agent bills? | Moves what the guest pays? |
-| --------------- | ------------------------------------------------------ | --------------------------- | -------------------------- |
-| `hostCovers`    | We are paying part of this guest's share ourselves     | **No**                      | Yes                        |
-| `soleUseNights` | The agent charges us more than the card for this stay  | Yes, upward                 | No                         |
-| `priceOverride` | The guest was quoted a figure nothing else can derive  | Yes                         | Yes                        |
-| `invoiced`      | The agent has named a figure for this guest, in rupees | Yes — it _is_ the bill      | **No**                     |
+| Field           | Means                                                   | Moves what the agent bills? | Moves what the guest pays? |
+| --------------- | ------------------------------------------------------- | --------------------------- | -------------------------- |
+| `hostCovers`    | We are paying part of this guest's share ourselves      | **No**                      | Yes                        |
+| `soleUseNights` | The agent charges us more than the card for this stay   | Yes, upward                 | No                         |
+| `priceOverride` | The guest was quoted a figure nothing else can derive   | Yes                         | Yes                        |
+| `invoiced`      | The agent has named a figure for this guest, in rupees  | Yes — it _is_ the bill      | **No**                     |
+| `seatTransfer`  | A seat on this guest's invoice line is flown by another | Moves it between two guests | **No**                     |
 
 `hostCovers` and `invoiced` are the two ends of the same ledger: one changes what
 a guest owes without changing what we owe, the other changes what we owe without
@@ -28,6 +29,19 @@ Where the guest was quoted the card rate and the invoice differs, the difference
 lands under **You are covering** as a `surplus` (negative, we hold money above
 the bill) or a `shortfall` (we owe more than we asked), and the guest is filed as
 a **Price exception** in the breakdown, itemised as the one line the agent sent.
+
+`seatTransfer` is the odd one out: it is the only field here that is not about a
+single person. The agent invoices per guest, and one of those lines can pay for a
+seat a different guest flies — someone switches to a one-way ticket that cannot be
+refunded, and the return seat they already own goes to a guest who joined later.
+Write it signed: negative on the line handing the seat over, positive on the line
+taking it, and the two must cancel. The sync adds every one of them up and refuses
+a total that is not zero, because a seat that leaves one line and never lands on
+another moves the trip's total instead, which nothing else on the page would
+catch. Both rows itemise the move, so each still reads back against the invoice.
+
+Reach for it when the alternative would be to report a fare as **You are
+covering** that another guest's payment has already bought.
 
 `hostCovers` is the only one of the four that changes what a guest owes without
 changing what we owe. That is the whole reason it is its own field rather than a

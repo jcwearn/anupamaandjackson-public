@@ -159,12 +159,23 @@ export const keralaPrice = (
  * seat the agent had already sold to someone who no longer wants it. No card
  * arrangement produces that number without moving somebody's price. This field
  * moves nothing but what the agent is owed, which is the mirror of `hostCovers`.
+ *
+ * `seatTransfer` is the fifth, and unlike every other field here it is not about
+ * one person: it moves cost between two of them. The agent invoices per guest,
+ * and one of those lines pays for a seat a different guest flies — a couple
+ * switched to one-way tickets that could not be refunded, and one of the return
+ * seats they had already bought went to somebody who joined later. Left alone,
+ * the arithmetic charges the seat to the guest who is not on it and hands the
+ * one who is a matching windfall, so the page reports us covering a fare that
+ * another guest's payment bought. The signed amounts across the party sum to
+ * zero, which the sync checks: this only ever moves money sideways.
  */
 export type PriceChoice = Pick<KeralaGuestInfo, 'trip' | 'flight' | 'occupancy'> & {
   priceOverride?: number
   soleUseNights?: number
   hostCovers?: number
   invoiced?: number
+  seatTransfer?: number
 }
 
 /**
@@ -253,13 +264,39 @@ export const SOLE_USE_FINAL_NIGHT = LAND_COST.full.double - LAND_COST.short.doub
  * they said they bill for this person, and a reconstruction has no business
  * overruling the thing it was reconstructing.
  */
-export const keralaAgentCost = (choice: PriceChoice): number => {
+export const keralaAgentCost = (choice: PriceChoice): number =>
+  billedRate(choice) + (choice.seatTransfer ?? 0)
+
+/**
+ * What the agent's own line for this guest comes to, before any seat that line
+ * pays for is handed to the person actually flying it.
+ *
+ * Split out so `seatTransfer` lands in exactly one place. It is added last and
+ * to every branch, because it is true of the invoice however that invoice was
+ * arrived at — a figure they sent, a rate we rebuilt, or an exception.
+ */
+const billedRate = (choice: PriceChoice): number => {
   if (choice.invoiced !== undefined) return choice.invoiced
   const base = invoicedRate(choice.trip, choice.occupancy, choice.flight)
   if (choice.soleUseNights) return base + choice.soleUseNights * SOLE_USE_FINAL_NIGHT
   if (choice.priceOverride !== undefined) return choice.priceOverride
   return base
 }
+
+/**
+ * The seat that moved, as a line of its own on both guests' rows.
+ *
+ * Deliberately not `quoted`. Both figures it sits beside came from the agent and
+ * this one did not: they invoiced two people and we are the ones saying which of
+ * them is flying what. Naming the direction matters more than the sign does —
+ * "seat invoiced under another guest" and "seat flown by another guest" are the
+ * two halves of one sentence, and a reader who has the invoice in front of them
+ * can check both against it.
+ */
+const seatTransferPart = (amount: number): RateComponent => ({
+  label: amount > 0 ? 'Seat invoiced under another guest' : 'Seat flown by another guest',
+  amount,
+})
 
 /**
  * The whole dollars a guest was asked for.
@@ -357,7 +394,11 @@ export const rateComponents = (choice: PriceChoice): RateComponent[] => {
   // difference — a breakdown that is wrong in every line and right in total.
   // One line, badged as theirs, because it is.
   if (choice.invoiced !== undefined) {
-    return [{ label: 'As invoiced by the agent', amount: choice.invoiced, quoted: true }]
+    const invoicedParts: RateComponent[] = [
+      { label: 'As invoiced by the agent', amount: choice.invoiced, quoted: true },
+    ]
+    if (choice.seatTransfer) invoicedParts.push(seatTransferPart(choice.seatTransfer))
+    return invoicedParts
   }
   const parts: RateComponent[] = [
     {
@@ -396,6 +437,8 @@ export const rateComponents = (choice: PriceChoice): RateComponent[] => {
       },
     })
   }
+
+  if (choice.seatTransfer) parts.push(seatTransferPart(choice.seatTransfer))
 
   const target = keralaAgentCost(choice)
   const shortfall = target - parts.reduce((sum, part) => sum + part.amount, 0)

@@ -107,6 +107,13 @@ export interface KeralaRoomOccupant {
    */
   invoiced?: number
   /**
+   * Rupees of this guest's invoice line that belong on another guest's, because
+   * one of them is flying a seat the other was billed for. Signed: negative on
+   * the line that hands the seat over, positive on the line that takes it, and
+   * the two cancel across the party. See `PriceChoice` in keralaPricing.ts.
+   */
+  seatTransfer?: number
+  /**
    * Whose trip this is. Their places are not money a guest owes us, so the
    * billing counts them as covered rather than as guests paying.
    */

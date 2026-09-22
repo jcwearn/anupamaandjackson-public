@@ -63,7 +63,13 @@ export interface PriceBucket {
    */
   choice: Pick<
     KeralaRoomOccupant,
-    'trip' | 'occupancy' | 'flight' | 'priceOverride' | 'soleUseNights' | 'invoiced'
+    | 'trip'
+    | 'occupancy'
+    | 'flight'
+    | 'priceOverride'
+    | 'soleUseNights'
+    | 'invoiced'
+    | 'seatTransfer'
   >
   /** What these guests owe us, which is nil for our own places. */
   guestPrice: number
@@ -225,7 +231,8 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
     const exception =
       occupant.priceOverride !== undefined ||
       occupant.soleUseNights !== undefined ||
-      occupant.invoiced !== undefined
+      occupant.invoiced !== undefined ||
+      occupant.seatTransfer !== undefined
     const label = exception
       ? `Price exception · ${occupant.name}`
       : `${TRIP_LABEL[occupant.trip]} · ${occupant.occupancy} occupancy · ${FLIGHT_LABEL[occupant.flight]}`
@@ -243,6 +250,7 @@ const priceBuckets = (occupants: KeralaRoomOccupant[]): PriceBucket[] => {
         ...(occupant.priceOverride !== undefined ? { priceOverride: occupant.priceOverride } : {}),
         ...(occupant.soleUseNights !== undefined ? { soleUseNights: occupant.soleUseNights } : {}),
         ...(occupant.invoiced !== undefined ? { invoiced: occupant.invoiced } : {}),
+        ...(occupant.seatTransfer !== undefined ? { seatTransfer: occupant.seatTransfer } : {}),
       },
     }
     // Nil for a host: their place is not money a guest owes us. Otherwise the

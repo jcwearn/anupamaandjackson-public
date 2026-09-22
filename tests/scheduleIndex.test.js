@@ -1212,6 +1212,60 @@ describe('kerala payload', () => {
     expect([...payloads.values()][0]).not.toHaveProperty('invoiced')
   })
 
+  it('carries a transferred seat to the admin rooms and nowhere else', () => {
+    const { rooms, payloads } = resolveKeralaPayloads(
+      [
+        rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+        rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+      ],
+      [
+        response('vera@example.com', { seatTransfer: -7968 }),
+        response('carl@example.com', { seatTransfer: 7968 }),
+      ],
+    )
+    expect(rooms[0].occupants[0]).toMatchObject({ seatTransfer: -7968 })
+    expect(rooms[0].occupants[1]).toMatchObject({ seatTransfer: 7968 })
+    // What we are billed for them is not the guest's business, same as the
+    // sole-use night and the invoiced figure.
+    expect([...payloads.values()][0]).not.toHaveProperty('seatTransfer')
+    expect([...payloads.values()][1]).not.toHaveProperty('seatTransfer')
+  })
+
+  it('refuses seat transfers that do not cancel across the party', () => {
+    // The check the per-row shape cannot make. A seat that leaves one line and
+    // never arrives on another moves the trip's total, which is the one figure
+    // on the page nothing else would catch.
+    const roster = [
+      rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),
+      rosterGuest(2, 'Carl', 'Sagan', ['carl@example.com']),
+    ]
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { seatTransfer: -7968 }),
+        response('carl@example.com'),
+      ]),
+    ).toThrow(/sum to -7968/)
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { seatTransfer: -7968 }),
+        response('carl@example.com', { seatTransfer: 7000 }),
+      ]),
+    ).toThrow(/seat transfers/i)
+    // And the shape of one on its own.
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { seatTransfer: 0 }),
+        response('carl@example.com'),
+      ]),
+    ).toThrow(/seatTransfer/)
+    expect(() =>
+      resolveKeralaPayloads(roster, [
+        response('vera@example.com', { seatTransfer: 'a seat' }),
+        response('carl@example.com'),
+      ]),
+    ).toThrow(/seatTransfer/)
+  })
+
   it('refuses an invoiced figure that is not a positive number', () => {
     const roster = [
       rosterGuest(1, 'Vera', 'Rubin', ['vera@example.com']),

@@ -279,6 +279,38 @@ describe('billing', () => {
     expect(billing.guestPrices + billing.covered).toBe(billing.total)
   })
 
+  it('charges a moved seat to whoever is flying it, not to us', () => {
+    // The bug this field exists for. Both guests carry the agent's own figure,
+    // but one of those figures pays for a seat the other is on — so without the
+    // transfer the page reports us covering a fare that the second guest's
+    // payment already bought, and hands that guest a matching windfall.
+    const base = room(1, 'twin', ['full', 'full'], ['ow', 'rt'])
+    const transferred: KeralaRoom[] = [
+      {
+        ...base,
+        occupants: [
+          { ...base.occupants[0], invoiced: 56160, seatTransfer: -7968 },
+          { ...base.occupants[1], invoiced: 47379, seatTransfer: 7968 },
+        ],
+      },
+    ]
+    const { billing } = summarizeKeralaTrip(transferred, null)
+
+    // Unchanged by the move: it is the agent's two lines either way.
+    expect(billing.total).toBe(56160 + 47379)
+    // The guest who handed the seat over drops off the covered list entirely,
+    // and the one gap left is the cheaper fare rather than the seat.
+    expect(billing.coveredBy).toEqual([{ name: 'Guest 1.1', amount: -813, reason: 'surplus' }])
+    expect(billing.guestPrices).toBe(48192 + 56160)
+    expect(billing.guestPrices + billing.covered).toBe(billing.total)
+    expect(billing.buckets.map((bucket) => bucket.label)).toEqual([
+      'Price exception · Guest 1.1',
+      'Price exception · Guest 1.0',
+    ])
+    expect(billing.buckets[0]).toMatchObject({ each: 55347, guestPrice: 56160 })
+    expect(billing.buckets[1]).toMatchObject({ each: 48192, guestPrice: 48192 })
+  })
+
   it('nets a percentage row against what has already been paid', () => {
     // `pct` is the share of the total that should stand settled *by* that date,
     // not the size of the instalment: the payment is whatever brings the running
