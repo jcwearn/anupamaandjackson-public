@@ -13,7 +13,6 @@ type Props = {
   onSubmitEmail: (email: string) => void
   onSkipEmail: () => void
   onChooseCandidate: (index: number) => void
-  onViewOnJoy: () => void
   /** Wording for the surface that opened this; defaults suit the Schedule page. */
   heading?: string
   blurb?: string
@@ -36,9 +35,8 @@ const ScheduleUnlockModal: React.FC<Props> = ({
   onSubmitEmail,
   onSkipEmail,
   onChooseCandidate,
-  onViewOnJoy,
   heading = 'Unlock your schedule',
-  blurb = 'Add your name as it appears on your invitation and we’ll show you the events you’re invited to.',
+  blurb = 'Add your name and we’ll show you the events you’re invited to.',
   submitLabel = 'Unlock Your Schedule',
 }) => {
   const [first, setFirst] = useState('')
@@ -223,15 +221,8 @@ const ScheduleUnlockModal: React.FC<Props> = ({
             {status === 'notFound' && (
               <p role="status" className="mt-3 font-body text-sm text-zeus/80">
                 We couldn’t find that name — it may be recorded slightly differently on our guest
-                list. Try the spelling on your invitation, or{' '}
-                <button
-                  type="button"
-                  onClick={onViewOnJoy}
-                  className="underline decoration-rosewood/40 underline-offset-2 hover:text-rosewood"
-                >
-                  view your details on Joy
-                </button>
-                .
+                list. Try a different spelling, or reach out to us directly if you think something
+                is wrong.
               </p>
             )}
           </>

@@ -89,7 +89,6 @@ export const GuestScheduleProvider: React.FC<{ children: React.ReactNode }> = ({
         onSubmitEmail={guest.submitEmail}
         onSkipEmail={guest.skipEmail}
         onChooseCandidate={guest.chooseCandidate}
-        onViewOnJoy={openJoy}
         heading={unlockCopy?.heading}
         blurb={unlockCopy?.blurb}
         submitLabel={unlockCopy?.submitLabel}

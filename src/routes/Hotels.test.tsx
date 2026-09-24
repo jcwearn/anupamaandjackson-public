@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, fireEvent } from '@testing-library/react'
 import Hotels from './Hotels'
 import { GOLKONDA_SLUG, hotels } from '../data/hotels'
 import { GuestScheduleProvider } from '../lib/GuestScheduleProvider'
@@ -308,5 +308,41 @@ describe('Hotels room personalization', () => {
     const { container } = renderPage()
 
     expect(golkondaCard(container).queryByText(RSVP_PUNT)).not.toBeInTheDocument()
+  })
+})
+
+describe('Hotels unlock prompt', () => {
+  // The gates above hide rooms silently, so a guest who hasn't unlocked needs
+  // telling that the list they're looking at may not be the whole of it.
+  const unlockButton = () => screen.queryByRole('button', { name: 'Unlock Your Stay' })
+
+  it('asks a visitor who has not signed in for their name', () => {
+    const { container } = renderPage()
+
+    expect(header(container).getByText(/see the hotels we’ve arranged for you/)).toBeInTheDocument()
+    fireEvent.click(unlockButton()!)
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleName('Unlock your stay')
+  })
+
+  it('holds the button disabled while a returning guest is still being looked up', () => {
+    setState({ status: 'loading' })
+    renderPage()
+
+    expect(unlockButton()).toBeDisabled()
+  })
+
+  it('goes away once the guest is identified', () => {
+    setState(withEvents('Ada'))
+    renderPage()
+
+    expect(unlockButton()).toBeNull()
+  })
+
+  it('stays out of the way when there is no index to unlock against', () => {
+    setState({ status: 'error' })
+    renderPage()
+
+    expect(unlockButton()).toBeNull()
   })
 })

@@ -19,7 +19,6 @@ const renderModal = (overrides: Overrides = {}) => {
     onSubmitEmail: noop as (email: string) => void,
     onSkipEmail: noop,
     onChooseCandidate: noop as (index: number) => void,
-    onViewOnJoy: noop,
     ...overrides,
   }
   return render(<ScheduleUnlockModal {...props} />)
@@ -114,14 +113,11 @@ describe('ScheduleUnlockModal', () => {
     expect(button).toBeDisabled()
   })
 
-  it('offers a way out when the name is not found', () => {
-    const onViewOnJoy = vi.fn()
-    renderModal({ status: 'notFound', onViewOnJoy })
+  it('suggests another spelling when the name is not found', () => {
+    renderModal({ status: 'notFound' })
 
     expect(screen.getByRole('status')).toHaveTextContent(/couldn’t find that name/)
-    fireEvent.click(screen.getByRole('button', { name: 'view your details on Joy' }))
-
-    expect(onViewOnJoy).toHaveBeenCalled()
+    expect(screen.getByRole('status')).toHaveTextContent(/Try a different spelling/)
   })
 
   it('shows no not-found message before anyone has looked anything up', () => {

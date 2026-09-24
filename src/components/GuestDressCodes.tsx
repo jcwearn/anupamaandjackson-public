@@ -42,8 +42,7 @@ const GuestDressCodes: React.FC<{
         unlockLabel="Unlock Your Events"
         unlockCopy={{
           heading: 'Outfits for your events',
-          blurb:
-            'Add your name as it appears on your invitation and we’ll show you the dress code for each event on your schedule.',
+          blurb: 'Add your name and we’ll show you the dress code for each event on your schedule.',
           submitLabel: 'Show My Events',
         }}
       />

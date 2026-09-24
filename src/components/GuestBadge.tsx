@@ -16,8 +16,7 @@ interface Props {
 
 const UNLOCK_COPY = {
   heading: 'Unlock your details',
-  blurb:
-    'Add your name as it appears on your invitation and we’ll tailor the schedule and travel tips to your celebrations.',
+  blurb: 'Add your name and we’ll tailor the schedule and travel tips to your celebrations.',
   submitLabel: 'Unlock',
 }
 

@@ -36,11 +36,18 @@ const roomNote = {
     `advance.${OPT_OUT}`,
 } as const
 
+// The dialog's defaults are the Schedule page's; this page is about rooms.
+const UNLOCK_COPY = {
+  heading: 'Unlock your stay',
+  blurb: 'Add your name and we’ll show you the hotels we’ve arranged for you.',
+  submitLabel: 'Unlock Your Stay',
+}
+
 const Hotels: React.FC = () => {
   // Set only for guests the generator resolved to a room at the resort: tagged,
   // attending, and taking it. Undefined on the server and on the first client
   // render, so the prerendered page and the hydrated one agree.
-  const { events, golkonda } = useGuestScheduleContext()
+  const { events, golkonda, status, openUnlock } = useGuestScheduleContext()
 
   // Two coarser gates, read off the events the same way /travel and
   // /kerala-itinerary read the Kerala trip. Not everyone is invited to the
@@ -92,6 +99,27 @@ const Hotels: React.FC = () => {
               and comfortable!
             </p>
           </div>
+          {/* Both hotel gates above stay shut for a guest who hasn't unlocked,
+              and nothing on the page says so — an invited guest would just see
+              a shorter list and assume it was the whole of it. Hidden once
+              identified, and on 'error', where there's no index to unlock
+              against. Disabled rather than hidden while loading, so a returning
+              guest's page doesn't jump when the button disappears. */}
+          {status !== 'identified' && status !== 'error' && (
+            <div className="mx-auto mt-6 max-w-xl">
+              <p className="text-left font-body text-lg leading-relaxed text-zeus/80">
+                Add your name to see the hotels we’ve arranged for you.
+              </p>
+              <button
+                type="button"
+                onClick={() => openUnlock(UNLOCK_COPY)}
+                disabled={status === 'loading'}
+                className="btn-primary mt-6"
+              >
+                Unlock Your Stay
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
