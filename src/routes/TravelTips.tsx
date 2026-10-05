@@ -233,7 +233,7 @@ const groups: {
         body: (
           <Bullets
             items={[
-              'An Indian power adapter (Type D / Type M) for your chargers and electronics.',
+              'An Indian power adapter (Type D) for your chargers and electronics.',
               'A portable power bank — long days out, and you’ll lean on your phone for maps, ride-hailing, and photos.',
               'Travel-size hand sanitizer — handy before street food and on long days out.',
               'Sun protection — sunscreen, a hat, and sunglasses.',
