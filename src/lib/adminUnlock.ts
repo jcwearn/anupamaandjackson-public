@@ -64,6 +64,14 @@ export interface GuestSummaryEntry {
   declined?: string
   status: GuestSummaryStatus
   /**
+   * A baby: listed like anyone else, and left out of every count on the page,
+   * because a head count here means a plate and a chair and a baby takes
+   * neither. Absent rather than false for everyone else — and for everyone on
+   * an index built before the field existed, which is what keeps that case
+   * counting them exactly as it always did. See INFANT_TAG in scheduleIndex.js.
+   */
+  infant?: true
+  /**
    * Opaque household id, absent for guests who travel alone. Not the party's
    * name — the generator keeps that — just enough to tell that two adjacent
    * rows belong together. Entries sharing one are always adjacent in the

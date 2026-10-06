@@ -1104,3 +1104,67 @@ describe('GuestSummary event filter', () => {
     expect(listed()).toContain('Carl Sagan')
   })
 })
+
+describe('GuestSummary infants', () => {
+  // A baby takes no plate and no chair, so the counts leave them out — but they
+  // are still coming, and the list still has to show them and their RSVP.
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked', {
+      summary: [
+        {
+          name: 'Ada Lovelace',
+          side: 'anupama',
+          events: 'MR',
+          attending: 'MR',
+          status: 'attending',
+        },
+        {
+          name: 'Marie Curie',
+          side: 'anupama',
+          events: 'MR',
+          attending: 'MR',
+          status: 'attending',
+          infant: true,
+        },
+        { name: 'Alan Turing', side: 'jackson', events: 'MR', attending: 'M', status: 'attending' },
+      ],
+    })
+  })
+
+  const showEveryone = () => fireEvent.click(screen.getByRole('button', { name: 'No Response' }))
+
+  it('lists an infant, marked as one', () => {
+    renderPage()
+    showEveryone()
+
+    expect(screen.getByRole('rowheader', { name: /Marie Curie/ })).toHaveTextContent('Infant')
+    expect(screen.getByRole('rowheader', { name: /Ada Lovelace/ })).not.toHaveTextContent('Infant')
+  })
+
+  it('leaves an infant out of the guest count, and says so', () => {
+    renderPage()
+    showEveryone()
+
+    expect(screen.getByText('2 guests')).toHaveTextContent('2 guests + 1 infant, not counted')
+  })
+
+  it('says nothing about infants when none are on screen', () => {
+    renderPage()
+    showEveryone()
+    search('turing')
+
+    expect(screen.getByText('1 guest')).toHaveTextContent(/^1 guest$/)
+  })
+
+  it('leaves an infant out of the event breakdown too', () => {
+    renderPage()
+    showEveryone()
+    fireEvent.click(screen.getByRole('button', { name: 'Reception' }))
+
+    expect(breakdown()).toEqual({
+      cohort: '2 invited to the Reception + 1 infant',
+      events: ['Reception — 1 attending · 0 not attending · 1 no response'],
+    })
+  })
+})

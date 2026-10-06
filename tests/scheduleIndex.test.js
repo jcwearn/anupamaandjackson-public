@@ -506,6 +506,19 @@ describe('guest summary roster', () => {
     }
   })
 
+  it('marks a guest tagged infant, and nobody else', () => {
+    // Tagged in With Joy rather than named here: this file is public.
+    const tagged = {
+      ...guests.find((guest) => guest.firstName === 'Ada'),
+      tags: new Set(['infant']),
+    }
+    const [entry] = buildGuestSummary([tagged])
+    expect(entry.infant).toBe(true)
+    // Absent rather than false on everyone else, which is also the shape an
+    // index built before the field existed has.
+    for (const other of summary) expect(other).not.toHaveProperty('infant')
+  })
+
   it('sorts a household under its alphabetically first member', () => {
     // The two Prayaga namesakes are in different parties, so they stay apart;
     // what matters is that a household does not pull its block out of order.
@@ -722,6 +735,29 @@ describe('build-time guards', () => {
     expect(Object.keys(index.guests).length).toBeGreaterThan(index.guestCount)
     expect(() => assertRosterPlausible(stats.guests, index.guestCount)).not.toThrow()
     expect(() => assertRosterPlausible(648, 721)).toThrow(/>10%/)
+  })
+
+  it('leaves infants out of the summary totals the sync prints', async () => {
+    // The same rule as the page: still on the list, not in the head count.
+    const ada = guests.find((guest) => guest.firstName === 'Ada')
+    const { stats: withInfant } = await buildIndex({
+      guests: guests.map((guest) =>
+        guest === ada ? { ...guest, tags: new Set([...guest.tags, 'infant']) } : guest,
+      ),
+      catalogEvents,
+      iterations: TEST_ITERATIONS,
+      adminIterations: TEST_ITERATIONS,
+      adminPassphrase: TEST_PASSPHRASE,
+    })
+
+    expect(stats.summaryInfants).toBe(0)
+    expect(withInfant.summaryInfants).toBe(1)
+    expect(withInfant.summary).toBe(stats.summary)
+    expect(withInfant.summaryStatus.attending).toBe(stats.summaryStatus.attending - 1)
+    expect(withInfant.summaryTagged.vidya).toBe(stats.summaryTagged.vidya - 1)
+    expect(withInfant.summaryPerEvent.Reception.attending).toBe(
+      stats.summaryPerEvent.Reception.attending - 1,
+    )
   })
 
   it('refuses to publish while a guest carries no gating tag', () => {

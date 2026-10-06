@@ -192,7 +192,11 @@ async function main() {
   console.log(
     `Guest summary:    ${stats.summary} names — ` +
       `${stats.summaryStatus.attending} attending, ${stats.summaryStatus.declined} not, ` +
-      `${stats.summaryStatus.none} no response`,
+      `${stats.summaryStatus.none} no response` +
+      // The verdicts leave the babies out and the name count does not, so this
+      // is what makes the line add up. Printed at 0 too: a tag misspelt in With
+      // Joy reads as exactly that.
+      `, ${stats.summaryInfants} infant(s) not counted`,
   )
   console.log(
     `  by side:        ` +

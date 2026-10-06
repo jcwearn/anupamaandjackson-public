@@ -177,6 +177,9 @@ const joinLabels = (labels: string[]) =>
         .map((label) => `the ${label}`)
         .join(', ')} and the ${labels.at(-1)}`
 
+/** '1 infant', '2 infants' — the clause the counts add for the babies they leave out. */
+const infantCount = (count: number) => `${count} ${count === 1 ? 'infant' : 'infants'}`
+
 type Side = (typeof SIDES)[number]['value']
 
 /**
@@ -439,6 +442,17 @@ const GuestSummary: React.FC = () => {
   const visible = useMemo(() => select(status), [select, status])
 
   /**
+   * How many of the rows on screen are babies, who are listed and not counted.
+   *
+   * Counted off `visible` rather than kept as a second filter, so the two can
+   * never disagree about which rows are on the list: the babies are still rows,
+   * still searchable, still answering their RSVP. It is only the number above
+   * the table that leaves them out — see GuestSummaryEntry.
+   */
+  const infants = useMemo(() => visible.filter((entry) => entry.infant).length, [visible])
+  const counted = visible.length - infants
+
+  /**
    * How the events the chips name have actually been answered, over the guests
    * the rest of the filters left.
    *
@@ -459,10 +473,14 @@ const GuestSummary: React.FC = () => {
    */
   const breakdown = useMemo(() => {
     if (chosenEvents.size === 0) return null
-    const cohort = select(null)
+    // The babies come out of every number here, like the count above. The
+    // cohort line says how many, so the lines below still visibly add up.
+    const everyone = select(null)
+    const cohort = everyone.filter((entry) => !entry.infant)
     const chosen = SUMMARY_EVENTS.filter(({ letter }) => chosenEvents.has(letter))
     return {
       cohort: cohort.length,
+      infants: everyone.length - cohort.length,
       scope: joinLabels(chosen.map(({ label }) => label)),
       rows: chosen.map(({ letter, label }) => {
         const state = (entry: GuestSummaryEntry) => dotState(entry, entry.events ?? '', letter)
@@ -559,8 +577,13 @@ const GuestSummary: React.FC = () => {
         </div>
       </div>
 
+      {/* The babies get a clause of their own rather than vanishing from the
+          number silently: someone counting the rows against it would otherwise
+          find two too many and no explanation. In a span so that the count
+          itself stays one plain phrase. */}
       <p aria-live="polite" className="mt-6 text-center text-sm text-zeus/70">
-        {visible.length} {visible.length === 1 ? 'guest' : 'guests'}
+        {counted} {counted === 1 ? 'guest' : 'guests'}
+        {infants > 0 && <span>{` + ${infantCount(infants)}, not counted`}</span>}
       </p>
 
       {/* Outside the live region above deliberately. The guest count is one
@@ -575,6 +598,7 @@ const GuestSummary: React.FC = () => {
         <div className="mt-1 text-center">
           <p className="text-sm text-zeus/70">
             {breakdown.cohort} invited to {breakdown.scope}
+            {breakdown.infants > 0 && <span>{` + ${infantCount(breakdown.infants)}`}</span>}
           </p>
           <ul className="mt-1 flex flex-col items-center gap-0.5 text-xs text-zeus/60">
             {breakdown.rows.map(({ letter, label, attending, declined, none }) => (
@@ -776,6 +800,15 @@ const GuestSummary: React.FC = () => {
                             <span aria-hidden="true" className={householdBox(first, last)} />
                           )}
                           {member.name}
+                          {/* Beside the name rather than in a column of its
+                              own: two rows out of hundreds would leave a column
+                              almost entirely empty. It is what explains this row
+                              being missing from the count above. */}
+                          {member.infant && (
+                            <span className="ml-2 rounded-full bg-lily/25 px-2 py-0.5 align-middle text-xs text-zeus/70">
+                              Infant
+                            </span>
+                          )}
                         </th>
                         {SUMMARY_EVENTS.map(({ tag, letter, label }) => {
                           const { mark, say } = DOTS[dotState(member, events, letter)]

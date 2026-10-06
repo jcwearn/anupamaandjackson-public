@@ -31,9 +31,10 @@ import {
 // and to 12 when their `events` widened from the three events an invitation is
 // narrowed by to the four the table has a column for — the pellikuthuru joined
 // them, to 13 when the room occupants gained `invoiced`, and to 14 when they
-// gained `seatTransfer`. Feeds sourceFingerprint, so bumping it is what makes a
-// shape change actually republish.
-export const INDEX_VERSION = 14
+// gained `seatTransfer`, and to 15 when the summary entries gained `infant`.
+// Feeds sourceFingerprint, so bumping it is what makes a shape change actually
+// republish.
+export const INDEX_VERSION = 15
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -149,6 +150,25 @@ export function assertGolkondaAnswersRecognized(guests) {
  * No guest carries both today, and nothing here depends on that staying true.
  */
 export const SUMMARY_TAGS = ['vidya', 'venkat']
+
+/**
+ * The With Joy tag for a guest who is a baby: on the list, and out of the count.
+ *
+ * A head count here is a caterer's number and a seating plan's — a plate and a
+ * chair each — and a baby on a lap takes neither. Counting them inflated every
+ * total the family reads off /admin/guest-summary, so they were asked to come
+ * off it. Dropping them from the summary altogether was the wrong fix: they are
+ * still coming, still invited, and their RSVP still needs to be seen.
+ *
+ * A tag rather than a list of names, because this file is mirrored publicly and
+ * a guest's name has no business in it — and because the next baby is then a
+ * With Joy edit rather than a code change.
+ *
+ * Optional, unlike the tags asserted below: a roster with no babies on it is a
+ * perfectly good roster, so a missing column must not fail the sync. The sync
+ * log prints how many it found, which is where a misspelt tag shows up as 0.
+ */
+export const INFANT_TAG = 'infant'
 
 /**
  * The RSVP columns that count as attendance, collapsed into the one verdict
@@ -361,6 +381,10 @@ export function buildGuestSummary(guests) {
         ...(attending ? { attending } : {}),
         ...(declined ? { declined } : {}),
         status: guestSummaryStatus(guest),
+        // Absent rather than false, like `tag`: nearly every guest is not one,
+        // and an index built before the field existed reads the same way —
+        // counted, which is all it ever did.
+        ...(guest.tags.has(INFANT_TAG) ? { infant: true } : {}),
         key: guest.party,
       },
     ]
@@ -1272,6 +1296,9 @@ export async function buildIndex({
   // Built from `guests`, not `records`: the latter has already dropped everyone
   // with no event tag, and those are the rows /admin/guest-summary most needs.
   const summary = buildGuestSummary(guests)
+  // The guests the totals below count, which is everyone but the babies — the
+  // same rule the page's own counts follow; see INFANT_TAG.
+  const counted = summary.filter((entry) => !entry.infant)
   // Rooms whole, plus whatever the agent has been paid. Both are admin-only
   // views of data that already rides in the index per guest; neither adds a
   // reader, because this envelope's key is a GitHub secret rather than a name.
@@ -1316,13 +1343,14 @@ export async function buildIndex({
       guests: records.length,
       admins: records.filter((record) => record.admin).length,
       summary: summary.length,
+      summaryInfants: summary.length - counted.length,
       summaryTagged: Object.fromEntries(
-        SUMMARY_TAGS.map((tag) => [tag, summary.filter((entry) => entry.tag === tag).length]),
+        SUMMARY_TAGS.map((tag) => [tag, counted.filter((entry) => entry.tag === tag).length]),
       ),
       summaryStatus: Object.fromEntries(
         ['attending', 'declined', 'none'].map((status) => [
           status,
-          summary.filter((entry) => entry.status === status).length,
+          counted.filter((entry) => entry.status === status).length,
         ]),
       ),
       // Per event rather than per guest, which is the whole point of the dots:
@@ -1333,9 +1361,9 @@ export async function buildIndex({
         SUMMARY_EVENTS.map(({ letter, label }) => [
           label,
           {
-            invited: summary.filter((entry) => entry.events?.includes(letter)).length,
-            attending: summary.filter((entry) => entry.attending?.includes(letter)).length,
-            declined: summary.filter((entry) => entry.declined?.includes(letter)).length,
+            invited: counted.filter((entry) => entry.events?.includes(letter)).length,
+            attending: counted.filter((entry) => entry.attending?.includes(letter)).length,
+            declined: counted.filter((entry) => entry.declined?.includes(letter)).length,
           },
         ]),
       ),
