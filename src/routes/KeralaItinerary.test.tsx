@@ -304,7 +304,7 @@ describe('Kerala flights', () => {
     for (const [number, ...details] of [
       ['IndiGo 6E 6682', 'HYD', 'COK', '2:15 PM', '3:55 PM', '1h 40m'],
       ['IndiGo 6E 6681', 'COK', 'HYD', '4:25 PM', '6:00 PM', '1h 35m'],
-      ['IndiGo 6E 951', 'COK', 'HYD', '1:49 PM', '3:15 PM', '1h 26m'],
+      ['IndiGo 6E 6235', 'COK', 'HYD', '3:10 PM', '4:40 PM', '1h 30m'],
     ]) {
       const box = screen.getByText(number).closest('div.rounded-lg')!
       for (const detail of details) {
@@ -500,7 +500,7 @@ describe('Kerala itinerary filters', () => {
 
     expect(screen.getByRole('heading', { name: 'Full itinerary' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Shortened itinerary' })).toBeInTheDocument()
-    expect(screen.getByText('IndiGo 6E 951')).toBeInTheDocument()
+    expect(screen.getByText('IndiGo 6E 6235')).toBeInTheDocument()
     expect(screen.getByText(/one last breakfast at the hotel/)).toBeInTheDocument()
   })
 
@@ -512,13 +512,13 @@ describe('Kerala itinerary filters', () => {
     expect(screen.queryByRole('heading', { name: 'Full itinerary' })).toBeNull()
     expect(priceRow('Shortened itinerary', 'Single occupancy')).toEqual(['$555'])
     // The Nov 1 return leaves the day after these guests do.
-    expect(screen.queryByText('IndiGo 6E 951')).toBeNull()
+    expect(screen.queryByText('IndiGo 6E 6235')).toBeNull()
     expect(screen.getByText(/head straight to the airport that afternoon/)).toBeInTheDocument()
   })
 
   it('gives the shortened return its own flight, not the full trip’s', () => {
     // Both returns run COK → HYD, so the only thing separating them is the date:
-    // 6E 951 departs November 1, the day after these guests leave.
+    // 6E 6235 departs November 1, the day after these guests leave.
     render()
     fireEvent.click(screen.getByRole('button', { name: 'Shortened' }))
     fireEvent.click(screen.getByRole('button', { name: 'Round trip' }))
@@ -527,7 +527,7 @@ describe('Kerala itinerary filters', () => {
     for (const detail of ['4:25 PM', '6:00 PM', '1h 35m']) {
       expect(within(box as HTMLElement).getByText(detail), detail).toBeInTheDocument()
     }
-    expect(screen.queryByText('IndiGo 6E 951')).toBeNull()
+    expect(screen.queryByText('IndiGo 6E 6235')).toBeNull()
   })
 
   it('keeps both flights and drops the one-way column on the full round trip', () => {
@@ -536,7 +536,7 @@ describe('Kerala itinerary filters', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Round trip' }))
 
     expect(screen.getByText('IndiGo 6E 6682')).toBeInTheDocument()
-    expect(screen.getByText('IndiGo 6E 951')).toBeInTheDocument()
+    expect(screen.getByText('IndiGo 6E 6235')).toBeInTheDocument()
     expect(priceRow('Full itinerary', 'Single occupancy')).toEqual(['$945'])
     expect(screen.queryByRole('columnheader', { name: /One way/ })).toBeNull()
   })
@@ -811,6 +811,6 @@ describe('Kerala itinerary toggles', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show everything' }))
 
     expect(screen.getByRole('heading', { name: 'Full itinerary' })).toBeInTheDocument()
-    expect(screen.getByText('IndiGo 6E 951')).toBeInTheDocument()
+    expect(screen.getByText('IndiGo 6E 6235')).toBeInTheDocument()
   })
 })
