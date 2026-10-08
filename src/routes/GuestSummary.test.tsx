@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import GuestSummary from './GuestSummary'
 import AdminLayout from '../layouts/AdminLayout'
@@ -21,6 +21,13 @@ vi.mock('../lib/useGuestSchedule', () => ({
 vi.mock('../lib/adminUnlock', () => ({
   useAdminUnlock: () => unlockState.current,
 }))
+
+// The spreadsheet itself is attendingGuestsExport.test.ts's subject. Here the
+// question is only what the button hands it.
+const exportAttendingGuests = vi.hoisted(() =>
+  vi.fn<(summary: readonly GuestSummaryEntry[]) => Promise<void>>(() => Promise.resolve()),
+)
+vi.mock('../lib/attendingGuestsExport', () => ({ exportAttendingGuests }))
 
 const setState = (overrides: Partial<GuestScheduleState> = {}) => {
   state.current = {
@@ -1166,5 +1173,35 @@ describe('GuestSummary infants', () => {
       cohort: '2 invited to the Reception + 1 infant',
       events: ['Reception — 1 attending · 0 not attending · 1 no response'],
     })
+  })
+})
+
+describe('export attending guests', () => {
+  beforeEach(() => {
+    asAdmin()
+    setUnlock('unlocked')
+    exportAttendingGuests.mockClear()
+  })
+
+  it('exports the whole roster whatever the chips are filtered to', () => {
+    // The page opens on No Response; the export is still everyone who is coming.
+    renderPage()
+    choose('Jackson')
+    fireEvent.click(screen.getByRole('button', { name: 'Export Attending Guests' }))
+
+    expect(exportAttendingGuests).toHaveBeenCalledExactlyOnceWith(summary)
+  })
+
+  it('says it is saving until the file is written', async () => {
+    let finish = () => {}
+    exportAttendingGuests.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finish = resolve)),
+    )
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Export Attending Guests' }))
+
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await act(async () => finish())
+    expect(screen.getByRole('button', { name: 'Export Attending Guests' })).toBeEnabled()
   })
 })

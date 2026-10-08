@@ -17,6 +17,8 @@
  * awaited first, or an export fired on a cold load draws in the fallback serif.
  */
 
+import { saveBlob } from './saveBlob'
+
 export interface TableImageColumn {
   header: string
   /** Figures line up right, prose reads from the left. */
@@ -182,14 +184,5 @@ export async function downloadTableImage(spec: TableImageSpec, filename: string)
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
   if (!blob) throw new Error('The browser could not turn the export into a PNG.')
 
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename.endsWith('.png') ? filename : `${filename}.png`
-  document.body.append(link)
-  link.click()
-  link.remove()
-  // Not immediately: Safari has not started reading the blob when click()
-  // returns, and revoking under it saves a zero-byte file.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  saveBlob(blob, filename.endsWith('.png') ? filename : `${filename}.png`)
 }

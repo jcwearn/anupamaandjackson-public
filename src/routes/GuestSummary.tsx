@@ -1,12 +1,15 @@
 import React, { useCallback, useMemo, useState } from 'react'
 import type { GuestSummaryEntry, GuestSummaryStatus } from '../lib/adminUnlock'
 import { useAdminContext } from '../lib/adminContext'
+import { exportAttendingGuests } from '../lib/attendingGuestsExport'
 import { chipClass } from '../lib/chipClass'
 import { JUMP_NAV_SECTION_TOP, SITE_NAV_OFFSET, SITE_ORIGIN } from '../lib/constants'
 import { fold } from '../lib/guestName'
+import { SIDES, onSide, type Side } from '../lib/guestLists'
 import { SUMMARY_EVENTS, inviteEventsIn, inviteLinkFor } from '../lib/inviteLink'
 import { useHiddenOnScrollDown } from '../lib/useHiddenOnScrollDown'
 import CopyButton from '../components/CopyButton'
+import { DownloadIcon } from '../icons/DownloadIcon'
 
 /**
  * The outline drawn around a household's names.
@@ -114,24 +117,6 @@ const dotState = (member: GuestSummaryEntry, events: string, letter: string): Do
 }
 
 /**
- * Whose list to show. The four partition the roster: Vidya's and Venkat's guests
- * are all on Anupama's side, so hers is what is left of it once their two lists
- * are taken out.
- *
- * There is deliberately no "Everyone" chip. It used to be the first of five, and
- * it was the odd one out — four lists and a not-a-list sitting as peers, with no
- * equivalent on the RSVP row below, which meant the page could never show all
- * three answers at once. Both rows now say "no filter" the same way: nothing
- * selected. Clicking the chip you are on releases it.
- */
-const SIDES = [
-  { value: 'anupama', label: 'Anupama' },
-  { value: 'jackson', label: 'Jackson' },
-  { value: 'vidya', label: 'Vidya' },
-  { value: 'venkat', label: 'Venkat' },
-] as const
-
-/**
  * The three answers, in the order they are asked about. 'none' is last and is
  * the reason the page exists: attending and declined are both settled, and the
  * list worth acting on is the one nobody has answered yet.
@@ -179,38 +164,6 @@ const joinLabels = (labels: string[]) =>
 
 /** '1 infant', '2 infants' — the clause the counts add for the babies they leave out. */
 const infantCount = (count: number) => `${count} ${count === 1 ? 'infant' : 'infants'}`
-
-type Side = (typeof SIDES)[number]['value']
-
-/**
- * Whether a guest belongs on the chosen list.
- *
- * Two independent tag families meet here. `side` is which side of the wedding
- * the guest is on, and every guest on the real roster has one — the sync fails
- * rather than publish a guest who doesn't. `tag` is the finer split of Anupama's
- * side between her parents' lists, and it is set only for those two, so its
- * absence is the "on neither of them" test.
- *
- * An entry carrying no `side` is on none of the four lists, and so shows up only
- * when the row is empty. That is the honest answer for the one case that
- * produces it: this bundle and schedule-index.json deploy separately, so for a
- * moment the index in front of it is a version behind and has no side to file
- * its guests under. See GuestSummaryEntry.
- *
- * Only called with a chosen side — "no chip" is tested at the call site rather
- * than as a case here, so the switch stays exhaustive over the real lists and
- * the compiler keeps it that way when one is added.
- */
-const onSide = (entry: GuestSummaryEntry, side: Side) => {
-  switch (side) {
-    case 'anupama':
-      return entry.side === 'anupama' && !entry.tag
-    case 'jackson':
-      return entry.side === 'jackson'
-    default:
-      return entry.tag === side
-  }
-}
 
 /**
  * The shell every row of filter chips is drawn in: its label, and the group
@@ -362,6 +315,7 @@ const GuestSummary: React.FC = () => {
   // list it has always opened on — everyone who has answered nothing at all.
   const [chosenEvents, setChosenEvents] = useState<ReadonlySet<string>>(() => new Set())
   const [status, setStatus] = useState<GuestSummaryStatus | null>('none')
+  const [exporting, setExporting] = useState(false)
   const [query, setQuery] = useState('')
 
   // The column headings pin under whatever is above them, which is one bar or
@@ -522,10 +476,27 @@ const GuestSummary: React.FC = () => {
 
   return (
     <>
-      <h2 className="font-display text-2xl text-rosewood">Guest Summary</h2>
-      <p className="mt-2 mb-6 text-sm text-zeus/70">
-        Who has answered, and who still needs asking.
-      </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-2xl text-rosewood">Guest Summary</h2>
+          <p className="mt-2 text-sm text-zeus/70">Who has answered, and who still needs asking.</p>
+        </div>
+        {/* Up here beside the heading rather than in the filter card, because it
+            ignores the filters: it always exports the whole attending roster, and
+            sitting among the chips would suggest it saves what they show. */}
+        <button
+          type="button"
+          onClick={() => {
+            setExporting(true)
+            void exportAttendingGuests(summary).finally(() => setExporting(false))
+          }}
+          disabled={exporting}
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-gold/50 px-3 py-1.5 font-body text-sm text-rosewood transition-colors hover:bg-lily/30 disabled:opacity-60"
+        >
+          <DownloadIcon className="h-4 w-4" />
+          {exporting ? 'Saving…' : 'Export Attending Guests'}
+        </button>
+      </div>
 
       {/* In a card of their own, so the filters read as one panel that acts on
           the table below rather than as loose chrome floating above it.
