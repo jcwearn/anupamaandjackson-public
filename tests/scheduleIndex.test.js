@@ -29,7 +29,7 @@ import {
   sourceFingerprint,
   summaryAnswersOutsideInvite,
 } from '../scripts/lib/scheduleIndex.js'
-import { normalizedKey } from '../src/lib/guestName.js'
+import { aliasesFor, normalizedKey } from '../src/lib/guestName.js'
 import {
   base64ToBytes,
   decryptJson,
@@ -795,6 +795,25 @@ describe('encrypted index round trip', () => {
 
   it('returns nothing for an unknown name', async () => {
     expect(await lookup('Nobody', 'Here')).toBeNull()
+  })
+
+  // Keys are derived for every alias at once and paired back up afterwards; a
+  // pairing slip would encrypt one guest's bucket under another guest's name.
+  it('opens every alias bucket with that alias, in roster order', async () => {
+    const salt = base64ToBytes(index.kdf.salt)
+    const aliases = [...new Set(guests.flatMap((guest) => aliasesFor(guest)))]
+    const hashes = []
+    for (const alias of aliases) {
+      const hash = await lookupHash(alias, salt)
+      const bucket = index.guests[hash]
+      if (!bucket) continue
+      hashes.push(hash)
+      const key = await deriveGuestKey(alias, salt, index.kdf.iterations)
+      // decryptJson answers a wrong key with null, not a throw.
+      const opened = await Promise.all(bucket.map((entry) => decryptJson(key, entry)))
+      expect(opened, alias).not.toContain(null)
+    }
+    expect(hashes).toEqual(Object.keys(index.guests))
   })
 
   it('prompts only for genuinely ambiguous names', async () => {

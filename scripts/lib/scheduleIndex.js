@@ -1245,11 +1245,25 @@ export async function buildIndex({
     }
   }
 
+  // Every alias's PBKDF2 is started at once rather than awaited in turn.
+  // WebCrypto runs it on libuv's threadpool, so a serial loop kept one core
+  // busy for ~20s of every schedule sync while the rest of the runner idled —
+  // the single slowest step between pressing "Run both" and the site updating.
+  // The pool caps concurrency itself; no limiter needed here.
+  const aliases = [...buckets.keys()]
+  const derived = await Promise.all(
+    aliases.map(async (alias) => ({
+      key: await deriveGuestKey(alias, salt, iterations),
+      hash: await lookupHash(alias, salt),
+    })),
+  )
+
+  // Assigned back in bucket order, so the index's key order is exactly what the
+  // serial loop produced.
   const guestIndex = {}
-  for (const [alias, bucketRecords] of buckets) {
-    const resolved = resolveBucket(bucketRecords)
-    const key = await deriveGuestKey(alias, salt, iterations)
-    const hash = await lookupHash(alias, salt)
+  for (const [i, alias] of aliases.entries()) {
+    const resolved = resolveBucket(buckets.get(alias))
+    const { key, hash } = derived[i]
 
     // Unlike hints, labels have no distinctness guarantee from resolveBucket —
     // two solo-party namesakes would both derive '' or matching envelope

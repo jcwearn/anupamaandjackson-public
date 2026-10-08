@@ -43,12 +43,12 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth 0 rather than checkout's default of 1: the push below
-      # rebases when main has moved, and a one-commit repo has nothing to
-      # rebase onto.
+      # Checkout's default depth of 1. This was fetch-depth 0, because the push
+      # below rebases when main has moved and a one-commit clone has nothing to
+      # rebase onto -- but fetching all of history cost ~8s on every run, for a
+      # retry that almost never happens. The retry deepens instead, paying only
+      # when it is actually needed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
 
       # Same .node-version as CI and the Pages build. The generator runs
       # against Node builtins only, so the exact patch matters less here than
@@ -155,7 +155,11 @@ jobs:
             fi
 
             echo "Push rejected -- main moved. Rebasing and retrying."
-            git fetch origin main
+            # --deepen, not a plain fetch: the clone is shallow, and the rebase
+            # needs the commit this job started from and main's new head to
+            # share history it can see. 50 is far more than main ever moves
+            # within one run.
+            git fetch --deepen=50 origin main
             # FETCH_HEAD, not origin/main: a fetch with an explicit refspec
             # only updates the remote-tracking ref opportunistically, and the
             # one ref it is guaranteed to write is this one.
