@@ -17,6 +17,9 @@ build/
 # area once, because the list below spells out five names and matches nothing
 # else. Anything starting with .env is a credential until proven otherwise.
 .env*
+# The exception: .envrc only tells direnv where to load the wedding-hq token
+# from, and holds no values. Never put a value in it -- it is committed.
+!.envrc
 
 # IDE files
 .vscode/
