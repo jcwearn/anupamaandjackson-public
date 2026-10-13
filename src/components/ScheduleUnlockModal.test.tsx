@@ -120,6 +120,15 @@ describe('ScheduleUnlockModal', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/Try a different spelling/)
   })
 
+  it('says so when the lookup itself fails, and leaves the form to try again', () => {
+    // Wedding HQ unreachable: not the guest's spelling, so no spelling advice.
+    renderModal({ status: 'error' })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn’t look you up just now/)
+    expect(screen.queryByText(/Try a different spelling/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Unlock Your Schedule' })).toBeEnabled()
+  })
+
   it('shows no not-found message before anyone has looked anything up', () => {
     renderModal()
 

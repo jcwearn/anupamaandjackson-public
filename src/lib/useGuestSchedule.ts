@@ -1,30 +1,48 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { normalizedKey } from './guestName'
-import type { Envelope } from './guestCrypto'
-import {
-  base64ToBytes,
-  decryptJson,
-  deriveGuestKey,
-  emailHash,
-  importEventKey,
-  lookupHash,
-} from './guestCrypto'
 import { KERALA_EVENT_ID, universalEvents } from '../data/scheduleEvents'
 import type { ScheduleEvent } from '../data/scheduleEvents'
 import { setKeralaInvited } from './useNavItems'
 
-const INDEX_URL = '/schedule-index.json'
+/**
+ * Served by functions/guest/lookup.ts, which asks Wedding HQ. Guests used to be
+ * looked up here in the browser against an encrypted index of every guest —
+ * a file anyone could download and try names against. Now only the name goes
+ * out, and only that guest's own page comes back.
+ */
+const LOOKUP_URL = '/guest/lookup'
 const STORAGE_KEY = 'schedule-guest'
+/**
+ * The last page HQ gave this guest, kept beside their name. A returning guest
+ * sees their schedule at once, before the lookup comes back, and still sees it
+ * if HQ is unreachable for a moment — a wedding week is the wrong time to show
+ * someone an empty page because a server an ocean away is slow.
+ */
+const RECORD_KEY = 'schedule-record'
 
-interface ScheduleIndex {
-  v: number
-  updatedAt: string
-  kdf: { iterations: number; salt: string }
-  events: Record<string, Envelope>
-  guests: Record<string, Envelope[]>
+/** What HQ returns for a guest: their page, private event copy included. */
+interface GuestRecord {
+  displayName: string
+  /** Raw party string, set only when the guest had to pick their household. */
+  hint?: string
+  admin?: boolean
+  kerala?: KeralaGuestInfo
+  golkonda?: GolkondaStay
+  eventIds: string[]
+  /** Copy for the private events in eventIds; universal ones are bundled. */
+  events: Record<string, ScheduleEvent>
 }
 
-/** The guest's Kerala trip-form choices, baked into their encrypted record. */
+type LookupResult =
+  | { status: 'found'; record: GuestRecord }
+  | {
+      status: 'choose'
+      options: { hint: string; label: string }[]
+      canVerifyEmail: boolean
+      emailFailed?: boolean
+    }
+  | { status: 'not_found' }
+
+/** The guest's Kerala trip-form choices, as Wedding HQ holds them. */
 export interface KeralaGuestInfo {
   trip: 'full' | 'short'
   flight: 'rt' | 'ow'
@@ -47,28 +65,9 @@ export interface KeralaGuestInfo {
  * Whether the guest's room at Golkonda is on us ('covered') or theirs to settle
  * ('own'). Absent unless the generator found all three of: a Golkonda tag, an
  * Attending muhurtham RSVP, and an answer accepting the room — see
- * `golkondaStay` in scripts/lib/scheduleIndex.js.
+ * `golkondaStay` in wedding-hq's src/shared/guestRules.ts.
  */
 export type GolkondaStay = 'covered' | 'own'
-
-interface GuestRecord {
-  displayName: string
-  /** Raw party string; stays the identity token persisted to localStorage. */
-  hint?: string
-  /** Guest-facing label ('With Venkat & Aditya Tadanki') shown instead of the hint. */
-  hintLabel?: string
-  /** Salted hashes of every email in the guest's party; absent when none on file. */
-  emailHashes?: string[]
-  /** Omitted rather than false by the generator, so absent means "not an admin". */
-  admin?: boolean
-  /** Omitted for guests who never filled out the trip form. */
-  kerala?: KeralaGuestInfo
-  /** Omitted unless a room at the resort is held for them and they're coming. */
-  golkonda?: GolkondaStay
-  eventIds: string[]
-  /** Parallel to eventIds; null where the event is bundled, not encrypted. */
-  keys: (string | null)[]
-}
 
 export type GuestScheduleStatus =
   'loading' | 'anonymous' | 'resolving' | 'ambiguous' | 'identified' | 'notFound' | 'error'
@@ -126,31 +125,57 @@ function saveName(guest: SavedGuest) {
   }
 }
 
-/** Decrypts a guest's events, pulling universal copy from the bundle. */
-async function eventsForRecord(
-  record: GuestRecord,
-  index: ScheduleIndex,
-): Promise<ScheduleEvent[]> {
-  const events: ScheduleEvent[] = []
+interface CachedRecord extends SavedGuest {
+  record: GuestRecord
+}
 
-  for (let i = 0; i < record.eventIds.length; i += 1) {
-    const id = record.eventIds[i]
-    const rawKey = record.keys[i]
-
-    if (!rawKey) {
-      const bundled = universalEvents.find((event) => event.id === id)
-      if (bundled) events.push(bundled)
-      continue
-    }
-
-    const envelope = index.events[id]
-    if (!envelope) continue
-    const key = await importEventKey(base64ToBytes(rawKey))
-    const detail = await decryptJson<ScheduleEvent>(key, envelope)
-    if (detail) events.push(detail)
+function readCachedRecord(saved: SavedGuest): GuestRecord | null {
+  try {
+    const raw = window.localStorage.getItem(RECORD_KEY)
+    const cached: CachedRecord | null = raw ? JSON.parse(raw) : null
+    // Only for the same name: a cache left by whoever signed in last on a
+    // shared phone must never paint for the next person.
+    if (!cached || cached.first !== saved.first || cached.last !== saved.last) return null
+    if ((cached.hint ?? '') !== (saved.hint ?? '')) return null
+    return cached.record
+  } catch {
+    return null
   }
+}
 
-  return events
+function cacheRecord(saved: SavedGuest, record: GuestRecord) {
+  try {
+    window.localStorage.setItem(RECORD_KEY, JSON.stringify({ ...saved, record }))
+  } catch {
+    // As with the name: the guest still sees the page, just not offline.
+  }
+}
+
+function forgetGuest() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.removeItem(RECORD_KEY)
+  } catch {
+    // Ignore storage failures; state is reset either way.
+  }
+}
+
+async function postLookup(body: SavedGuest & { email?: string }): Promise<LookupResult> {
+  const response = await fetch(LOOKUP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) throw new Error(String(response.status))
+  return response.json()
+}
+
+/** The guest's events in their own order, universal copy from the bundle. */
+function eventsForRecord(record: GuestRecord): ScheduleEvent[] {
+  return record.eventIds.flatMap((id) => {
+    const event = universalEvents.find((bundled) => bundled.id === id) ?? record.events[id]
+    return event ? [event] : []
+  })
 }
 
 export function useGuestSchedule(): GuestScheduleState {
@@ -164,15 +189,14 @@ export function useGuestSchedule(): GuestScheduleState {
   const [emailPrompt, setEmailPrompt] = useState(false)
   const [emailFailed, setEmailFailed] = useState(false)
 
-  const indexRef = useRef<ScheduleIndex | null>(null)
-  const pendingRef = useRef<{ first: string; last: string; records: GuestRecord[] } | null>(null)
-  // Guards against a resolved lookup landing after the component unmounts or
-  // after the guest has already signed out again.
+  const pendingRef = useRef<{ first: string; last: string; hints: string[] } | null>(null)
+  // Guards against a lookup landing after the component unmounts, after the
+  // guest has signed out, or after a newer lookup has started.
   const activeRef = useRef(true)
+  const generationRef = useRef(0)
 
-  const applyRecord = useCallback(async (record: GuestRecord, index: ScheduleIndex) => {
-    const resolved = await eventsForRecord(record, index)
-    if (!activeRef.current) return
+  const applyRecord = useCallback((record: GuestRecord) => {
+    const resolved = eventsForRecord(record)
     setEvents(resolved.length > 0 ? resolved : universalEvents)
     setIsAdmin(record.admin === true)
     setDisplayName(record.displayName)
@@ -187,63 +211,56 @@ export function useGuestSchedule(): GuestScheduleState {
     setKeralaInvited(resolved.some((event) => event.id === KERALA_EVENT_ID))
   }, [])
 
+  /**
+   * Asks HQ and acts on the answer. `background` is a returning guest's
+   * refresh behind a cached page: a failure there leaves the cached page up
+   * rather than taking it away.
+   */
   const resolve = useCallback(
-    async (first: string, last: string, savedHint?: string) => {
-      const index = indexRef.current
-      if (!index) {
-        setStatus('error')
+    async (query: SavedGuest & { email?: string }, background = false) => {
+      const generation = ++generationRef.current
+      if (!background) {
+        setStatus('resolving')
+        // A fresh lookup must not inherit a stale email sub-state.
+        setEmailPrompt(false)
+        setEmailFailed(false)
+      }
+
+      let result: LookupResult
+      try {
+        result = await postLookup(query)
+      } catch {
+        if (activeRef.current && generation === generationRef.current && !background) {
+          setStatus('error')
+        }
+        return
+      }
+      if (!activeRef.current || generation !== generationRef.current) return
+
+      const { first, last } = query
+      if (result.status === 'found') {
+        const saved = { first, last, ...(result.record.hint ? { hint: result.record.hint } : {}) }
+        saveName(saved)
+        cacheRecord(saved, result.record)
+        applyRecord(result.record)
         return
       }
 
-      setStatus('resolving')
-      // A fresh lookup must not inherit a stale email sub-state.
-      setEmailPrompt(false)
-      setEmailFailed(false)
-      const key = normalizedKey(first, last)
-      const salt = base64ToBytes(index.kdf.salt)
-      const bucket = index.guests[await lookupHash(key, salt)]
-
-      if (!bucket) {
-        if (activeRef.current) setStatus('notFound')
-        return
-      }
-
-      const cryptoKey = await deriveGuestKey(key, salt, index.kdf.iterations)
-      const records = (
-        await Promise.all(bucket.map((entry) => decryptJson<GuestRecord>(cryptoKey, entry)))
-      ).filter((record): record is GuestRecord => record !== null)
-
-      if (!activeRef.current) return
-
-      if (records.length === 0) {
+      if (result.status === 'not_found') {
+        // Off the list since last time, or never on it: either way the cached
+        // page is no longer theirs to see.
+        if (background) forgetGuest()
         setStatus('notFound')
         return
       }
 
-      // More than one record only survives the generator when the guests
-      // sharing this name have genuinely different invite sets, so ask which
+      // More than one guest by this name, and their pages differ: ask which
       // household rather than guessing.
-      if (records.length > 1) {
-        const remembered = savedHint
-          ? records.find((record) => record.hint === savedHint)
-          : undefined
-
-        if (!remembered) {
-          pendingRef.current = { first, last, records }
-          setCandidates(records.map((record) => record.hintLabel ?? record.hint ?? ''))
-          // Offer the email check first when any record can verify one; a
-          // bucket with no emails on file goes straight to the choice buttons.
-          setEmailPrompt(records.some((record) => (record.emailHashes ?? []).length > 0))
-          setStatus('ambiguous')
-          return
-        }
-
-        await applyRecord(remembered, index)
-        return
-      }
-
-      saveName({ first, last })
-      await applyRecord(records[0], index)
+      pendingRef.current = { first, last, hints: result.options.map((option) => option.hint) }
+      setCandidates(result.options.map((option) => option.label))
+      setEmailPrompt(result.canVerifyEmail && !result.emailFailed)
+      setEmailFailed(result.emailFailed === true)
+      setStatus('ambiguous')
     },
     [applyRecord],
   )
@@ -251,55 +268,33 @@ export function useGuestSchedule(): GuestScheduleState {
   useEffect(() => {
     activeRef.current = true
 
+    // localStorage is the external system here: the page is prerendered as
+    // 'loading', with no storage to read, and must hydrate that way before
+    // anything remembered on this device can show.
     const load = async () => {
-      try {
-        const response = await fetch(INDEX_URL, { cache: 'no-cache' })
-        // A missing index is expected until the first sync runs; treat it the
-        // same as a failure and fall back to the universal events.
-        if (!response.ok) throw new Error(String(response.status))
-        indexRef.current = await response.json()
-      } catch {
-        if (activeRef.current) setStatus('error')
+      const saved = readSavedName()
+      if (!saved) {
+        setStatus('anonymous')
         return
       }
-
-      if (!activeRef.current) return
-
-      const saved = readSavedName()
-      if (saved) await resolve(saved.first, saved.last, saved.hint)
-      else setStatus('anonymous')
+      const cached = readCachedRecord(saved)
+      if (cached) applyRecord(cached)
+      await resolve(saved, cached !== null)
     }
 
     void load()
     return () => {
       activeRef.current = false
     }
-  }, [resolve])
+  }, [applyRecord, resolve])
 
   const submitEmail = useCallback(
     (email: string) => {
-      void (async () => {
-        const pending = pendingRef.current
-        const index = indexRef.current
-        if (!pending || !index) return
-
-        const hash = await emailHash(email.trim().toLowerCase(), base64ToBytes(index.kdf.salt))
-        if (!activeRef.current) return
-
-        const matches = pending.records.filter((record) => record.emailHashes?.includes(hash))
-        // Anything but exactly one match — including one address shared by
-        // both households — falls back to asking outright.
-        if (matches.length !== 1) {
-          setEmailPrompt(false)
-          setEmailFailed(true)
-          return
-        }
-
-        saveName({ first: pending.first, last: pending.last, hint: matches[0].hint })
-        await applyRecord(matches[0], index)
-      })()
+      const pending = pendingRef.current
+      if (!pending) return
+      void resolve({ first: pending.first, last: pending.last, email: email.trim() })
     },
-    [applyRecord],
+    [resolve],
   )
 
   const skipEmail = useCallback(() => {
@@ -309,23 +304,16 @@ export function useGuestSchedule(): GuestScheduleState {
   const chooseCandidate = useCallback(
     (choice: number) => {
       const pending = pendingRef.current
-      const index = indexRef.current
-      if (!pending || !index) return
-      const record = pending.records[choice]
-      if (!record) return
-
-      saveName({ first: pending.first, last: pending.last, hint: record.hint })
-      void applyRecord(record, index)
+      const hint = pending?.hints[choice]
+      if (!pending || hint === undefined) return
+      void resolve({ first: pending.first, last: pending.last, hint })
     },
-    [applyRecord],
+    [resolve],
   )
 
   const signOut = useCallback(() => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY)
-    } catch {
-      // Ignore storage failures; state is reset either way.
-    }
+    forgetGuest()
+    generationRef.current += 1
     pendingRef.current = null
     setEvents(universalEvents)
     setIsAdmin(false)
@@ -342,7 +330,7 @@ export function useGuestSchedule(): GuestScheduleState {
 
   const lookup = useCallback(
     (first: string, last: string) => {
-      void resolve(first, last)
+      void resolve({ first, last })
     },
     [resolve],
   )

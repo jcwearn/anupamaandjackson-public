@@ -1,13 +1,9 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, renderHook, waitFor } from '@testing-library/react'
 
 // Imported through Vite rather than read off disk: this file is typechecked by
 // `tsc -b` along with the rest of src, and there is no @types/node here.
 import catalog from '../../data/schedule-events.json'
-import guestCsv from '../../tests/fixtures/guests.sample.csv?raw'
-import keralaFixture from '../../tests/fixtures/kerala-responses.sample.json'
-import { parseCsv, rowsToGuests } from '../../scripts/lib/roster.js'
-import { buildIndex } from '../../scripts/lib/scheduleIndex.js'
 import { useGuestSchedule } from './useGuestSchedule'
 import {
   GOLKONDA_STAY_EVENT_ID,
@@ -15,33 +11,123 @@ import {
   universalEvents,
 } from '../data/scheduleEvents'
 
-// Low iterations keep the suite fast; production uses KDF_ITERATIONS. Matches
-// what tests/scheduleIndex.test.js does.
-const TEST_ITERATIONS = 1000
+/**
+ * A stand-in for Wedding HQ behind /guest/lookup. Which guest gets which page —
+ * aliases, gates, namesakes, party labels — is HQ's to decide, and its own
+ * suite holds that to the old index generator with golden vectors. What this
+ * file tests is the browser's half: asking, remembering, and what it shows
+ * while it waits or when HQ cannot be reached.
+ */
+const event = (id: string, title: string) => ({ id, title, date: '2026-10-27', time: '10:00' })
 
-// The real generator's output over the real fixture, not a hand-written index:
-// this is the only test that exercises the browser half of the round trip, so
-// what it decrypts has to be what the sync actually publishes.
-let index: unknown
+const RECORDS: Record<string, Record<string, unknown>> = {
+  'grace hopper': {
+    displayName: 'Grace',
+    eventIds: ['muhurtham', 'reception'],
+    events: { reception: event('reception', 'Reception') },
+  },
+  'ada lovelace': {
+    displayName: 'Ada',
+    eventIds: ['muhurtham', 'reception'],
+    events: { reception: event('reception', 'Reception') },
+  },
+  'alan turing': {
+    displayName: 'Alan',
+    admin: true,
+    golkonda: 'covered',
+    eventIds: [PELLIKUTHURU_EVENT_ID, GOLKONDA_STAY_EVENT_ID, 'muhurtham', 'kerala'],
+    events: {
+      [PELLIKUTHURU_EVENT_ID]: event(PELLIKUTHURU_EVENT_ID, 'Pellikuthuru'),
+      [GOLKONDA_STAY_EVENT_ID]: event(GOLKONDA_STAY_EVENT_ID, 'Check-in'),
+      kerala: event('kerala', 'Kerala'),
+    },
+  },
+  'vera rubin': {
+    displayName: 'Vera',
+    eventIds: ['muhurtham', 'kerala'],
+    events: { kerala: event('kerala', 'Kerala') },
+    kerala: {
+      trip: 'full',
+      flight: 'rt',
+      occupancy: 'double',
+      roommates: ['Carl Sagan'],
+      priceOverride: 67440,
+    },
+  },
+}
 
-beforeAll(async () => {
-  ;({ index } = await buildIndex({
-    guests: rowsToGuests(parseCsv(guestCsv)),
-    catalogEvents: catalog.events,
-    iterations: TEST_ITERATIONS,
-    keralaResponses: keralaFixture.responses,
-  }))
-})
+const SMITHS = {
+  'With Mary Smith': { hint: 'Smith Family', email: 'mary@example.com', eventIds: ['muhurtham'] },
+  'With Peter Smith': {
+    hint: 'Smith Household',
+    email: 'peter@example.com',
+    eventIds: ['muhurtham', 'reception'],
+  },
+}
 
-const serveIndex = () =>
+type Body = { first: string; last: string; hint?: string; email?: string }
+
+function hq(body: Body) {
+  const name = `${body.first} ${body.last}`.trim().toLowerCase()
+  if (name === 'john smith') {
+    const households = Object.entries(SMITHS)
+    const chosen =
+      households.find(([, h]) => h.hint === body.hint) ??
+      households.find(([, h]) => body.email && h.email === body.email.trim().toLowerCase())
+    if (chosen) {
+      const [, h] = chosen
+      return {
+        status: 'found',
+        record: {
+          displayName: 'John',
+          hint: h.hint,
+          eventIds: h.eventIds,
+          events: { reception: event('reception', 'Reception') },
+        },
+      }
+    }
+    return {
+      status: 'choose',
+      options: households.map(([label, h]) => ({ hint: h.hint, label })),
+      canVerifyEmail: body.email === undefined,
+      ...(body.email !== undefined ? { emailFailed: true } : {}),
+    }
+  }
+  if (name === 'emmy noether') {
+    // Namesakes with nobody in either party to label them by, and no email.
+    return {
+      status: 'choose',
+      options: [
+        { hint: 'Noether North', label: 'Noether North' },
+        { hint: 'Noether South', label: 'Noether South' },
+      ],
+      canVerifyEmail: false,
+    }
+  }
+  const record = RECORDS[name]
+  return record ? { status: 'found', record } : { status: 'not_found' }
+}
+
+let lookups: Body[]
+
+const serveHq = (
+  respond: (body: Body) => Promise<Response> | Response = (body) => Response.json(hq(body)),
+) => {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => ({ ok: true, json: async () => index })),
+    vi.fn(async (url: string, init?: RequestInit) => {
+      expect(url).toBe('/guest/lookup')
+      const body = JSON.parse(String(init?.body)) as Body
+      lookups.push(body)
+      return respond(body)
+    }),
   )
+}
 
 beforeEach(() => {
   window.localStorage.clear()
-  serveIndex()
+  lookups = []
+  serveHq()
 })
 
 afterEach(() => {
@@ -51,128 +137,98 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const titles = (events: { title: string }[]) => events.map((event) => event.title)
+const ids = (events: { id: string }[]) => events.map((e) => e.id)
+
+async function signIn(first: string, last: string) {
+  const hook = renderHook(() => useGuestSchedule())
+  await waitFor(() => expect(hook.result.current.status).toBe('anonymous'))
+  act(() => hook.result.current.lookup(first, last))
+  return hook
+}
 
 describe('useGuestSchedule', () => {
-  it('settles on anonymous once the index loads with no remembered guest', async () => {
+  it('settles on anonymous with no remembered guest, without asking HQ anything', async () => {
     const { result } = renderHook(() => useGuestSchedule())
 
-    expect(result.current.status).toBe('loading')
     await waitFor(() => expect(result.current.status).toBe('anonymous'))
     // Something useful is on screen before anyone types a name.
     expect(result.current.events).toEqual(universalEvents)
+    expect(lookups).toEqual([])
   })
 
-  it('falls back to the universal events when the index will not load', async () => {
-    // Expected until the first sync runs, and the page still has to render the
-    // main celebrations rather than an empty schedule.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({ ok: false, status: 404, json: async () => ({}) })),
-    )
-    const { result } = renderHook(() => useGuestSchedule())
-
-    await waitFor(() => expect(result.current.status).toBe('error'))
-    expect(result.current.events).toEqual(universalEvents)
-  })
-
-  it('treats a network failure the same as a missing index', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new Error('offline')
-      }),
-    )
-    const { result } = renderHook(() => useGuestSchedule())
-
-    await waitFor(() => expect(result.current.status).toBe('error'))
-    expect(result.current.events).toEqual(universalEvents)
-  })
-
-  it('decrypts a guest their own schedule', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Alan', 'Turing'))
+  it('shows a guest their own schedule, bundled and private events in their order', async () => {
+    const { result } = await signIn('Alan', 'Turing')
 
     await waitFor(() => expect(result.current.status).toBe('identified'))
     expect(result.current.displayName).toBe('Alan')
-    // Turing carries every tag in the fixture, so this is more than the two
-    // bundled events — proof the encrypted half decrypted.
-    expect(result.current.events.length).toBeGreaterThan(universalEvents.length)
-    expect(titles(result.current.events)).toContain('Wedding Ceremony & Muhurtham')
+    expect(ids(result.current.events)).toEqual([
+      PELLIKUTHURU_EVENT_ID,
+      GOLKONDA_STAY_EVENT_ID,
+      'muhurtham',
+      'kerala',
+    ])
+    // The ceremony's copy comes from the bundle, not from HQ.
+    expect(result.current.events[2]).toBe(universalEvents.find((e) => e.id === 'muhurtham'))
+    expect(result.current.isAdmin).toBe(true)
   })
 
-  it('gives a guest with fewer invitations fewer events', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Ada', 'Lovelace'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    const ada = result.current.events.length
-    expect(ada).toBeGreaterThan(0)
-
-    act(() => result.current.signOut())
-    act(() => result.current.lookup('Alan', 'Turing'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    expect(result.current.events.length).toBeGreaterThan(ada)
+  it('sends only the name', async () => {
+    await signIn('Grace', 'Hopper')
+    await waitFor(() => expect(lookups).toHaveLength(1))
+    expect(lookups[0]).toEqual({ first: 'Grace', last: 'Hopper' })
   })
 
   it('reports a name that is not on the list', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Nobody', 'Here'))
+    const { result } = await signIn('Nobody', 'Here')
 
     await waitFor(() => expect(result.current.status).toBe('notFound'))
     expect(result.current.events).toEqual(universalEvents)
   })
 
-  it('asks which household when two guests share a name and differ', async () => {
-    // The two John Smiths in the fixture have different invite sets, so
-    // guessing would show one of them the other's private events.
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
+  it('says so when HQ cannot be reached, and keeps the main celebrations up', async () => {
+    serveHq(() => new Response('{}', { status: 503 }))
+    const { result } = await signIn('Grace', 'Hopper')
 
-    act(() => result.current.lookup('John', 'Smith'))
+    await waitFor(() => expect(result.current.status).toBe('error'))
+    expect(result.current.events).toEqual(universalEvents)
+  })
+
+  it('treats a network failure the same way', async () => {
+    serveHq(() => Promise.reject(new Error('offline')))
+    const { result } = await signIn('Grace', 'Hopper')
+
+    await waitFor(() => expect(result.current.status).toBe('error'))
+  })
+
+  it('asks which household when two guests share a name and differ', async () => {
+    const { result } = await signIn('John', 'Smith')
 
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
-    // Labeled by party mates, never by the internal party string.
-    expect(result.current.candidates).toEqual(
-      expect.arrayContaining(['With Mary Smith', 'With Peter Smith']),
-    )
-    // Both Smith parties have an email on file, so the email check comes first.
+    expect(result.current.candidates).toEqual(['With Mary Smith', 'With Peter Smith'])
+    // Both households have an email on file, so the email check comes first.
     expect(result.current.emailPrompt).toBe(true)
     expect(result.current.emailFailed).toBe(false)
   })
 
   it('resolves silently when the offered email matches one household', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('John', 'Smith'))
+    const { result } = await signIn('John', 'Smith')
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
 
-    // Mary's address covers John — party emails are pooled — and the mangled
-    // casing and padding must not matter.
-    act(() => result.current.submitEmail('  Mary@Example.COM '))
+    act(() => result.current.submitEmail('  mary@example.com '))
 
     await waitFor(() => expect(result.current.status).toBe('identified'))
-    expect(result.current.displayName).toBe('John')
+    expect(lookups.at(-1)).toEqual({ first: 'John', last: 'Smith', email: 'mary@example.com' })
 
-    // The match also persists the household, so a reload skips every prompt.
+    // The match also remembers the household, so a reload skips every prompt.
     const reloaded = renderHook(() => useGuestSchedule())
     await waitFor(() => expect(reloaded.result.current.status).toBe('identified'))
-    expect(reloaded.result.current.displayName).toBe('John')
+    await waitFor(() =>
+      expect(lookups.at(-1)).toEqual({ first: 'John', last: 'Smith', hint: 'Smith Family' }),
+    )
   })
 
   it('falls back to the household choice when the email matches nothing', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('John', 'Smith'))
+    const { result } = await signIn('John', 'Smith')
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
 
     act(() => result.current.submitEmail('nobody@example.com'))
@@ -182,16 +238,12 @@ describe('useGuestSchedule', () => {
     expect(result.current.status).toBe('ambiguous')
 
     // The buttons still work after the failed attempt.
-    const family = result.current.candidates.indexOf('With Mary Smith')
-    act(() => result.current.chooseCandidate(family))
+    act(() => result.current.chooseCandidate(0))
     await waitFor(() => expect(result.current.status).toBe('identified'))
   })
 
   it('lets a guest skip the email check', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('John', 'Smith'))
+    const { result } = await signIn('John', 'Smith')
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
 
     act(() => result.current.skipEmail())
@@ -201,89 +253,100 @@ describe('useGuestSchedule', () => {
     expect(result.current.status).toBe('ambiguous')
   })
 
-  it('skips the email check when no colliding household has one on file', async () => {
-    // Neither Ram Prayaga has an email anywhere in their party, so asking
-    // would be pure friction before the same buttons.
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Ram', 'Prayaga'))
+  it('skips the email check when no household has one on file', async () => {
+    const { result } = await signIn('Emmy', 'Noether')
 
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
     expect(result.current.emailPrompt).toBe(false)
-    // No party mates to label with either — the party hint is the fallback.
-    expect(result.current.candidates).toEqual(
-      expect.arrayContaining(['Prayaga North', 'Prayaga South']),
-    )
+    expect(result.current.candidates).toEqual(['Noether North', 'Noether South'])
   })
 
-  it('does not ask when the guests sharing a name have identical invitations', async () => {
-    // Both Jane Does are invited to the same events, so either record serves.
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Jane', 'Doe'))
-
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-    expect(result.current.candidates).toEqual([])
-  })
-
-  it('resolves the schedule once a household is chosen', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('John', 'Smith'))
+  it('resolves the schedule once a household is chosen, by its hint', async () => {
+    const { result } = await signIn('John', 'Smith')
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
-    act(() => result.current.skipEmail())
 
-    const family = result.current.candidates.indexOf('With Mary Smith')
-    act(() => result.current.chooseCandidate(family))
+    act(() => result.current.chooseCandidate(1))
 
     await waitFor(() => expect(result.current.status).toBe('identified'))
-    expect(result.current.displayName).toBe('John')
+    expect(lookups.at(-1)).toEqual({ first: 'John', last: 'Smith', hint: 'Smith Household' })
+    expect(ids(result.current.events)).toEqual(['muhurtham', 'reception'])
     expect(result.current.candidates).toEqual([])
   })
 
-  it('remembers the guest across a reload', async () => {
-    const first = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(first.result.current.status).toBe('anonymous'))
-    act(() => first.result.current.lookup('Grace', 'Hopper'))
+  it('shows a returning guest their page at once, then refreshes it from HQ', async () => {
+    const first = await signIn('Grace', 'Hopper')
     await waitFor(() => expect(first.result.current.status).toBe('identified'))
     first.unmount()
 
+    // HQ has moved on since: Grace is now invited to the Kerala trip too.
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    serveHq(async () => {
+      await gate
+      return Response.json({
+        status: 'found',
+        record: {
+          displayName: 'Grace',
+          eventIds: ['muhurtham', 'reception', 'kerala'],
+          events: { reception: event('reception', 'Reception'), kerala: event('kerala', 'Kerala') },
+        },
+      })
+    })
+
+    const second = renderHook(() => useGuestSchedule())
+    // Straight to identified from the cache — never anonymous, never resolving.
+    await waitFor(() => expect(second.result.current.status).toBe('identified'))
+    expect(ids(second.result.current.events)).toEqual(['muhurtham', 'reception'])
+
+    release()
+    await waitFor(() => expect(ids(second.result.current.events)).toContain('kerala'))
+  })
+
+  it('keeps a returning guest’s page up when HQ cannot be reached', async () => {
+    const first = await signIn('Grace', 'Hopper')
+    await waitFor(() => expect(first.result.current.status).toBe('identified'))
+    first.unmount()
+
+    serveHq(() => new Response('{}', { status: 503 }))
     const second = renderHook(() => useGuestSchedule())
 
-    await waitFor(() => expect(second.result.current.status).toBe('identified'))
+    await waitFor(() => expect(lookups).toHaveLength(2))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(second.result.current.status).toBe('identified')
     expect(second.result.current.displayName).toBe('Grace')
-    // Straight to identified — never anonymous in between.
-    expect(second.result.current.candidates).toEqual([])
   })
 
-  it('remembers which household, so a shared name is not asked twice', async () => {
-    // Stored as the hint rather than a position in the bucket: bucket order
-    // follows roster row order, so a position would start pointing at the
-    // other household the first time a row is inserted above them.
-    const first = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(first.result.current.status).toBe('anonymous'))
-    act(() => first.result.current.lookup('John', 'Smith'))
-    await waitFor(() => expect(first.result.current.status).toBe('ambiguous'))
-    act(() => first.result.current.skipEmail())
-    const household = first.result.current.candidates.indexOf('With Peter Smith')
-    act(() => first.result.current.chooseCandidate(household))
+  it('takes the page away when HQ no longer knows the guest', async () => {
+    const first = await signIn('Grace', 'Hopper')
     await waitFor(() => expect(first.result.current.status).toBe('identified'))
-    const events = first.result.current.events.length
     first.unmount()
 
+    serveHq(() => Response.json({ status: 'not_found' }))
     const second = renderHook(() => useGuestSchedule())
 
-    await waitFor(() => expect(second.result.current.status).toBe('identified'))
-    expect(second.result.current.events.length).toBe(events)
+    await waitFor(() => expect(second.result.current.status).toBe('notFound'))
+    expect(window.localStorage.getItem('schedule-record')).toBeNull()
   })
 
-  it('forgets the guest on sign out', async () => {
-    const { result, unmount } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-    act(() => result.current.lookup('Grace', 'Hopper'))
+  it('never paints one guest’s cached page for another name', async () => {
+    const first = await signIn('Grace', 'Hopper')
+    await waitFor(() => expect(first.result.current.status).toBe('identified'))
+    first.unmount()
+
+    // Someone else's name ends up remembered on the same phone.
+    window.localStorage.setItem(
+      'schedule-guest',
+      JSON.stringify({ first: 'Ada', last: 'Lovelace' }),
+    )
+    serveHq(() => new Promise<Response>(() => {}))
+    const second = renderHook(() => useGuestSchedule())
+
+    await waitFor(() => expect(second.result.current.status).toBe('resolving'))
+    expect(second.result.current.displayName).toBeUndefined()
+  })
+
+  it('forgets the guest, and their cached page, on sign out', async () => {
+    const { result, unmount } = await signIn('Grace', 'Hopper')
     await waitFor(() => expect(result.current.status).toBe('identified'))
 
     act(() => result.current.signOut())
@@ -291,10 +354,28 @@ describe('useGuestSchedule', () => {
     expect(result.current.status).toBe('anonymous')
     expect(result.current.displayName).toBeUndefined()
     expect(result.current.events).toEqual(universalEvents)
+    expect(window.localStorage.getItem('schedule-record')).toBeNull()
 
     unmount()
     const reopened = renderHook(() => useGuestSchedule())
     await waitFor(() => expect(reopened.result.current.status).toBe('anonymous'))
+  })
+
+  it('ignores an answer that lands after sign out', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    serveHq(async (body) => {
+      await gate
+      return Response.json(hq(body))
+    })
+    const { result } = await signIn('Grace', 'Hopper')
+    await waitFor(() => expect(result.current.status).toBe('resolving'))
+
+    act(() => result.current.signOut())
+    release()
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(result.current.status).toBe('anonymous')
   })
 
   it('survives localStorage being unavailable', async () => {
@@ -302,69 +383,41 @@ describe('useGuestSchedule', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError')
     })
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Grace', 'Hopper'))
+    const { result } = await signIn('Grace', 'Hopper')
 
     await waitFor(() => expect(result.current.status).toBe('identified'))
     expect(result.current.displayName).toBe('Grace')
   })
 
   it('records a Kerala guest, so the nav can offer that link', async () => {
-    // Alan Turing carries optional-trip in the fixture.
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Alan', 'Turing'))
+    const { result } = await signIn('Alan', 'Turing')
     await waitFor(() => expect(result.current.status).toBe('identified'))
 
-    expect(result.current.events.some((event) => event.id === 'kerala')).toBe(true)
     expect(window.localStorage.getItem('schedule-kerala-invited')).toBe('true')
   })
 
   it('records nothing for a guest who is not on the Kerala trip', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Ada', 'Lovelace'))
+    const { result } = await signIn('Ada', 'Lovelace')
     await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    expect(result.current.events.some((event) => event.id === 'kerala')).toBe(false)
-    expect(window.localStorage.getItem('schedule-kerala-invited')).toBeNull()
-  })
-
-  it('clears the Kerala record on sign out', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-    act(() => result.current.lookup('Alan', 'Turing'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    act(() => result.current.signOut())
 
     expect(window.localStorage.getItem('schedule-kerala-invited')).toBeNull()
   })
 
   it('clears it again when a Kerala guest is replaced by one who is not', async () => {
     // Identifying as someone else must not leave the previous guest's link up.
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-    act(() => result.current.lookup('Alan', 'Turing'))
+    const { result } = await signIn('Alan', 'Turing')
     await waitFor(() => expect(result.current.status).toBe('identified'))
     expect(window.localStorage.getItem('schedule-kerala-invited')).toBe('true')
 
     act(() => result.current.signOut())
     act(() => result.current.lookup('Ada', 'Lovelace'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
+    await waitFor(() => expect(result.current.displayName).toBe('Ada'))
 
     expect(window.localStorage.getItem('schedule-kerala-invited')).toBeNull()
   })
 
   it('carries the guest their Kerala trip choices, and forgets them on sign out', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Vera', 'Rubin'))
+    const { result } = await signIn('Vera', 'Rubin')
     await waitFor(() => expect(result.current.status).toBe('identified'))
 
     expect(result.current.kerala).toEqual({
@@ -373,78 +426,34 @@ describe('useGuestSchedule', () => {
       occupancy: 'double',
       roommates: ['Carl Sagan'],
       priceOverride: 67440,
-      priceNote: 'Carl heads home a night early, so your last night is single occupancy.',
     })
 
     act(() => result.current.signOut())
     expect(result.current.kerala).toBeUndefined()
   })
 
-  it('carries no Kerala choices for a trip guest who never filled out the form', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Alan', 'Turing'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    expect(result.current.kerala).toBeUndefined()
-  })
-
   it('carries the guest their Golkonda room, and forgets it on sign out', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Alan', 'Turing'))
+    const { result } = await signIn('Alan', 'Turing')
     await waitFor(() => expect(result.current.status).toBe('identified'))
     expect(result.current.golkonda).toBe('covered')
 
     act(() => result.current.signOut())
     expect(result.current.golkonda).toBeUndefined()
   })
+})
 
-  it('leaves the room unset for a guest who is not taking one', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
+describe('the event catalog', () => {
+  it('gates the two event ids /hotels reads on the tags it assumes', () => {
+    // /hotels reads "invited to the Pellikuthuru" and "tagged for a room at the
+    // resort" off these ids because the catalog gates them on exactly those
+    // tags. Nothing else ties the constants to the catalog, so this is the test
+    // that goes red if the gate moves instead of the page silently showing the
+    // wrong hotels. HQ gates by the same catalog (npm run import:site-events).
+    const gateOf = (id: string) => catalog.events.find((e) => e.id === id)?.gate
 
-    // Tagged and attending, but she declined the room.
-    act(() => result.current.lookup('Katherine', 'Johnson'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-
-    expect(result.current.golkonda).toBeUndefined()
-    // She still has the hotel events; only /hotels changes.
-    expect(result.current.events.some((event) => event.id === 'check-in')).toBe(true)
-  })
-
-  it('resolves the two event ids /hotels gates on from the real catalog', async () => {
-    // /hotels reads "invited to the Pellikuthuru" and "tagged for a room at
-    // the resort" off these ids because the catalog gates them on exactly those
-    // tags. Nothing else ties the constants to the catalog, so this is the
-    // test that goes red if the gate moves instead of the page silently
-    // showing the wrong hotels.
-    const ids = (events: { id: string }[]) => events.map((event) => event.id)
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    // Tagged pellikuthuru and hotel-golkonda-covered.
-    act(() => result.current.lookup('Alan', 'Turing'))
-    await waitFor(() => expect(result.current.status).toBe('identified'))
-    expect(ids(result.current.events)).toEqual(
-      expect.arrayContaining([PELLIKUTHURU_EVENT_ID, GOLKONDA_STAY_EVENT_ID]),
+    expect(gateOf(PELLIKUTHURU_EVENT_ID)).toBe('pellikuthuru')
+    expect(gateOf(GOLKONDA_STAY_EVENT_ID)).toEqual(
+      expect.arrayContaining(['hotel-golkonda-covered', 'hotel-golkonda-own']),
     )
-
-    // Tagged muhurtam and reception only.
-    act(() => result.current.lookup('Ada', 'Lovelace'))
-    await waitFor(() => expect(result.current.displayName).toBe('Ada'))
-    expect(ids(result.current.events)).not.toContain(PELLIKUTHURU_EVENT_ID)
-    expect(ids(result.current.events)).not.toContain(GOLKONDA_STAY_EVENT_ID)
-  })
-
-  it('omits a guest carrying no gating tag', async () => {
-    const { result } = renderHook(() => useGuestSchedule())
-    await waitFor(() => expect(result.current.status).toBe('anonymous'))
-
-    act(() => result.current.lookup('Tagless', 'Guest'))
-
-    await waitFor(() => expect(result.current.status).toBe('notFound'))
   })
 })

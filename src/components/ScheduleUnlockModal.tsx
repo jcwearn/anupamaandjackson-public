@@ -225,6 +225,16 @@ const ScheduleUnlockModal: React.FC<Props> = ({
                 is wrong.
               </p>
             )}
+
+            {/* The lookup is a request to Wedding HQ now, not a file already in
+                hand, so it can fail after the guest presses the button. Without
+                this the form just quietly came back, which reads as the site
+                ignoring them. */}
+            {status === 'error' && (
+              <p role="alert" className="mt-3 font-body text-sm text-zeus/80">
+                We couldn’t look you up just now — please try again in a moment.
+              </p>
+            )}
           </>
         )}
       </div>
