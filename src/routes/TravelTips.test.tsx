@@ -104,6 +104,7 @@ describe('Standalone advice survives edits', () => {
     ['money-and-payments', 'choose rupees'],
     ['make-a-voting-plan', 'vote.org'],
     ['make-a-voting-plan', 'November 3'],
+    ['fill-out-your-e-arrival-card', 'few days before your arrival date'],
   ]
 
   it.each(claims)('#%s still carries "%s"', (id, phrase) => {

@@ -187,6 +187,39 @@ const groups: {
     title: 'The week before',
     blurb: 'Packing, phones, and a few things to set up before you fly.',
     tips: [
+      // First in the section because it's the one with a window: the form only
+      // offers arrival dates a few days out, so it can't be done any earlier
+      // and is easy to forget until the airport.
+      {
+        id: 'fill-out-your-e-arrival-card',
+        title: 'Fill out your e-Arrival card',
+        body: (
+          <Bullets
+            items={[
+              <>
+                The{' '}
+                <a
+                  href="https://indianvisaonline.gov.in/earrival/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-rosewood"
+                >
+                  e-Arrival card
+                </a>{' '}
+                only opens a few days before your arrival date, so this is a last-week job.
+              </>,
+              <>
+                Our{' '}
+                <Link to="/e-arrival" className="underline hover:text-rosewood">
+                  e-Arrival Helper
+                </Link>{' '}
+                covers the fields that trip people up.
+              </>,
+              'Save or print the confirmation and keep it with your passport and e-Visa approval.',
+            ]}
+          />
+        ),
+      },
       {
         id: 'staying-connected-esim',
         title: 'Staying connected (eSIM)',
