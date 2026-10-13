@@ -17,13 +17,29 @@
 /travel-tips   /travel/tips/   301
 /travel-tips/  /travel/tips/   301
 
-# The two admin tools moved under /admin, which is now the one place they and
-# anything added later live.
+# The admin tools moved to Wedding HQ, behind Cloudflare Access, when the
+# passphrase-encrypted roster they read was taken out of the public schedule
+# index. /admin itself stays on this site as a page of links; the tools' old
+# URLs, and the even older top-level ones that used to 301 to them, all go
+# straight to HQ.
 #
-# Neither path may be prerendered again — a matching static file would shadow
-# these rules. scripts/prerender.js and prerenderRoutes.test.tsx both hold that
-# line, and the test below also holds the two-forms-per-rule shape.
-/invites/links    /admin/invite-links/    301
-/invites/links/   /admin/invite-links/    301
-/guest-summary    /admin/guest-summary/   301
-/guest-summary/   /admin/guest-summary/   301
+# 302, not 301, unlike the rule above. A browser keeps a 301 for as long as it
+# likes, so if this move were ever rolled back, every admin's browser would go
+# on sending them to HQ regardless. These are the family's bookmarks, not links
+# out in the world, so nothing is lost by asking again each time.
+#
+# HQ's pages have no trailing slash; it is a client-side app, not prerendered.
+#
+# None of these paths may be prerendered again — a matching static file would
+# shadow these rules. scripts/prerender.js and prerenderRoutes.test.tsx both hold
+# that line, and the test also holds the two-forms-per-rule shape.
+/admin/invite-links    https://hq.anupamaandjackson.com/invite-links   302
+/admin/invite-links/   https://hq.anupamaandjackson.com/invite-links   302
+/admin/guest-summary   https://hq.anupamaandjackson.com/guests         302
+/admin/guest-summary/  https://hq.anupamaandjackson.com/guests         302
+/admin/kerala-trip     https://hq.anupamaandjackson.com/kerala         302
+/admin/kerala-trip/    https://hq.anupamaandjackson.com/kerala         302
+/invites/links         https://hq.anupamaandjackson.com/invite-links   302
+/invites/links/        https://hq.anupamaandjackson.com/invite-links   302
+/guest-summary         https://hq.anupamaandjackson.com/guests         302
+/guest-summary/        https://hq.anupamaandjackson.com/guests         302

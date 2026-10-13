@@ -6,9 +6,6 @@ import Home from './routes/Home'
 import Schedule from './routes/Schedule'
 import SaveTheDateEnvelope from './routes/SaveTheDateEnvelope'
 import Invite from './routes/Invite'
-import InviteLinks from './routes/InviteLinks'
-import GuestSummary from './routes/GuestSummary'
-import AdminKeralaTrip from './routes/AdminKeralaTrip'
 import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
@@ -77,26 +74,16 @@ const router = createBrowserRouter([
           { path: '/hotels', element: <Hotels /> },
 
           // Linked from the nav, but only for guests carrying the `admin` tag
-          // (AdminNavLink), and gated on that same tag and then on the admin
-          // passphrase — AdminLayout owns both gates so a tool added here
-          // inherits them. Under SiteLayout rather than FloatingNavLayout
-          // because only SiteLayout mounts the provider the tag gate reads.
+          // (AdminNavLink), and gated on that same tag by AdminLayout. The hub
+          // links out to Wedding HQ, where the tools now live; public/_redirects
+          // sends the old /admin/* tool URLs there too. Under SiteLayout rather
+          // than FloatingNavLayout because only SiteLayout mounts the provider
+          // the tag gate reads.
           {
             path: '/admin',
             element: <AdminLayout />,
-            children: [
-              { index: true, element: <AdminIndex /> },
-              { path: 'invite-links', element: <InviteLinks /> },
-              { path: 'guest-summary', element: <GuestSummary /> },
-              { path: 'kerala-trip', element: <AdminKeralaTrip /> },
-            ],
+            children: [{ index: true, element: <AdminIndex /> }],
           },
-
-          // Both tools used to have their own top-level paths, and those links
-          // are already out in the world. public/_redirects handles hard
-          // navigations; these cover anything routed client-side.
-          { path: '/invites/links', element: <HashRedirect to="/admin/invite-links" /> },
-          { path: '/guest-summary', element: <HashRedirect to="/admin/guest-summary" /> },
 
           // Nested so the Travel pages share a second-level nav bar under SiteNav.
           {

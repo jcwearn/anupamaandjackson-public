@@ -1,50 +1,41 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import AdminIndex from './AdminIndex'
-import { ADMIN_NAV_ITEMS } from '../lib/navItems'
-
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <AdminIndex />
-    </MemoryRouter>,
-  )
 
 describe('AdminIndex', () => {
-  it('links to every tool', () => {
-    renderPage()
+  it('links each tool to its page in Wedding HQ', () => {
+    render(<AdminIndex />)
 
     expect(screen.getByRole('link', { name: /Invite Links/ })).toHaveAttribute(
       'href',
-      '/admin/invite-links',
+      'https://hq.anupamaandjackson.com/invite-links',
     )
     expect(screen.getByRole('link', { name: /Guest Summary/ })).toHaveAttribute(
       'href',
-      '/admin/guest-summary',
+      'https://hq.anupamaandjackson.com/guests',
     )
-  })
-
-  it('lists a card for every tool in the section nav', () => {
-    // The chip row and this page are two routes to the same tools. A tool added
-    // to one and not the other is reachable from only half the section, and the
-    // index is the half someone lands on first.
-    renderPage()
-
-    const tools = ADMIN_NAV_ITEMS.filter((item) => item.to !== '/admin')
-    const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'))
-
-    expect(hrefs.sort()).toEqual(tools.map((tool) => tool.to).sort())
+    expect(screen.getByRole('link', { name: /Kerala Trip/ })).toHaveAttribute(
+      'href',
+      'https://hq.anupamaandjackson.com/kerala',
+    )
   })
 
   it('says what each tool is for', () => {
     // The whole reason for an index rather than a bare list of links: these are
     // used rarely enough that "Invite Links" alone does not say which is which.
-    renderPage()
+    render(<AdminIndex />)
 
     expect(
       screen.getByText('Every version of the invitation, and who each one is for.'),
     ).toBeInTheDocument()
     expect(screen.getByText('Who has answered, and who still needs asking.')).toBeInTheDocument()
+  })
+
+  it('warns that the links leave the site for a login', () => {
+    // Without it, the Access login page that greets a first visit to HQ looks
+    // like something has gone wrong.
+    render(<AdminIndex />)
+
+    expect(screen.getByText(/open in Wedding HQ/)).toBeInTheDocument()
   })
 })

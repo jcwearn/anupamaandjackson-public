@@ -102,44 +102,23 @@ export const routes = [
     ogImageHeight: 630,
     ogImageAlt: 'Where to Stay — Anupama & Jackson, October 28, 2026, Hyderabad, India',
   },
-  // The admin section. Unlinked from every nav, gated on the `admin` tag and
-  // then on a passphrase, so each prerendered file holds only the page shell —
-  // AdminLayout can't tell who is asking until it has run, and neither gate nor
-  // tool is in the HTML until then.
+  // The admin hub. Unlinked from every nav, gated on the `admin` tag, so the
+  // prerendered file holds only the page shell — AdminLayout can't tell who is
+  // asking until it has run, and the gate is not in the HTML until then.
   //
-  // The meta on all three is deliberately uninformative and deliberately
-  // identical: the repo is mirrored publicly, so these paths are not secrets and
-  // were never asked to be. What the pages hold is protected by the key, not by
-  // the URL being hard to find — but there is no reason to describe the guest
-  // list in a <meta> tag either.
+  // The meta is deliberately uninformative: the repo is mirrored publicly, so
+  // the path is not a secret and was never asked to be — but there is no reason
+  // to describe the guest list in a <meta> tag either.
   //
-  // /invites/links and /guest-summary used to be prerendered here and must not
-  // be again — see the note on /travel-tips below.
+  // The tools that used to sit beneath it (/admin/invite-links,
+  // /admin/guest-summary, /admin/kerala-trip) now live in Wedding HQ, and
+  // public/_redirects sends their old URLs there. None of them, nor the older
+  // /invites/links and /guest-summary, may be prerendered again — a matching
+  // static file would shadow its redirect; see the note on /travel-tips below.
   {
     path: '/admin',
     outputPath: 'dist/admin/index.html',
     title: 'Admin - Anupama & Jackson',
-    description: 'A private page for Anupama & Jackson’s wedding.',
-    ogImage: null,
-  },
-  {
-    path: '/admin/invite-links',
-    outputPath: 'dist/admin/invite-links/index.html',
-    title: 'Invite Links - Anupama & Jackson',
-    description: 'A private page for Anupama & Jackson’s wedding.',
-    ogImage: null,
-  },
-  {
-    path: '/admin/guest-summary',
-    outputPath: 'dist/admin/guest-summary/index.html',
-    title: 'Guest Summary - Anupama & Jackson',
-    description: 'A private page for Anupama & Jackson’s wedding.',
-    ogImage: null,
-  },
-  {
-    path: '/admin/kerala-trip',
-    outputPath: 'dist/admin/kerala-trip/index.html',
-    title: 'Kerala Trip - Anupama & Jackson',
     description: 'A private page for Anupama & Jackson’s wedding.',
     ogImage: null,
   },

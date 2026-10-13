@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { render } from '../entry-server'
 import { routes, readRedirects } from '../../scripts/prerender.js'
+import { HQ_TOOLS } from '../lib/hqTools'
 
 beforeAll(() => {
   // Landing and the invites read matchMedia and IntersectionObserver on mount;
@@ -25,10 +26,18 @@ beforeAll(() => {
 const prerendered = routes.map((route) => route.path)
 
 /** The old URLs public/_redirects has to keep working, and where each now lives. */
-const LEGACY = [
-  ['/travel-tips', '/travel/tips'],
-  ['/invites/links', '/admin/invite-links'],
-  ['/guest-summary', '/admin/guest-summary'],
+const LEGACY = [['/travel-tips', '/travel/tips']] as const
+
+/**
+ * Paths whose tools moved to Wedding HQ, and the HQ page each now goes to. The
+ * last two are the even older URLs that used to 301 to the /admin versions.
+ */
+const MOVED_TO_HQ = [
+  ['/admin/invite-links', 'https://hq.anupamaandjackson.com/invite-links'],
+  ['/admin/guest-summary', 'https://hq.anupamaandjackson.com/guests'],
+  ['/admin/kerala-trip', 'https://hq.anupamaandjackson.com/kerala'],
+  ['/invites/links', 'https://hq.anupamaandjackson.com/invite-links'],
+  ['/guest-summary', 'https://hq.anupamaandjackson.com/guests'],
 ] as const
 
 /** public/_redirects as Pages will read it: one [from, to, status] per rule. */
@@ -70,15 +79,16 @@ describe('prerendered routes', () => {
     expect(prerendered).toContain(to)
   })
 
-  it('serves the admin tools under one parent path', () => {
+  it.each(MOVED_TO_HQ)('does not prerender %s, which moved to HQ', (from) => {
+    // Same shadowing as above: a static file at the old path would be served in
+    // place of the redirect, and the family would land on an empty page.
+    expect(prerendered).not.toContain(from)
+  })
+
+  it('keeps only the hub under /admin', () => {
     const admin = prerendered.filter((path) => path === '/admin' || path.startsWith('/admin/'))
 
-    expect(admin.sort()).toEqual([
-      '/admin',
-      '/admin/guest-summary',
-      '/admin/invite-links',
-      '/admin/kerala-trip',
-    ])
+    expect(admin).toEqual(['/admin'])
   })
 
   it('serves the Travel section under one parent path', () => {
@@ -105,12 +115,30 @@ describe('legacy redirects', () => {
     }
   })
 
-  it('points every redirect at a page the build actually writes', () => {
+  it.each(MOVED_TO_HQ)('sends %s to %s in both its forms, temporarily', (from, to) => {
+    for (const source of [from, `${from}/`]) {
+      const rule = redirects.find(([path]) => path === source)
+
+      expect(rule, `public/_redirects has no rule for ${source}`).toBeDefined()
+      expect(rule?.[1]).toBe(to)
+      // 302 so that rolling the move back is not undone by every admin's
+      // browser remembering a permanent redirect.
+      expect(rule?.[2], `${source} should be a temporary redirect`).toBe('302')
+    }
+  })
+
+  it('sends the old admin URLs to the same HQ pages the hub links to', () => {
+    const hubLinks: string[] = HQ_TOOLS.map((tool) => tool.href)
+
+    for (const [, to] of MOVED_TO_HQ) expect(hubLinks).toContain(to)
+  })
+
+  it('points every on-site redirect at a page the build actually writes', () => {
     // A rule aimed at a path that is not prerendered sends the reader to the
     // SPA fallback, which is exactly the hole these rules exist to close.
     expect(redirects.length).toBeGreaterThan(0)
 
-    for (const [from, to] of redirects) {
+    for (const [from, to] of redirects.filter(([, target]) => target.startsWith('/'))) {
       expect(prerendered, `${from} points at ${to}, which is not prerendered`).toContain(
         to.replace(/\/$/, ''),
       )
