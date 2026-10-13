@@ -407,8 +407,8 @@ const groups: {
             <Bullets
               items={[
                 'Keep some rupees on hand for autos, small vendors, and temple donations.',
-                'We’d pull out cash from the currency exchange at the airport when you land — it’s the most convenient place to start, though ATMs are widely available around the city too.',
-                'You won’t need large sums. Around 1,000 rupees at a time is plenty, and it’s worth asking for 100-rupee notes if you get the choice — small vendors and auto drivers often can’t break big bills.',
+                'ATMs generally give you a better rate than a currency exchange counter, and they’re easy to find — including at the airport when you land. Any bank will also exchange money for you.',
+                'You won’t need large sums. Around 5,000 rupees at a time is plenty, and it’s worth asking for 100-rupee notes if you get the choice — small vendors and auto drivers often can’t break big bills.',
                 'Tipping is appreciated but not expected the way it is in the US — rounding up an auto fare or leaving a little for hotel and restaurant staff is plenty.',
                 'At markets and with non-metered autos, a bit of friendly bargaining is normal — agree on the fare before you get in.',
                 'When a card reader offers to charge you in dollars instead of rupees, choose rupees — the dollar rate a terminal picks is generally worse than the one your bank would give you.',
