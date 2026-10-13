@@ -88,6 +88,7 @@ describe('Travel hub', () => {
     const routes = new Set([
       '/',
       '/evisa',
+      '/e-arrival',
       '/kerala-itinerary',
       '/hotels',
       '/travel',

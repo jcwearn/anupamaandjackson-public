@@ -67,7 +67,7 @@ const groups: {
                 </>,
                 'Print your approval when it comes through and pack it with your passport — you’ll show it at customs on arrival.',
                 <>
-                  Closer to your trip you’ll also fill out an{' '}
+                  In the few days before you fly you’ll also fill out an{' '}
                   <a
                     href="https://indianvisaonline.gov.in/earrival/"
                     target="_blank"
@@ -75,8 +75,12 @@ const groups: {
                     className="underline hover:text-rosewood"
                   >
                     e-Arrival card
-                  </a>
-                  . Keep it with your visa approval.
+                  </a>{' '}
+                  — it only opens a few days before your arrival date. Our{' '}
+                  <Link to="/e-arrival" className="underline hover:text-rosewood">
+                    e-Arrival Helper
+                  </Link>{' '}
+                  covers the trickier fields. Keep it with your visa approval.
                 </>,
               ]}
             />

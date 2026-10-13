@@ -69,6 +69,18 @@ export const routes = [
     ogImageAlt: 'India e-Visa Helper — a passport open at its visa stamps, Anupama & Jackson',
   },
   {
+    path: '/e-arrival',
+    outputPath: 'dist/e-arrival/index.html',
+    title: 'India e-Arrival Card Helper - Anupama & Jackson',
+    description:
+      'The fields on India’s e-Arrival Card that trip people up — purpose, address, state and district, and phone codes — plus when you can fill it out.',
+    ogImage: 'https://anupamaandjackson.com/og-earrival.jpg',
+    ogImageWidth: 1200,
+    ogImageHeight: 630,
+    ogImageAlt:
+      'India e-Arrival Card Helper — a passport open at its visa stamps, Anupama & Jackson',
+  },
+  {
     path: '/kerala-itinerary',
     outputPath: 'dist/kerala-itinerary/index.html',
     title: 'A Lush Kerala Weekend - Anupama & Jackson',

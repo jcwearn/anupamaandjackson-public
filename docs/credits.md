@@ -70,7 +70,7 @@ is no file page, no named photographer and no licence, so we cannot say we have
 permission to use it. It looks like a stock photograph, which means someone owns
 it and the terms are whatever they are.
 
-It is used as the `/evisa` og:image. The risk is small and the fix is cheap:
+It is used as the `/evisa` and `/e-arrival` og:images. The risk is small and the fix is cheap:
 a search for "passport stamps" on a library with a clear licence — Unsplash,
 Pexels, or Commons — turns up near-identical shots that can be dropped in with
 one line of the manifest changed. Worth doing before the site is public.

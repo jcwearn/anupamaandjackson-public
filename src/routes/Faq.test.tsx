@@ -100,6 +100,7 @@ describe('FAQ links', () => {
     const routes = new Set([
       '/',
       '/evisa',
+      '/e-arrival',
       '/kerala-itinerary',
       '/hotels',
       '/travel',

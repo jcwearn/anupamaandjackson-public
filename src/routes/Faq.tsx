@@ -204,8 +204,13 @@ const groups = (
         body: (
           <p>
             Yes — it’s a short online form capturing your travel and contact details, and India asks
-            every international traveler to complete it before landing. Keep it with your visa
-            approval; there’s more in our{' '}
+            every international traveler to complete it before landing. It only opens a few days
+            before your arrival date, so it’s a last-week job rather than one to do early. Our{' '}
+            <Link to="/e-arrival" className={linkClass}>
+              e-Arrival Helper
+            </Link>{' '}
+            covers the fields that trip people up. Keep it with your visa approval; there’s more in
+            our{' '}
             <Link to="/travel/tips#visa-entry-documents" className={linkClass}>
               visa and entry documents
             </Link>{' '}

@@ -201,4 +201,17 @@ export const manifest = [
     photo: 'src/assets/travel/passport-stamps.jpg',
     alt: 'India e-Visa Helper — a passport open at its visa stamps, Anupama & Jackson',
   },
+  {
+    slug: 'earrival',
+    output: 'og-earrival.jpg',
+    route: '/e-arrival',
+    eyebrow: 'A guide for our guests',
+    title: 'India e-Arrival Helper',
+    date: WEDDING_DATE,
+    // The same photo as /evisa: the two pages are one errand in two halves.
+    // That doubles the exposure of an image with no known licence — see "The
+    // unverified one" in docs/credits.md; swapping it means changing both.
+    photo: 'src/assets/travel/passport-stamps.jpg',
+    alt: 'India e-Arrival Card Helper — a passport open at its visa stamps, Anupama & Jackson',
+  },
 ]

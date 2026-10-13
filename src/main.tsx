@@ -12,6 +12,7 @@ import AdminKeralaTrip from './routes/AdminKeralaTrip'
 import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
+import EArrival from './routes/EArrival'
 import KeralaItinerary from './routes/KeralaItinerary'
 import Hotels from './routes/Hotels'
 import Travel from './routes/Travel'
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
           { path: '/', element: <Landing /> },
           { path: '/schedule', element: <WeddingSchedule /> },
           { path: '/evisa', element: <Evisa /> },
+          { path: '/e-arrival', element: <EArrival /> },
           { path: '/kerala-itinerary', element: <KeralaItinerary /> },
           { path: '/hotels', element: <Hotels /> },
 

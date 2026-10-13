@@ -15,6 +15,7 @@ import AdminKeralaTrip from './routes/AdminKeralaTrip'
 import AdminIndex from './routes/AdminIndex'
 import Landing from './routes/Landing'
 import Evisa from './routes/Evisa'
+import EArrival from './routes/EArrival'
 import KeralaItinerary from './routes/KeralaItinerary'
 import Hotels from './routes/Hotels'
 import Travel from './routes/Travel'
@@ -56,6 +57,7 @@ export function render(url: string) {
           <Route path="/" element={<Landing />} />
           <Route path="/schedule" element={<WeddingSchedule />} />
           <Route path="/evisa" element={<Evisa />} />
+          <Route path="/e-arrival" element={<EArrival />} />
           <Route path="/kerala-itinerary" element={<KeralaItinerary />} />
           <Route path="/hotels" element={<Hotels />} />
           <Route path="/admin" element={<AdminLayout />}>

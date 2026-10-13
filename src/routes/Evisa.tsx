@@ -8,6 +8,7 @@ import JumpNav, {
   JUMP_NAV_SCROLL_MT,
   type JumpTarget,
 } from '../components/JumpNav'
+import { VENUE_ADDRESS, VENUE_DISTRICT, VENUE_NAME, VENUE_STATE } from '../lib/weddingVenue'
 
 const PORTAL_URL = 'https://indianvisaonline.gov.in/evisa/Registration'
 const PORTAL_HOME = 'https://indianvisaonline.gov.in/evisa'
@@ -58,13 +59,10 @@ const referenceContact: {
   hint?: string
   display?: React.ReactNode
 }[] = [
-  { label: 'Reference Name in India', value: 'The Golkonda Resorts and Spas' },
-  {
-    label: 'Address',
-    value: 'Sagar Mahal Complex, near Osman Sagar Lake, Gandipet, Hyderabad 500075',
-  },
-  { label: 'State', value: 'TELANGANA', hint: 'Pick from the dropdown.' },
-  { label: 'District', value: 'RANGAREDDI', hint: 'Pick from the dropdown.' },
+  { label: 'Reference Name in India', value: VENUE_NAME },
+  { label: 'Address', value: VENUE_ADDRESS },
+  { label: 'State', value: VENUE_STATE, hint: 'Pick from the dropdown.' },
+  { label: 'District', value: VENUE_DISTRICT, hint: 'Pick from the dropdown.' },
   {
     label: 'Phone No/Mobile No',
     value: '9104035010101',
