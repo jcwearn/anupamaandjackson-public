@@ -80,34 +80,6 @@ async function loadRoster(fixture) {
   })
 }
 
-/**
- * The key to the /guest-summary payload. Never committed: a line in .env
- * locally (gitignored, and excluded from the public mirror), and
- * secrets.ADMIN_PASSPHRASE in the nightly workflow.
- *
- * Missing is a hard failure rather than a warning, for the same reason the sync
- * workflow refuses to push unsigned: an index built without it would look
- * entirely normal and would publish the roster under a key nobody chose.
- *
- * The fixture path is the exception. It builds from 28 invented guests with no
- * network and no secrets — that is the whole point of it — so it takes a
- * constant, which is also what the test suites derive against.
- */
-export const FIXTURE_ADMIN_PASSPHRASE = 'fixture-passphrase'
-
-function adminPassphraseFor(fixture) {
-  if (fixture) return FIXTURE_ADMIN_PASSPHRASE
-
-  const passphrase = process.env.ADMIN_PASSPHRASE
-  if (!passphrase) {
-    throw new Error(
-      'Set ADMIN_PASSPHRASE — it is the only key to the /guest-summary payload, and an index ' +
-        'built without it would publish the roster under no secret at all.',
-    )
-  }
-  return passphrase
-}
-
 async function main() {
   const args = parseArgs(process.argv.slice(2))
 
@@ -119,13 +91,9 @@ async function main() {
   const keralaFile = JSON.parse(
     await readFile(args.kerala ? resolve(root, args.kerala) : KERALA_RESPONSES_PATH, 'utf-8'),
   )
+  // The file's `billing` block is no longer read: the agent's payments and
+  // schedule only ever fed /admin/kerala-trip, which moved to Wedding HQ.
   const keralaResponses = keralaFile.responses
-  // Optional, unlike the responses: an index with no billing block still serves
-  // every guest their trip, it just leaves /admin/kerala-trip's money section
-  // saying there is nothing recorded yet.
-  const keralaBilling = keralaFile.billing ?? null
-
-  const adminPassphrase = adminPassphraseFor(args.fixture)
 
   const knownTags = new Set(guests.flatMap((guest) => [...guest.tags]))
   assertGatesExist(catalogEvents, knownTags)
@@ -142,13 +110,7 @@ async function main() {
   assertUniversalEventsMatch(catalogEvents, await readFile(BUNDLED_PATH, 'utf-8'))
 
   const previous = await readPreviousIndex()
-  const sourceHash = await sourceFingerprint(
-    guests,
-    catalogEvents,
-    keralaResponses,
-    adminPassphrase,
-    keralaBilling,
-  )
+  const sourceHash = await sourceFingerprint(guests, catalogEvents, keralaResponses)
 
   if (!args.force && !args.dryRun && previous?.sourceHash === sourceHash) {
     console.log('Roster and catalog unchanged since the last index — nothing to publish.')
@@ -158,10 +120,8 @@ async function main() {
   const { index, stats } = await buildIndex({
     guests,
     catalogEvents,
-    adminPassphrase,
     sourceHash,
     keralaResponses,
-    keralaBilling,
   })
 
   if (!args.force) {

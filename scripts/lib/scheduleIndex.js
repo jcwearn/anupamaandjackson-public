@@ -8,11 +8,9 @@ import {
 } from '../../src/lib/inviteLink.js'
 import { partyHintLabel } from './partyLabel.js'
 import {
-  ADMIN_KDF_ITERATIONS,
   KDF_ITERATIONS,
   SALT_BYTES,
   bytesToBase64,
-  deriveAdminKeyBytes,
   deriveGuestKey,
   emailHash,
   encryptJson,
@@ -31,10 +29,13 @@ import {
 // and to 12 when their `events` widened from the three events an invitation is
 // narrowed by to the four the table has a column for — the pellikuthuru joined
 // them, to 13 when the room occupants gained `invoiced`, and to 14 when they
-// gained `seatTransfer`, and to 15 when the summary entries gained `infant`.
+// gained `seatTransfer`, to 15 when the summary entries gained `infant`, and to 16 when
+// the admin block came out altogether — the tools that read it moved to Wedding
+// HQ, behind Access, and a short passphrase over a downloadable file was the
+// weakest lock on the site.
 // Feeds sourceFingerprint, so bumping it is what makes a shape change actually
 // republish.
-export const INDEX_VERSION = 15
+export const INDEX_VERSION = 16
 
 /**
  * The With Joy tag that admits a guest to the unlinked /admin/invite-links page.
@@ -1120,13 +1121,7 @@ export function buildGuestRecords(guests, catalogEvents, keralaPayloads = null) 
  * leaves this hash identical, and the sync would report 'nothing to publish'
  * and never ship the new field. Bump the version whenever the payload changes.
  */
-export async function sourceFingerprint(
-  guests,
-  catalogEvents,
-  keralaResponses = null,
-  adminPassphrase = '',
-  keralaBilling = null,
-) {
+export async function sourceFingerprint(guests, catalogEvents, keralaResponses = null) {
   const canonical = JSON.stringify({
     version: INDEX_VERSION,
     guests: guests
@@ -1153,19 +1148,6 @@ export async function sourceFingerprint(
       .sort(),
     catalog: catalogEvents,
     kerala: keralaResponses,
-    // Moves on its own, without the roster changing at all: recording a payment
-    // is exactly the edit that would otherwise hash identical and never ship.
-    keralaBilling,
-    // Rotating the passphrase changes no roster input, so without this the
-    // fingerprint would match, the sync would report 'nothing to publish', and
-    // the old ciphertext would stay live under the old secret — a rotation that
-    // appears to work and changes nothing.
-    //
-    // Hashed rather than joined in verbatim, so the passphrase never reaches a
-    // string this function builds. The published sourceHash digests a canonical
-    // form containing all 649 guest rows, so it is not an oracle an outsider
-    // can run passphrase guesses against.
-    adminPassphrase: await sha256Base64(adminPassphrase),
   })
   return sha256Base64(canonical)
 }
@@ -1174,23 +1156,10 @@ export async function buildIndex({
   guests,
   catalogEvents,
   iterations = KDF_ITERATIONS,
-  adminIterations = ADMIN_KDF_ITERATIONS,
-  adminPassphrase,
   sourceHash,
   keralaResponses = null,
-  keralaBilling = null,
 }) {
-  // Not a default, because there is no safe default. An index built with an
-  // empty or forgotten passphrase would publish the roster under a key anyone
-  // reading this file could derive, and would look exactly like a good one.
-  if (!adminPassphrase) {
-    throw new Error('buildIndex needs an adminPassphrase — the admin payload has no other key.')
-  }
-
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
-  // Its own salt, not the guest one: sharing it would let a single precomputed
-  // table serve both cracking the passphrase and hashing guest names.
-  const adminSalt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
 
   const privateEvents = catalogEvents.filter((event) => !event.universal)
   const eventKeys = new Map()
@@ -1308,18 +1277,12 @@ export async function buildIndex({
   }
 
   // Built from `guests`, not `records`: the latter has already dropped everyone
-  // with no event tag, and those are the rows /admin/guest-summary most needs.
+  // with no event tag. No longer published — the roster lives in Wedding HQ now
+  // — but the sync's own counts below still read it, until this generator goes.
   const summary = buildGuestSummary(guests)
   // The guests the totals below count, which is everyone but the babies — the
   // same rule the page's own counts follow; see INFANT_TAG.
   const counted = summary.filter((entry) => !entry.infant)
-  // Rooms whole, plus whatever the agent has been paid. Both are admin-only
-  // views of data that already rides in the index per guest; neither adds a
-  // reader, because this envelope's key is a GitHub secret rather than a name.
-  const keralaTrip = kerala ? { rooms: kerala.rooms, billing: keralaBilling } : undefined
-  const adminKey = await importEventKey(
-    await deriveAdminKeyBytes(adminPassphrase, adminSalt, adminIterations),
-  )
 
   return {
     index: {
@@ -1338,20 +1301,6 @@ export async function buildIndex({
       },
       events,
       guests: guestIndex,
-      // What the admin tools read — the /admin/guest-summary roster and the
-      // /admin/kerala-trip rooming — under the generated passphrase rather than
-      // any guest's name. Unlike everything above it, this envelope is meant to
-      // hold: the key exists in a GitHub secret and a local .env, nowhere the
-      // public mirror can reach, so guessing a name buys nothing here.
-      admin: {
-        kdf: {
-          name: 'PBKDF2',
-          hash: 'SHA-256',
-          iterations: adminIterations,
-          salt: bytesToBase64(adminSalt),
-        },
-        payload: await encryptJson(adminKey, { summary, keralaTrip }),
-      },
     },
     stats: {
       guests: records.length,

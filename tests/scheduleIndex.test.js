@@ -33,7 +33,6 @@ import { aliasesFor, normalizedKey } from '../src/lib/guestName.js'
 import {
   base64ToBytes,
   decryptJson,
-  deriveAdminKeyBytes,
   deriveGuestKey,
   emailHash,
   importEventKey,
@@ -43,7 +42,6 @@ import {
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Low iterations keep the suite fast; production uses KDF_ITERATIONS.
 const TEST_ITERATIONS = 1000
-const TEST_PASSPHRASE = 'correct-horse-battery-staple'
 
 let catalogEvents
 let guests
@@ -66,10 +64,7 @@ beforeAll(async () => {
     guests,
     catalogEvents,
     iterations: TEST_ITERATIONS,
-    adminIterations: TEST_ITERATIONS,
-    adminPassphrase: TEST_PASSPHRASE,
     keralaResponses,
-    keralaBilling,
   }))
 })
 
@@ -663,14 +658,6 @@ describe('build-time guards', () => {
     expect(() => assertSummaryRsvpColumnsExist(guests)).not.toThrow()
   })
 
-  it('refuses to build an index with no admin passphrase', () => {
-    // The failure this prevents is invisible: an index built without it looks
-    // entirely normal and publishes the roster under a key nobody chose.
-    return expect(
-      buildIndex({ guests, catalogEvents, iterations: TEST_ITERATIONS, keralaResponses }),
-    ).rejects.toThrow(/adminPassphrase/)
-  })
-
   it('rejects universal copy that has drifted from the bundled module', () => {
     expect(() =>
       assertUniversalEventsMatch(
@@ -746,8 +733,6 @@ describe('build-time guards', () => {
       ),
       catalogEvents,
       iterations: TEST_ITERATIONS,
-      adminIterations: TEST_ITERATIONS,
-      adminPassphrase: TEST_PASSPHRASE,
     })
 
     expect(stats.summaryInfants).toBe(0)
@@ -902,16 +887,6 @@ describe('encrypted index round trip', () => {
     }
   })
 
-  it('republishes when the admin passphrase is rotated', async () => {
-    // Rotating the secret changes no roster input. Without this the sync would
-    // report 'nothing to publish' and leave the old ciphertext live under the
-    // old passphrase — a rotation that appears to work and changes nothing.
-    const before = await sourceFingerprint(guests, catalogEvents, keralaResponses, 'old-secret')
-    expect(await sourceFingerprint(guests, catalogEvents, keralaResponses, 'new-secret')).not.toBe(
-      before,
-    )
-  })
-
   it('cannot be decrypted with the wrong name', async () => {
     const salt = base64ToBytes(index.kdf.salt)
     const target = index.guests[await lookupHash(normalizedKey('Alan', 'Turing'), salt)][0]
@@ -973,95 +948,11 @@ describe('encrypted index round trip', () => {
 })
 
 describe('admin payload', () => {
-  /** Mirrors what the browser does in useAdminUnlock. */
-  const open = async (passphrase) => {
-    const key = await importEventKey(
-      await deriveAdminKeyBytes(
-        passphrase,
-        base64ToBytes(index.admin.kdf.salt),
-        index.admin.kdf.iterations,
-      ),
-    )
-    return decryptJson(key, index.admin.payload)
-  }
-
-  it('opens with the passphrase it was built under', async () => {
-    const payload = await open(TEST_PASSPHRASE)
-    expect(payload.summary).toHaveLength(guests.length)
-  })
-
-  it('carries the whole rooming and the billing beside the roster', async () => {
-    // /admin/kerala-trip answers the agent's questions about rooms it does not
-    // occupy, so unlike the per-guest payload this one sees both occupants.
-    const { keralaTrip } = await open(TEST_PASSPHRASE)
-    expect(keralaTrip.rooms).toEqual([
-      {
-        room: 1,
-        bed: 'twin',
-        occupants: [
-          {
-            name: 'Vera Rubin',
-            trip: 'full',
-            flight: 'rt',
-            occupancy: 'double',
-            priceOverride: 67440,
-          },
-          { name: 'Carl Sagan', trip: 'short', flight: 'ow', occupancy: 'double' },
-        ],
-      },
-      {
-        room: 2,
-        occupants: [
-          {
-            name: 'Enrico Fermi',
-            trip: 'full',
-            flight: 'ow',
-            occupancy: 'single',
-            // Here as well as in his own envelope: the billing summary needs it
-            // to tell what we are covering from what the agent is charging.
-            hostCovers: 9531,
-          },
-        ],
-      },
-    ])
-    expect(keralaTrip.billing).toEqual(keralaBilling)
-    expect(stats.keralaRooms).toBe(2)
-    expect(stats.keralaBeds).toEqual({ double: 0, twin: 1 })
-  })
-
-  it('stays shut for every other passphrase', async () => {
-    // Not a comparison the client makes and could be talked out of — a wrong
-    // key is an AES-GCM tag failure, and there is nothing else to try.
-    expect(await open('wrong')).toBeNull()
-    expect(await open(`${TEST_PASSPHRASE} `)).toBeNull()
-    expect(await open('')).toBeNull()
-  })
-
-  it('salts the passphrase separately from the guest names', () => {
-    // Sharing the salt would let one precomputed table serve both cracking the
-    // passphrase and hashing names.
-    expect(index.admin.kdf.salt).not.toBe(index.kdf.salt)
-  })
-
-  it('puts the key nowhere near a guest record', async () => {
-    // The admin tag says who may see the page. It is not, and must not become,
-    // a way of reading the payload — an admin's name is guessable.
-    const [alan] = await lookup('Alan', 'Turing')
-    expect(alan.admin).toBe(true)
-    expect(JSON.stringify(alan)).not.toContain(index.admin.kdf.salt)
-    expect(Object.keys(alan)).not.toContain('summaryKey')
-  })
-
-  it('leaves no summary name in plaintext', () => {
-    // The rest of the index hides names behind guest-name keys, which its own
-    // header concedes are guessable. This one is the file's only real secret,
-    // and it holds 649 names in one envelope.
-    const serialized = JSON.stringify(index)
-    expect(serialized).not.toContain('Lovelace')
-    expect(serialized).not.toContain('attending')
-    expect(serialized).not.toContain('declined')
-    expect(serialized).not.toContain('vidya')
-    expect(serialized).not.toContain('venkat')
+  it('is no longer published', () => {
+    // The roster and the Kerala books it carried moved to Wedding HQ, behind
+    // Access. A passphrase-keyed copy left in a downloadable file is exactly
+    // what that move was for taking away.
+    expect(index).not.toHaveProperty('admin')
   })
 })
 
@@ -1592,21 +1483,6 @@ describe('kerala payload', () => {
       ),
     ).toBe(before)
   })
-
-  it('republishes when a payment is recorded', async () => {
-    // Recording a payment moves nothing about the roster, so without billing in
-    // the fingerprint this is exactly the edit that hashes identical and never
-    // ships — the sync would say 'nothing to publish' and mean it.
-    const args = [guests, catalogEvents, keralaResponses, '']
-    const before = await sourceFingerprint(...args, keralaBilling)
-    expect(await sourceFingerprint(...args, null)).not.toBe(before)
-    expect(
-      await sourceFingerprint(...args, {
-        ...keralaBilling,
-        payments: [...keralaBilling.payments, { date: '2026-09-05', amount: 1, note: 'Second' }],
-      }),
-    ).not.toBe(before)
-  })
 })
 
 describe('privacy invariants', () => {
@@ -1641,9 +1517,8 @@ describe('privacy invariants', () => {
     }
     expect(serialized).not.toContain('roommates')
     expect(serialized).not.toContain('priceNote')
-    // The admin rooming names both occupants of every room in one object, and
-    // the billing says what we owe. Both sit inside the passphrase envelope;
-    // the name check above already covers the occupants themselves.
+    // The admin rooming named both occupants of every room in one object, and
+    // the billing said what we owe. Neither is published at all any more.
     expect(serialized).not.toContain('keralaTrip')
     expect(serialized).not.toContain('occupants')
     // What a guest has sent us is ours and theirs, not the index's.
