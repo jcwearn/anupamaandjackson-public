@@ -38,9 +38,10 @@ export const AIRFARE = { out: 8352, back: 7968 } as const
 /**
  * What the return leg actually costs, which is not one figure.
  *
- * The two itineraries fly home on different days on different aircraft — 6E 6235
- * on 1 November and 6E 6681 on 31 October, both already spelled out in
- * keralaFlights.ts — and the agent's invoice prices them apart: 7,968 and 6,895.
+ * The two itineraries fly home on different days — 1 November and 31 October,
+ * both spelled out in keralaFlights.ts — and the agent's invoice prices them
+ * apart: 7,968 and 6,895. The 6,895 was invoiced while the 31 October leg was
+ * 6E 6681; the tickets now put it on 6E 6235, the same flight a day earlier.
  * The rate card was built before that invoice arrived, off the one return fare
  * we had, so every shortened round trip on it is 1,073 too dear.
  *

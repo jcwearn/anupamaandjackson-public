@@ -32,8 +32,8 @@ export const flights: KeralaFlight[] = [
     scope: 'Both itineraries',
     date: '2026-10-29',
     number: 'IndiGo 6E 6682',
-    from: { code: 'HYD', city: 'Hyderabad', time: '14:15' },
-    to: { code: 'COK', city: 'Kochi', time: '15:55' },
+    from: { code: 'HYD', city: 'Hyderabad', time: '14:25' },
+    to: { code: 'COK', city: 'Kochi', time: '16:05' },
   },
   {
     trips: ['full'],
@@ -49,8 +49,8 @@ export const flights: KeralaFlight[] = [
     leg: 'return',
     scope: 'Shortened itinerary',
     date: '2026-10-31',
-    number: 'IndiGo 6E 6681',
-    from: { code: 'COK', city: 'Kochi', time: '16:25' },
-    to: { code: 'HYD', city: 'Hyderabad', time: '18:00' },
+    number: 'IndiGo 6E 6235',
+    from: { code: 'COK', city: 'Kochi', time: '15:10' },
+    to: { code: 'HYD', city: 'Hyderabad', time: '16:40' },
   },
 ]
