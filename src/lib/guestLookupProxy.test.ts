@@ -3,6 +3,18 @@ import { handleLookup } from './guestLookupProxy'
 
 const ENV = { WEDDING_HQ_CLIENT_ID: 'id.access', WEDDING_HQ_CLIENT_SECRET: 'secret' }
 
+const CATALOG = [
+  { id: 'ceremony', gate: 'muhurtam', universal: true, title: 'Ceremony', time: '9:00 AM' },
+  {
+    id: 'welcome',
+    gate: ['sangeet', 'family'],
+    title: 'Welcome',
+    time: '6:00 PM',
+    agenda: ['Dinner'],
+  },
+  { id: 'kerala', gate: 'optional-trip', title: 'Kerala', time: 'Oct 29' },
+]
+
 const post = (body: unknown) =>
   new Request('https://anupamaandjackson.com/guest/lookup', {
     method: 'POST',
@@ -20,7 +32,12 @@ describe('handleLookup', () => {
       ),
     )
 
-    const res = await handleLookup(post({ first: 'Ada', last: 'Lovelace' }), ENV, fetchImpl)
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      fetchImpl,
+    )
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ status: 'not_found' })
@@ -44,6 +61,7 @@ describe('handleLookup', () => {
     await handleLookup(
       post({ first: 'Ada', last: 'Lovelace', email: 'ada@example.com', extra: 'x' }),
       ENV,
+      CATALOG,
       fetchImpl,
     )
 
@@ -52,6 +70,13 @@ describe('handleLookup', () => {
       first: 'Ada',
       last: 'Lovelace',
       email: 'ada@example.com',
+      // The gates, and nothing of the copy: HQ needs only which tags unlock
+      // which event.
+      events: [
+        { id: 'ceremony', gate: 'muhurtam' },
+        { id: 'welcome', gate: ['sangeet', 'family'] },
+        { id: 'kerala', gate: 'optional-trip' },
+      ],
     })
   })
 
@@ -63,7 +88,7 @@ describe('handleLookup', () => {
   ])('refuses %s without asking HQ', async (_, body) => {
     const fetchImpl = hq(Response.json({}))
 
-    const res = await handleLookup(post(body), ENV, fetchImpl)
+    const res = await handleLookup(post(body), ENV, CATALOG, fetchImpl)
 
     expect(res.status).toBe(400)
     expect(fetchImpl).not.toHaveBeenCalled()
@@ -72,7 +97,7 @@ describe('handleLookup', () => {
   it('fails closed where no token is configured', async () => {
     const fetchImpl = hq(Response.json({}))
 
-    const res = await handleLookup(post({ first: 'Ada', last: 'Lovelace' }), {}, fetchImpl)
+    const res = await handleLookup(post({ first: 'Ada', last: 'Lovelace' }), {}, CATALOG, fetchImpl)
 
     expect(res.status).toBe(503)
     expect(fetchImpl).not.toHaveBeenCalled()
@@ -84,7 +109,12 @@ describe('handleLookup', () => {
     ['namesakes HQ cannot tell apart', new Response('{}', { status: 409 })],
     ['HQ failing', new Response('{}', { status: 500 })],
   ])('says the lookup is unavailable on %s', async (_, response) => {
-    const res = await handleLookup(post({ first: 'Ada', last: 'Lovelace' }), ENV, hq(response))
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      hq(response),
+    )
 
     expect(res.status).toBe(503)
     expect(await res.json()).toEqual({ error: 'lookup unavailable' })
@@ -95,8 +125,59 @@ describe('handleLookup', () => {
       throw new TypeError('network')
     })
 
-    const res = await handleLookup(post({ first: 'Ada', last: 'Lovelace' }), ENV, fetchImpl)
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      fetchImpl,
+    )
 
     expect(res.status).toBe(503)
+  })
+
+  it("fills a found guest's events from this repo's catalog, whatever HQ sent", async () => {
+    const fetchImpl = hq(
+      Response.json({
+        status: 'found',
+        record: {
+          displayName: 'Ada',
+          eventIds: ['ceremony', 'welcome', 'retired'],
+          // A stale copy from HQ's old catalog: ignored.
+          events: { welcome: { id: 'welcome', title: 'Old welcome' } },
+        },
+      }),
+    )
+
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      fetchImpl,
+    )
+
+    expect(await res.json()).toEqual({
+      status: 'found',
+      record: {
+        displayName: 'Ada',
+        eventIds: ['ceremony', 'welcome', 'retired'],
+        // Rendered fields only -- no gate, no universal flag -- and an id the
+        // catalog no longer has is simply left out.
+        events: {
+          ceremony: { id: 'ceremony', title: 'Ceremony', time: '9:00 AM' },
+          welcome: { id: 'welcome', title: 'Welcome', time: '6:00 PM', agenda: ['Dinner'] },
+        },
+      },
+    })
+  })
+
+  it('passes other answers on untouched', async () => {
+    const choose = { status: 'choose', options: [], canVerifyEmail: false }
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      hq(Response.json(choose)),
+    )
+    expect(await res.json()).toEqual(choose)
   })
 })

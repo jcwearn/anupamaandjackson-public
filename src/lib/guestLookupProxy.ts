@@ -11,6 +11,14 @@
  * guest's browser cannot get through, so the call carries an Access service
  * token held in Pages secrets.
  *
+ * The schedule is this repo's data/schedule-events.json, and nowhere else. HQ
+ * keeps no copy of it: each lookup carries the gate rules (which With Joy tags
+ * unlock which event id, no copy), HQ answers with the guest's event ids, and
+ * the copy is attached here, server-side, so an invite-only event's details
+ * never ship in the public bundle. HQ used to hold an imported copy of the
+ * catalog, and keeping it in step with this file was a step that got forgotten.
+ * The catalog is passed in rather than imported: src/ never imports data/.
+ *
  * Runs in two places with the same code: the Pages Function at
  * functions/guest/lookup.ts in production, and a Vite middleware under
  * `npm run dev` and `npm run preview` (vite.config.ts), where the token comes
@@ -18,6 +26,48 @@
  * functions/ so typecheck and the test suite cover it; nothing in the browser
  * bundle imports it.
  */
+
+/** One event of data/schedule-events.json. */
+export interface CatalogEvent {
+  id: string
+  /** A With Joy tag, or a list of them meaning any-of. */
+  gate: string | string[]
+  [field: string]: unknown
+}
+
+// The fields of an event the site renders. The rest of the catalog -- the gate,
+// the universal flag -- stays here.
+const RENDERED_FIELDS = [
+  'id',
+  'date',
+  'time',
+  'title',
+  'location',
+  'address',
+  'mapUrl',
+  'description',
+  'agenda',
+  'attire',
+  'indianWear',
+  'note',
+  'linkTo',
+  'linkLabel',
+  'sortKey',
+] as const
+
+function rendered(event: CatalogEvent): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const field of RENDERED_FIELDS) {
+    if (event[field] !== undefined) out[field] = event[field]
+  }
+  return out
+}
+
+interface FoundRecord {
+  eventIds: string[]
+  events?: Record<string, unknown>
+  [field: string]: unknown
+}
 
 export interface LookupEnv {
   WEDDING_HQ_CLIENT_ID?: string
@@ -60,6 +110,7 @@ function validInput(body: unknown): body is Record<keyof typeof LIMITS, string |
 export async function handleLookup(
   request: Request,
   env: LookupEnv,
+  catalog: CatalogEvent[],
   fetchImpl: typeof fetch = fetch,
 ): Promise<Response> {
   const body = await request.json().catch(() => null)
@@ -83,7 +134,13 @@ export async function handleLookup(
         'CF-Access-Client-Secret': env.WEDDING_HQ_CLIENT_SECRET,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ first, last, hint, email }),
+      body: JSON.stringify({
+        first,
+        last,
+        hint,
+        email,
+        events: catalog.map(({ id, gate }) => ({ id, gate })),
+      }),
       // Access answers a bad or expired token with a redirect to its login
       // page. Followed, that is a 200 of HTML; held, it is a clear failure.
       redirect: 'manual',
@@ -97,7 +154,19 @@ export async function handleLookup(
     .join(', ')
 
   if (upstream.status === 200) {
-    return json(await upstream.json(), 200, { 'Server-Timing': timing })
+    const result = (await upstream.json()) as { status?: string; record?: FoundRecord }
+    if (result.status === 'found' && result.record) {
+      // Copy from this repo's file, whatever HQ sent. The universal events'
+      // copy comes along too, though the browser prefers its bundled one.
+      const byId = new Map(catalog.map((event) => [event.id, event]))
+      result.record.events = Object.fromEntries(
+        result.record.eventIds.flatMap((id) => {
+          const event = byId.get(id)
+          return event ? [[id, rendered(event)]] : []
+        }),
+      )
+    }
+    return json(result, 200, { 'Server-Timing': timing })
   }
   // A name HQ thinks malformed is the guest's to fix; anything else — Access
   // turning the token away, HQ down, two namesakes With Joy cannot tell apart —

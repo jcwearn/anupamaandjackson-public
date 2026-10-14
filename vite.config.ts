@@ -4,7 +4,8 @@ import { defineConfig, type Plugin } from 'vitest/config'
 import type { Connect } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { handleLookup } from './src/lib/guestLookupProxy'
+import { handleLookup, type CatalogEvent } from './src/lib/guestLookupProxy'
+import catalog from './data/schedule-events.json'
 
 /**
  * Serves POST /guest/lookup under `npm run dev` and `npm run preview`, where
@@ -26,6 +27,7 @@ function guestLookup(): Plugin {
           body: Buffer.concat(chunks),
         }),
         process.env,
+        catalog.events as CatalogEvent[],
       )
       res.statusCode = response.status
       response.headers.forEach((value, key) => res.setHeader(key, value))
