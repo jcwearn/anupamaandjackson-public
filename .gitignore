@@ -58,8 +58,6 @@ temp/
 *.xlsx
 *.xls
 *.csv
-# ...except the synthetic test fixture, which contains no real guests.
-!tests/fixtures/*.csv
 
 # Working material — itineraries, screenshots, drafts. Kept out of the repo
 # root and out of git; drop anything scratch in here.

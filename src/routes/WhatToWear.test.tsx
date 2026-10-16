@@ -129,7 +129,7 @@ describe('What to Wear', () => {
   })
 
   it('gives every outfit at least one event to be worn to', () => {
-    // That the ids are *real* is checked in tests/scheduleIndex.test.js, which
+    // That the ids are *real* is checked in tests/scheduleCatalog.test.js, which
     // has the catalog open already — src/ never reads data/schedule-events.json.
     for (const outfit of allOutfits) {
       expect(outfit.events.length, `${outfit.slug} names no event`).toBeGreaterThan(0)

@@ -15,7 +15,7 @@ name: CI
 # stages (tsc -b, the client bundle, an SSR bundle, then prerender) and the
 # suite is 51 files.
 #
-# refresh-schedule-index.yml and publish.yaml are untouched.
+# publish.yaml is untouched.
 
 on:
   push:

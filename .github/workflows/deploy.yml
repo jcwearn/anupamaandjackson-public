@@ -5,10 +5,6 @@ name: Deploy
 #
 # Triggers on push to ANY branch, which is what the Git integration did: a
 # branch pushed without a PR still got a preview.
-#
-# refresh-schedule-index.yml deploys separately after its nightly commit. It has
-# to: a push made with the default GITHUB_TOKEN does not trigger `on: push`, so
-# nothing here would ever run for it.
 
 on:
   push:

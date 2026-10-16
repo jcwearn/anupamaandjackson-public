@@ -1,10 +1,3 @@
-# Regenerated and committed nightly by refresh-schedule-index.yml, which
-# decides whether to commit by byte-diffing this file with `git diff --quiet`.
-# If Prettier reformats it, the generator writes its own formatting back on the
-# next run, that job commits a formatting-only change every single night, and
-# format:check fails on main in between. Must stay ignored.
-public/schedule-index.json
-
 # npm owns this.
 package-lock.json
 
