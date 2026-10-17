@@ -15,6 +15,12 @@ interface Props {
   description?: string
   /** A highlighted aside under the description, e.g. the guest's own room. */
   note?: string
+  /**
+   * A per-guest control placed first in the link row — the Golkonda card's
+   * "See your room" button. A slot rather than a callback prop so the card
+   * stays ignorant of what any one guest is shown.
+   */
+  action?: React.ReactNode
 }
 
 // A deep-linked card has to clear the fixed SiteNav *and* the
@@ -29,7 +35,13 @@ const SCROLL_OFFSET = 'scroll-mt-[calc(env(safe-area-inset-top,0px)+10rem)]'
 const GHOST_PILL =
   'inline-flex items-center gap-1.5 rounded-full border border-soyabean/40 px-4 py-1.5 text-soyabean transition-colors hover:bg-soyabean/10'
 
-const HotelCard: React.FC<Props> = ({ hotel, reservedForYou = false, description, note }) => {
+const HotelCard: React.FC<Props> = ({
+  hotel,
+  reservedForYou = false,
+  description,
+  note,
+  action,
+}) => {
   // A room block we negotiated outranks a price-comparison site; Trivago falls
   // back to a ghost pill below rather than disappearing, since a guest may
   // still want to check the block against the open rate.
@@ -97,8 +109,9 @@ const HotelCard: React.FC<Props> = ({ hotel, reservedForYou = false, description
         </p>
       )}
 
-      {(primaryLink || hotel.bookingUrl || hotel.mapUrl) && (
+      {(action || primaryLink || hotel.bookingUrl || hotel.mapUrl) && (
         <div className="mt-1 flex flex-wrap items-center gap-2 gap-y-2 text-sm">
+          {action}
           {primaryLink && (
             <a
               href={primaryLink.url}

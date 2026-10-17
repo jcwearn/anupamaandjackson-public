@@ -27,6 +27,8 @@ interface GuestRecord {
   admin?: boolean
   kerala?: KeralaGuestInfo
   golkonda?: GolkondaStay
+  /** Omitted for guests not on the Golkonda room list. */
+  golkondaRoom?: GolkondaRoom
   eventIds: string[]
   /** Copy for the private events in eventIds; universal ones are bundled. */
   events: Record<string, ScheduleEvent>
@@ -65,9 +67,35 @@ export interface KeralaGuestInfo {
  * Whether the guest's room at Golkonda is on us ('covered') or theirs to settle
  * ('own'). Absent unless the generator found all three of: a Golkonda tag, an
  * Attending muhurtham RSVP, and an answer accepting the room — see
- * `golkondaStay` in wedding-hq's src/shared/guestRules.ts.
+ * `golkondaStay` in wedding-hq's src/shared/guestRules.ts. A guest on the
+ * Golkonda room list has it whatever With Joy says, from their row's Self-pay
+ * note — see `withRooms` in wedding-hq's src/worker/site.ts.
  */
 export type GolkondaStay = 'covered' | 'own'
+
+/**
+ * The bed in a guest's Golkonda room, as the room list resolves it — what the
+ * room is, turned over to what they asked for where the hotel can. `villa` is
+ * the multi-bedroom villas and suites, which have no single bed to name.
+ * `king-extra` and `king-sofa` are king rooms with a third guest, on an extra
+ * bed or on the room's sofa cum bed.
+ */
+export type GolkondaBed = 'king' | 'twin' | 'king-extra' | 'king-sofa' | 'villa'
+
+/**
+ * The guest's own line on the Golkonda room list, which HQ reads from the
+ * planners' sheet when someone presses Sync rooms there. Deliberately no room
+ * number, no room type and no price: those stay with the planners, and how a
+ * room is paid for is already said, for this guest only, by `golkonda`.
+ */
+export interface GolkondaRoom {
+  bed: GolkondaBed
+  /** Full roster names of whoever shares the room; empty when it is theirs alone. */
+  roommates: string[]
+  /** ISO dates, `2026-10-27`. */
+  checkIn: string
+  checkOut: string
+}
 
 export type GuestScheduleStatus =
   'loading' | 'anonymous' | 'resolving' | 'ambiguous' | 'identified' | 'notFound' | 'error'
@@ -83,6 +111,8 @@ export interface GuestScheduleState {
   kerala?: KeralaGuestInfo
   /** Set only for guests with a room held at Golkonda who are attending. */
   golkonda?: GolkondaStay
+  /** Their room-list line, for guests on the Golkonda room list. */
+  golkondaRoom?: GolkondaRoom
   /** Guest-facing party labels, only when several guests share the entered name. */
   candidates: string[]
   /** True while an ambiguous guest should be offered the email check first. */
@@ -185,6 +215,7 @@ export function useGuestSchedule(): GuestScheduleState {
   const [displayName, setDisplayName] = useState<string>()
   const [kerala, setKerala] = useState<KeralaGuestInfo>()
   const [golkonda, setGolkonda] = useState<GolkondaStay>()
+  const [golkondaRoom, setGolkondaRoom] = useState<GolkondaRoom>()
   const [candidates, setCandidates] = useState<string[]>([])
   const [emailPrompt, setEmailPrompt] = useState(false)
   const [emailFailed, setEmailFailed] = useState(false)
@@ -202,6 +233,7 @@ export function useGuestSchedule(): GuestScheduleState {
     setDisplayName(record.displayName)
     setKerala(record.kerala)
     setGolkonda(record.golkonda)
+    setGolkondaRoom(record.golkondaRoom)
     setCandidates([])
     setEmailPrompt(false)
     setEmailFailed(false)
@@ -320,6 +352,7 @@ export function useGuestSchedule(): GuestScheduleState {
     setDisplayName(undefined)
     setKerala(undefined)
     setGolkonda(undefined)
+    setGolkondaRoom(undefined)
     setCandidates([])
     setEmailPrompt(false)
     setEmailFailed(false)
@@ -342,6 +375,7 @@ export function useGuestSchedule(): GuestScheduleState {
     displayName,
     kerala,
     golkonda,
+    golkondaRoom,
     candidates,
     emailPrompt,
     emailFailed,

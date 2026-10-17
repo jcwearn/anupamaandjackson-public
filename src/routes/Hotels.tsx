@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { GOLKONDA_SLUG, hotels } from '../data/hotels'
 import { GOLKONDA_STAY_EVENT_ID, PELLIKUTHURU_EVENT_ID } from '../data/scheduleEvents'
+import GolkondaStayModal from '../components/GolkondaStayModal'
 import HotelCard from '../components/HotelCard'
 import StickySectionHeading from '../components/StickySectionHeading'
 import JumpNav, { JUMP_NAV_SCROLL_MT, type JumpTarget } from '../components/JumpNav'
 import { ANCHOR_SCROLL_MT } from '../lib/anchorOffset'
 import { useGuestScheduleContext } from '../lib/guestScheduleContext'
+import { GOLKONDA_STAY_HASH } from '../lib/golkondaStay'
 
 // Every hotel on the page is a hotel, so the word earns nothing in a chip and
 // costs width on a phone.
@@ -47,7 +49,46 @@ const Hotels: React.FC = () => {
   // Set only for guests the generator resolved to a room at the resort: tagged,
   // attending, and taking it. Undefined on the server and on the first client
   // render, so the prerendered page and the hydrated one agree.
-  const { events, golkonda, status, openUnlock } = useGuestScheduleContext()
+  const { events, golkonda, golkondaRoom, displayName, status, openUnlock } =
+    useGuestScheduleContext()
+
+  // The popup is reachable from a link we send guests — /hotels#golkonda-stay —
+  // as well as the card's button. The hash is read after mount and on
+  // hashchange, like Bookshelf's pullouts, and then waits on the guest's
+  // record the way WhatToWear's event anchors do: the room only exists once
+  // the record is decrypted, which is never at first paint.
+  const [stayOpen, setStayOpen] = useState(false)
+  const [stayHash, setStayHash] = useState(false)
+  useEffect(() => {
+    const read = () => setStayHash(window.location.hash === `#${GOLKONDA_STAY_HASH}`)
+    read()
+    window.addEventListener('hashchange', read)
+    return () => window.removeEventListener('hashchange', read)
+  }, [])
+  // Derived rather than set from an effect. A guest with no room keeps the
+  // plain page: the link was not meant for them, and an empty popup would only
+  // say so.
+  const stayVisible =
+    stayOpen || (stayHash && status === 'identified' && golkondaRoom !== undefined)
+  useEffect(() => {
+    // Not 'notFound' too: that only happens inside the unlock dialog, which is
+    // already open, and reopening it would reset what they typed.
+    if (stayHash && status === 'anonymous') openUnlock(UNLOCK_COPY)
+  }, [stayHash, status, openUnlock])
+
+  const closeStay = useCallback(() => {
+    setStayOpen(false)
+    // Off the URL once dismissed, or a reload would open it again. replaceState
+    // rather than navigate, so the router does not scroll the page back up.
+    if (window.location.hash === `#${GOLKONDA_STAY_HASH}`) {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname + window.location.search,
+      )
+      setStayHash(false)
+    }
+  }, [])
 
   // Two coarser gates, read off the events the same way /travel and
   // /kerala-itinerary read the Kerala trip. Not everyone is invited to the
@@ -158,6 +199,17 @@ const Hotels: React.FC = () => {
                   reservedForYou={yours}
                   description={yours ? GOLKONDA_ROOM_DESCRIPTION : undefined}
                   note={golkonda && yours ? roomNote[golkonda] : undefined}
+                  action={
+                    yours && golkondaRoom ? (
+                      <button
+                        type="button"
+                        onClick={() => setStayOpen(true)}
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-rosewood px-4 py-1.5 font-medium text-cream shadow-sm transition-colors hover:bg-rosewood/90"
+                      >
+                        See your room
+                      </button>
+                    ) : undefined
+                  }
                 />
               )
             })}
@@ -172,6 +224,14 @@ const Hotels: React.FC = () => {
       {/* Wraps the header too, so the bar sits at the very top of the page —
           pinned from the start, the way the Travel section's nav is. */}
       {invitedToPellikuthuru ? <JumpNav targets={jumpTargets}>{content}</JumpNav> : content}
+      {golkondaRoom && (
+        <GolkondaStayModal
+          open={stayVisible}
+          onClose={closeStay}
+          room={golkondaRoom}
+          displayName={displayName}
+        />
+      )}
     </div>
   )
 }

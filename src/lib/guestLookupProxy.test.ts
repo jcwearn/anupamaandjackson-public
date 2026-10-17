@@ -170,6 +170,27 @@ describe('handleLookup', () => {
     })
   })
 
+  it("passes a found guest's Golkonda room on as HQ sent it", async () => {
+    const golkondaRoom = {
+      bed: 'king',
+      roommates: ['Grace Hopper'],
+      checkIn: '2026-10-27',
+      checkOut: '2026-10-29',
+    }
+    const res = await handleLookup(
+      post({ first: 'Ada', last: 'Lovelace' }),
+      ENV,
+      CATALOG,
+      hq(
+        Response.json({
+          status: 'found',
+          record: { displayName: 'Ada', golkonda: 'covered', golkondaRoom, eventIds: [] },
+        }),
+      ),
+    )
+    expect(((await res.json()) as any).record).toMatchObject({ golkonda: 'covered', golkondaRoom })
+  })
+
   it('passes other answers on untouched', async () => {
     const choose = { status: 'choose', options: [], canVerifyEmail: false }
     const res = await handleLookup(

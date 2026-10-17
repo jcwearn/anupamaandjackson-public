@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeAll, beforeEach } from 'vitest'
 import { render, screen, within, fireEvent } from '@testing-library/react'
 import Hotels from './Hotels'
 import { GOLKONDA_SLUG, hotels } from '../data/hotels'
@@ -344,5 +344,73 @@ describe('Hotels unlock prompt', () => {
     renderPage()
 
     expect(unlockButton()).toBeNull()
+  })
+})
+
+describe('Hotels stay popup', () => {
+  const room = {
+    bed: 'king' as const,
+    roommates: ['Ada Lovelace'],
+    checkIn: '2026-10-27',
+    checkOut: '2026-10-29',
+  }
+  const withRoomDetails = () => setState({ ...withRoom('covered'), golkondaRoom: room })
+  const stayDialog = () => screen.queryByRole('dialog', { name: 'Your Golkonda Stay' })
+  const seeRoom = () => screen.queryByRole('button', { name: 'See your room' })
+  const setHash = (hash: string) => window.history.replaceState(null, '', `/hotels${hash}`)
+
+  afterEach(() => setHash(''))
+
+  it('puts the button on the Golkonda card for a guest on the room list', () => {
+    withRoomDetails()
+    const { container } = renderPage()
+
+    expect(golkondaCard(container).getByRole('button', { name: 'See your room' })).toBeVisible()
+    expect(stayDialog()).not.toBeInTheDocument()
+
+    fireEvent.click(seeRoom()!)
+    expect(stayDialog()).toHaveTextContent('with Ada Lovelace')
+  })
+
+  it('offers no button to a guest with a room held but no room-list line', () => {
+    setState(withRoom('covered'))
+    renderPage()
+
+    expect(seeRoom()).toBeNull()
+  })
+
+  it('opens from the link once the guest is identified', () => {
+    setHash('#golkonda-stay')
+    withRoomDetails()
+    renderPage()
+
+    expect(stayDialog()).toBeInTheDocument()
+    expect(stayDialog()!.closest('[aria-hidden]')).toHaveAttribute('aria-hidden', 'false')
+  })
+
+  it('takes the hash back off the URL when closed, so a reload does not reopen it', () => {
+    setHash('#golkonda-stay')
+    withRoomDetails()
+    renderPage()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(window.location.hash).toBe('')
+    // aria-hidden takes a closed dialog out of the accessibility tree.
+    expect(stayDialog()).toBeNull()
+  })
+
+  it('asks a visitor who has not signed in for their name first', () => {
+    setHash('#golkonda-stay')
+    renderPage()
+
+    expect(screen.getByRole('dialog', { name: 'Unlock your stay' })).toBeInTheDocument()
+  })
+
+  it('ignores the link for a guest with no room', () => {
+    setHash('#golkonda-stay')
+    setState(withEvents('Ada'))
+    renderPage()
+
+    expect(stayDialog()).not.toBeInTheDocument()
   })
 })
