@@ -117,8 +117,9 @@ const ScheduleUnlockModal: React.FC<Props> = ({
         {showEmail ? (
           <>
             <p className="mt-2 font-body text-sm text-zeus/80">
-              We have more than one guest by that name. Enter the email you RSVP’d with and we’ll
-              find your invitation.
+              {candidates.length > 0
+                ? 'We have more than one guest by that name. Enter the email you RSVP’d with and we’ll find your invitation.'
+                : 'We think we’ve found you. Enter the email you RSVP’d with to confirm it’s you.'}
             </p>
             <form
               onSubmit={(event) => {
@@ -220,9 +221,9 @@ const ScheduleUnlockModal: React.FC<Props> = ({
 
             {status === 'notFound' && (
               <p role="status" className="mt-3 font-body text-sm text-zeus/80">
-                We couldn’t find that name — it may be recorded slightly differently on our guest
-                list. Try a different spelling, or reach out to us directly if you think something
-                is wrong.
+                {emailFailed
+                  ? 'We couldn’t confirm you with that email. Try a different spelling of your name, or reach out to us directly if you think something is wrong.'
+                  : 'We couldn’t find that name — it may be recorded slightly differently on our guest list. Try a different spelling, or reach out to us directly if you think something is wrong.'}
               </p>
             )}
 

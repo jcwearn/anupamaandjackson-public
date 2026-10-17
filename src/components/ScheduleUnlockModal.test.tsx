@@ -120,6 +120,13 @@ describe('ScheduleUnlockModal', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/Try a different spelling/)
   })
 
+  it('says the email could not confirm a guest it had no households for', () => {
+    renderModal({ status: 'notFound', emailFailed: true })
+
+    expect(screen.getByRole('status')).toHaveTextContent(/couldn’t confirm you with that email/)
+    expect(screen.getByLabelText('First name')).toBeInTheDocument()
+  })
+
   it('says so when the lookup itself fails, and leaves the form to try again', () => {
     // Wedding HQ unreachable: not the guest's spelling, so no spelling advice.
     renderModal({ status: 'error' })
@@ -170,6 +177,13 @@ describe('ScheduleUnlockModal', () => {
       expect(screen.getByText(/enter the email you rsvp’d with/i)).toBeInTheDocument()
       expect(screen.getByLabelText('Email')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'With Mary Smith' })).not.toBeInTheDocument()
+    })
+
+    it('asks one guest to confirm by email when there are no households to list', () => {
+      renderModal({ status: 'ambiguous', emailPrompt: true, candidates: [] })
+
+      expect(screen.getByText(/confirm it’s you/)).toBeInTheDocument()
+      expect(screen.queryByText(/more than one guest/)).not.toBeInTheDocument()
     })
 
     it('hands the typed email to the lookup', () => {

@@ -93,6 +93,21 @@ function hq(body: Body) {
       ...(body.email !== undefined ? { emailFailed: true } : {}),
     }
   }
+  if (name === 'gracie hopper') {
+    // A spelling close to a guest's but not theirs: HQ confirms only by email.
+    if (body.email?.trim().toLowerCase() === 'grace@example.com') {
+      return { status: 'found', record: RECORDS['grace hopper'] }
+    }
+    return {
+      status: 'choose',
+      options: [],
+      canVerifyEmail: body.email === undefined,
+      ...(body.email !== undefined ? { emailFailed: true } : {}),
+    }
+  }
+  if (name === 'lise meitner') {
+    return { status: 'choose', options: [], canVerifyEmail: false }
+  }
   if (name === 'emmy noether') {
     // Namesakes with nobody in either party to label them by, and no email.
     return {
@@ -259,6 +274,64 @@ describe('useGuestSchedule', () => {
     await waitFor(() => expect(result.current.status).toBe('ambiguous'))
     expect(result.current.emailPrompt).toBe(false)
     expect(result.current.candidates).toEqual(['Noether North', 'Noether South'])
+  })
+
+  describe('a close spelling HQ confirms only by email', () => {
+    it('asks for the email, with no households to offer', async () => {
+      const { result } = await signIn('Gracie', 'Hopper')
+
+      await waitFor(() => expect(result.current.status).toBe('ambiguous'))
+      expect(result.current.emailPrompt).toBe(true)
+      expect(result.current.candidates).toEqual([])
+    })
+
+    it('shows the page once the email confirms them', async () => {
+      const { result } = await signIn('Gracie', 'Hopper')
+      await waitFor(() => expect(result.current.status).toBe('ambiguous'))
+
+      act(() => result.current.submitEmail('grace@example.com'))
+
+      await waitFor(() => expect(result.current.status).toBe('identified'))
+      expect(result.current.displayName).toBe('Grace')
+
+      // With no household to remember, a reload confirms by the same email.
+      const reloaded = renderHook(() => useGuestSchedule())
+      await waitFor(() => expect(reloaded.result.current.status).toBe('identified'))
+      await waitFor(() =>
+        expect(lookups.at(-1)).toEqual({
+          first: 'Gracie',
+          last: 'Hopper',
+          email: 'grace@example.com',
+        }),
+      )
+    })
+
+    it('is not found when the email does not confirm them', async () => {
+      const { result } = await signIn('Gracie', 'Hopper')
+      await waitFor(() => expect(result.current.status).toBe('ambiguous'))
+
+      act(() => result.current.submitEmail('nobody@example.com'))
+
+      await waitFor(() => expect(result.current.status).toBe('notFound'))
+      expect(result.current.emailFailed).toBe(true)
+    })
+
+    it('is not found when the guest skips the email', async () => {
+      const { result } = await signIn('Gracie', 'Hopper')
+      await waitFor(() => expect(result.current.status).toBe('ambiguous'))
+
+      act(() => result.current.skipEmail())
+
+      expect(result.current.status).toBe('notFound')
+      expect(result.current.emailFailed).toBe(false)
+    })
+
+    it('is not found when nobody it could be has an email', async () => {
+      const { result } = await signIn('Lise', 'Meitner')
+
+      await waitFor(() => expect(result.current.status).toBe('notFound'))
+      expect(result.current.emailPrompt).toBe(false)
+    })
   })
 
   it('resolves the schedule once a household is chosen, by its hint', async () => {

@@ -117,7 +117,7 @@ export interface GuestScheduleState {
   candidates: string[]
   /** True while an ambiguous guest should be offered the email check first. */
   emailPrompt: boolean
-  /** True after a submitted email matched no single record. */
+  /** True after a submitted email matched no single record; also set alongside notFound. */
   emailFailed: boolean
   lookup: (first: string, last: string) => void
   submitEmail: (email: string) => void
@@ -136,6 +136,11 @@ interface SavedGuest {
    * household the first time a row is inserted above them.
    */
   hint?: string
+  /**
+   * The email that confirmed a spelling close to the guest's but not theirs
+   * exactly. HQ takes no household hint for those, so a refresh sends this.
+   */
+  email?: string
 }
 
 function readSavedName(): SavedGuest | null {
@@ -167,6 +172,7 @@ function readCachedRecord(saved: SavedGuest): GuestRecord | null {
     // shared phone must never paint for the next person.
     if (!cached || cached.first !== saved.first || cached.last !== saved.last) return null
     if ((cached.hint ?? '') !== (saved.hint ?? '')) return null
+    if ((cached.email ?? '') !== (saved.email ?? '')) return null
     return cached.record
   } catch {
     return null
@@ -190,7 +196,7 @@ function forgetGuest() {
   }
 }
 
-async function postLookup(body: SavedGuest & { email?: string }): Promise<LookupResult> {
+async function postLookup(body: SavedGuest): Promise<LookupResult> {
   const response = await fetch(LOOKUP_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -249,7 +255,7 @@ export function useGuestSchedule(): GuestScheduleState {
    * rather than taking it away.
    */
   const resolve = useCallback(
-    async (query: SavedGuest & { email?: string }, background = false) => {
+    async (query: SavedGuest, background = false) => {
       const generation = ++generationRef.current
       if (!background) {
         setStatus('resolving')
@@ -271,7 +277,15 @@ export function useGuestSchedule(): GuestScheduleState {
 
       const { first, last } = query
       if (result.status === 'found') {
-        const saved = { first, last, ...(result.record.hint ? { hint: result.record.hint } : {}) }
+        const saved = {
+          first,
+          last,
+          ...(result.record.hint
+            ? { hint: result.record.hint }
+            : query.email
+              ? { email: query.email }
+              : {}),
+        }
         saveName(saved)
         cacheRecord(saved, result.record)
         applyRecord(result.record)
@@ -282,6 +296,17 @@ export function useGuestSchedule(): GuestScheduleState {
         // Off the list since last time, or never on it: either way the cached
         // page is no longer theirs to see.
         if (background) forgetGuest()
+        setStatus('notFound')
+        return
+      }
+
+      // A spelling close to a guest's but not theirs exactly: HQ offers no
+      // households to pick from, only the email check, and without one there
+      // is nobody to show.
+      if (result.options.length === 0 && (!result.canVerifyEmail || result.emailFailed)) {
+        if (background) forgetGuest()
+        pendingRef.current = null
+        setEmailFailed(result.emailFailed === true)
         setStatus('notFound')
         return
       }
@@ -331,6 +356,8 @@ export function useGuestSchedule(): GuestScheduleState {
 
   const skipEmail = useCallback(() => {
     setEmailPrompt(false)
+    // With no households to fall back on, skipping the email leaves no way in.
+    if (pendingRef.current?.hints.length === 0) setStatus('notFound')
   }, [])
 
   const chooseCandidate = useCallback(
