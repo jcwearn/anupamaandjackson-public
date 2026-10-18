@@ -274,6 +274,7 @@ const groups: {
               'A portable power bank — long days out, and you’ll lean on your phone for maps, ride-hailing, and photos.',
               'Travel-size hand sanitizer — handy before street food and on long days out.',
               'Sun protection — sunscreen, a hat, and sunglasses.',
+              'A bathing suit.',
               'Antacids (Tums). Indian food runs spicier than you may be used to.',
               'You can leave the bug spray at home — pick up Odomos at a local pharmacy once you’re here. It’s our preferred mosquito repellent.',
             ]}

@@ -97,6 +97,7 @@ describe('Standalone advice survives edits', () => {
     ['what-to-pack', 'Sun protection'],
     ['what-to-pack', 'Odomos'],
     ['what-to-pack', 'hand sanitizer'],
+    ['what-to-pack', 'bathing suit'],
     ['outfits', 'shoulders and knees covered'],
     ['outfits', 'pants rather than shorts'],
     ['outfits', 'don’t mind getting dirty'],
