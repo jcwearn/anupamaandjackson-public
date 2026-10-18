@@ -83,6 +83,45 @@ body {
   animation: none;
 }
 
+/* e-Arrival: the "What happens when you submit" card lifts off the page into
+   its modal and settles back on close. The group carries the move and resize;
+   ease-out-expo covers most of the distance at once and then settles, so 450ms
+   doesn't feel slow. The card and the panel are the same width, so the
+   crossfade between their snapshots is mostly the buttons arriving. */
+::view-transition-group(submit-steps) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(submit-steps),
+::view-transition-new(submit-steps) {
+  animation-duration: 300ms;
+}
+
+/* The backdrop deliberately has no view-transition name. With one, its layer
+   was new in the "open" state, so the browser stacked it above the card's
+   layer, and the blur covered the morphing card until the transition ended.
+   Unnamed, it is part of the root's live "after" layer, which sits beneath
+   the card. A plain fade carries it in. */
+@keyframes backdrop-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-backdrop-fade-in {
+  animation: backdrop-fade-in 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-backdrop-fade-in {
+    animation: none;
+  }
+}
+
 /* Envelope Animation */
 @keyframes flap-open {
   0% {

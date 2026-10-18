@@ -1,5 +1,8 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Link } from 'react-router-dom'
+import SubmitSteps from '../components/earrival/SubmitSteps'
+import SubmitStepsModal from '../components/earrival/SubmitStepsModal'
 import CopyField from '../components/evisa/CopyField'
 import StickySectionHeading from '../components/StickySectionHeading'
 import { VENUE_ADDRESS, VENUE_DISTRICT, VENUE_STATE } from '../lib/weddingVenue'
@@ -71,6 +74,22 @@ const fields: {
 ]
 
 const EArrival: React.FC = () => {
+  const [stepsOpen, setStepsOpen] = useState(false)
+
+  // The card under the button and the modal share a view-transition name,
+  // so running the state change inside a view transition morphs one into
+  // the other. flushSync makes React commit inside the callback, which is
+  // when the browser takes its "after" snapshot. Without the API, or for
+  // anyone who has asked for less motion, the modal just appears.
+  const morphSteps = (open: boolean) => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (!document.startViewTransition || reduceMotion) {
+      setStepsOpen(open)
+      return
+    }
+    document.startViewTransition(() => flushSync(() => setStepsOpen(open)))
+  }
+
   return (
     <div className="min-h-screen bg-peach/20">
       <header className="bg-peach/60 px-4 py-16 text-center">
@@ -155,37 +174,47 @@ const EArrival: React.FC = () => {
               ))}
             </ul>
 
+            {/* Still a real link to the portal, so it works before hydration
+                and a cmd-click goes straight there; a plain click is caught
+                and shows the submit steps first. */}
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href={PORTAL_URL} target="_blank" rel="noreferrer" className="btn-primary">
+              <a
+                href={PORTAL_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary"
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return
+                  e.preventDefault()
+                  morphSteps(true)
+                }}
+              >
                 Fill it out on the official portal →
               </a>
             </div>
 
-            {/* The portal confirms with a bare browser alert after a pause
-                with no spinner worth the name, which is when people press
-                Submit a second time. As a plain paragraph under the button it
-                read as fine print and got skipped, so it is a boxed card with
-                one numbered step per thing to do. */}
+            {/* As a plain paragraph under the button this read as fine print
+                and got skipped, so it is a boxed card with one numbered step
+                per thing to do — and the button lifts it off the page into a
+                modal. While the modal is up the card leaves a gap behind,
+                so it reads as having moved rather than been copied. */}
             <div
               id="after-you-submit"
-              className="mt-6 rounded-xl border-2 border-gold/70 bg-lily/30 p-4 text-sm leading-relaxed text-zeus/80"
+              className="mt-6 overflow-hidden rounded-xl border-2 border-gold/70 bg-[#fff4f8]"
+              style={stepsOpen ? { visibility: 'hidden' } : { viewTransitionName: 'submit-steps' }}
             >
-              <h3 className="font-display text-lg text-rosewood">What happens when you submit</h3>
-              <ol className="mt-2 list-decimal space-y-2 pl-5 marker:font-semibold marker:text-rosewood">
-                <li>
-                  <strong>Wait a few seconds.</strong> It will look like nothing is happening —
-                  don’t press Submit again.
-                </li>
-                <li>
-                  <strong>Note your card numbers.</strong> A pop-up says “Arrival Card generated
-                  successfully” followed by a card number for each traveler. Jot them down or take a
-                  screenshot.
-                </li>
-                <li>
-                  <strong>Press OK.</strong> Your browser downloads the card(s). Save or print them
-                  and keep them with your passport and e-Visa approval.
-                </li>
-              </ol>
+              {/* Solid layers, as in SubmitStepsModal, so the snapshot that
+                  morphs into the modal isn't see-through. */}
+              <div className="bg-peach/20">
+                <div className="bg-lily/30 p-4 text-sm leading-relaxed text-zeus/80">
+                  <h3 className="font-display text-lg text-rosewood">
+                    What happens when you submit
+                  </h3>
+                  <div className="mt-2">
+                    <SubmitSteps />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -195,6 +224,8 @@ const EArrival: React.FC = () => {
           Government of India. Please rely on the official portal for the authoritative process.
         </p>
       </div>
+
+      <SubmitStepsModal open={stepsOpen} onClose={() => morphSteps(false)} portalUrl={PORTAL_URL} />
     </div>
   )
 }

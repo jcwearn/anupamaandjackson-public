@@ -121,6 +121,48 @@ describe('EArrival', () => {
     )
   })
 
+  it('shows the submit steps before sending a click on to the portal', () => {
+    // Guests heading for the portal click past the card under the button, so
+    // the button repeats it in a modal instead of navigating.
+    renderPage()
+
+    const button = screen.getByRole('link', { name: /official portal/ })
+    expect(fireEvent.click(button)).toBe(false)
+    expect(screen.getByRole('dialog', { name: /What happens when you submit/ })).toHaveTextContent(
+      'don’t press Submit again',
+    )
+  })
+
+  it('morphs the card into the modal inside a view transition', () => {
+    // The card hands its view-transition name to the modal, so the browser
+    // animates one into the other; the card stays behind as a gap.
+    const startViewTransition = vi.fn((update: () => void) => update())
+    Object.assign(document, { startViewTransition })
+    const { container } = renderPage()
+    const card = container.querySelector<HTMLElement>('#after-you-submit')!
+    expect(card.style.viewTransitionName).toBe('submit-steps')
+
+    fireEvent.click(screen.getByRole('link', { name: /official portal/ }))
+
+    expect(startViewTransition).toHaveBeenCalledTimes(1)
+    expect(card.style.viewTransitionName).toBe('')
+    expect(card.style.visibility).toBe('hidden')
+    expect(screen.getByRole('dialog').style.viewTransitionName).toBe('submit-steps')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Not yet' }))
+    expect(startViewTransition).toHaveBeenCalledTimes(2)
+    expect(card.style.viewTransitionName).toBe('submit-steps')
+    delete (document as { startViewTransition?: unknown }).startViewTransition
+  })
+
+  it('lets a cmd-click go straight to the portal', () => {
+    renderPage()
+
+    const button = screen.getByRole('link', { name: /official portal/ })
+    expect(fireEvent.click(button, { metaKey: true })).toBe(true)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('stays out of the site nav', () => {
     // Asked for: linked from wherever the e-Arrival card is mentioned, but the
     // nav row is already full.
