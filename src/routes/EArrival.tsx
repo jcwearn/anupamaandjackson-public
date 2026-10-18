@@ -54,6 +54,20 @@ const fields: {
     title: 'Emergency Contact Number',
     body: 'Whoever you’d normally list as your emergency contact. They don’t need to be in India, and the ISD code works the same way as yours.',
   },
+  {
+    id: 'countries-visited',
+    title: 'Countries Visited in Last 6 Days',
+    // A layover in Frankfurt or Doha reads like a visit, and a guest who
+    // lists one is left wondering what else the form will want about it. Only
+    // a real stay counts; the checkbox is the answer for nearly everyone.
+    body: (
+      <>
+        Flying in from home? Tick <strong>No Country Visited</strong>. Only list a country if you
+        stayed there in the six days before India — a connection through Europe or anywhere else
+        doesn’t count.
+      </>
+    ),
+  },
 ]
 
 const EArrival: React.FC = () => {
@@ -96,6 +110,26 @@ const EArrival: React.FC = () => {
               do your group in one go.
             </p>
           </div>
+
+          {/* Seen in October 2026: in Firefox the portal's own submit
+              request comes back 404 and its script throws a JSON.parse error,
+              and the page shows nothing at all — the guest just sees a button
+              that does nothing. The same form went through in Chrome. That is
+              the portal's bug, not ours, so recheck it in Firefox before
+              deleting this. The copy says "other browsers" rather than naming
+              Firefox because Safari is untested, and a guest on it is better
+              off switching than finding out. It sits up top, not by the
+              portal button, so it is read before the form is filled in
+              rather than after it fails. */}
+          <div
+            id="use-chrome"
+            className="mt-4 rounded-lg border border-gold/40 bg-lily/25 px-4 py-3 text-sm leading-relaxed text-zeus/80"
+          >
+            <p>
+              <strong>We recommend using Chrome.</strong> Other browsers can have trouble submitting
+              the form.
+            </p>
+          </div>
         </div>
 
         <section id="the-tricky-fields">
@@ -126,10 +160,33 @@ const EArrival: React.FC = () => {
                 Fill it out on the official portal →
               </a>
             </div>
-            <p className="mt-4 text-sm text-zeus/70">
-              When you submit, save or print the confirmation and keep it with your passport and
-              e-Visa approval.
-            </p>
+
+            {/* The portal confirms with a bare browser alert after a pause
+                with no spinner worth the name, which is when people press
+                Submit a second time. As a plain paragraph under the button it
+                read as fine print and got skipped, so it is a boxed card with
+                one numbered step per thing to do. */}
+            <div
+              id="after-you-submit"
+              className="mt-6 rounded-xl border-2 border-gold/70 bg-lily/30 p-4 text-sm leading-relaxed text-zeus/80"
+            >
+              <h3 className="font-display text-lg text-rosewood">What happens when you submit</h3>
+              <ol className="mt-2 list-decimal space-y-2 pl-5 marker:font-semibold marker:text-rosewood">
+                <li>
+                  <strong>Wait a few seconds.</strong> It will look like nothing is happening —
+                  don’t press Submit again.
+                </li>
+                <li>
+                  <strong>Note your card numbers.</strong> A pop-up says “Arrival Card generated
+                  successfully” followed by a card number for each traveler. Jot them down or take a
+                  screenshot.
+                </li>
+                <li>
+                  <strong>Press OK.</strong> Your browser downloads the card(s). Save or print them
+                  and keep them with your passport and e-Visa approval.
+                </li>
+              </ol>
+            </div>
           </div>
         </section>
 

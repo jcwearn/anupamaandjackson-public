@@ -86,6 +86,32 @@ describe('EArrival', () => {
     )
   })
 
+  it('tells guests a connection is not a country visited', () => {
+    const { container } = renderPage()
+
+    const visited = container.querySelector('#countries-visited')!.textContent!
+    expect(visited).toContain('No Country Visited')
+    expect(visited).toMatch(/connection .* doesn’t count/)
+  })
+
+  it('recommends Chrome for submitting the form', () => {
+    // The portal's submit request fails in Firefox with nothing on screen.
+    const { container } = renderPage()
+
+    const note = container.querySelector('#use-chrome')!.textContent!
+    expect(note).toContain('recommend using Chrome')
+    expect(note).toContain('Other browsers can have trouble')
+  })
+
+  it('prepares guests for the pause, the pop-up and the download', () => {
+    const { container } = renderPage()
+
+    const after = container.querySelector('#after-you-submit')!.textContent!
+    expect(after).toContain('don’t press Submit again')
+    expect(after).toContain('card number for each traveler')
+    expect(after).toContain('downloads the card(s)')
+  })
+
   it('sends guests to the official e-Arrival portal', () => {
     renderPage()
 
