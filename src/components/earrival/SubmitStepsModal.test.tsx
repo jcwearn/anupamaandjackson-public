@@ -11,7 +11,7 @@ describe('SubmitStepsModal', () => {
     render(<SubmitStepsModal open onClose={() => {}} portalUrl={PORTAL} />)
 
     expect(dialog()).toHaveTextContent('don’t press Submit again')
-    expect(dialog()).toHaveTextContent('card number for each traveler')
+    expect(dialog()).toHaveTextContent('Arrival Card generated successfully')
     expect(dialog()).toHaveTextContent('downloads the card(s)')
   })
 

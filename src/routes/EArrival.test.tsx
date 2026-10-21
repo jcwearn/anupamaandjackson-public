@@ -108,8 +108,16 @@ describe('EArrival', () => {
 
     const after = container.querySelector('#after-you-submit')!.textContent!
     expect(after).toContain('don’t press Submit again')
-    expect(after).toContain('card number for each traveler')
+    expect(after).toContain('Arrival Card generated successfully')
     expect(after).toContain('downloads the card(s)')
+  })
+
+  it('doesn’t ask guests to keep the pop-up’s card numbers', () => {
+    // Nothing later asks for them; the downloaded card is what they carry.
+    const { container } = renderPage()
+
+    const after = container.querySelector('#after-you-submit')!.textContent!
+    expect(after).not.toMatch(/jot|screenshot|note your/i)
   })
 
   it('sends guests to the official e-Arrival portal', () => {

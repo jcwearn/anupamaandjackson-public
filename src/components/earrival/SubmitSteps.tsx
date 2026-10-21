@@ -7,6 +7,10 @@ import React from 'react'
  *
  * The portal confirms with a bare browser alert after a pause with no spinner
  * worth the name, which is when people press Submit a second time.
+ *
+ * The alert lists a number per card, and an earlier draft told guests to
+ * write them down. Nothing later asks for them, since the downloaded card is
+ * what they carry, so the step now only says what the pop-up looks like.
  */
 const SubmitSteps: React.FC = () => (
   <ol className="list-decimal space-y-2 pl-5 marker:font-semibold marker:text-rosewood">
@@ -15,8 +19,8 @@ const SubmitSteps: React.FC = () => (
       Submit again.
     </li>
     <li>
-      <strong>Note your card numbers.</strong> A pop-up says “Arrival Card generated successfully”
-      followed by a card number for each traveler. Jot them down or take a screenshot.
+      <strong>Look for the pop-up.</strong> It says “Arrival Card generated successfully” and lists
+      a card number for each traveler.
     </li>
     <li>
       <strong>Press OK.</strong> Your browser downloads the card(s). Save or print them and keep
