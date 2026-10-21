@@ -106,6 +106,7 @@ describe('Standalone advice survives edits', () => {
     ['make-a-voting-plan', 'vote.org'],
     ['make-a-voting-plan', 'November 3'],
     ['fill-out-your-e-arrival-card', 'few days before your arrival date'],
+    ['health-self-declaration', 'the day before you fly'],
   ]
 
   it.each(claims)('#%s still carries "%s"', (id, phrase) => {
@@ -114,6 +115,34 @@ describe('Standalone advice survives edits', () => {
 
     expect(details, `#${id} is gone`).not.toBeNull()
     expect(details!.textContent).toContain(phrase)
+  })
+})
+
+describe('Health self-declaration', () => {
+  it('sits in the week before, right after the e-Arrival card', () => {
+    // Both forms only open in the last days, so they lead the section together.
+    const { container } = renderPage()
+    const weekBefore = container.querySelector('details#the-week-before')!
+    const tipIds = [...weekBefore.querySelectorAll('details[id]')].map((el) => el.id)
+
+    expect(tipIds.slice(0, 2)).toEqual(['fill-out-your-e-arrival-card', 'health-self-declaration'])
+  })
+
+  it('links to the official Air Suvidha portal in a new tab', () => {
+    const { container } = renderPage()
+    const tip = container.querySelector<HTMLElement>('details#health-self-declaration')!
+    const link = within(tip).getByRole('link', { name: 'Air Suvidha' })
+
+    expect(link).toHaveAttribute('href', 'https://airsuvidha.civilaviation.gov.in/')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noreferrer')
+  })
+
+  it('adds it to what to have ready at immigration', () => {
+    const { container } = renderPage()
+    const airport = container.querySelector('details#at-the-airport')!
+
+    expect(airport.textContent).toContain('e-Arrival card, and health self-declaration ready')
   })
 })
 

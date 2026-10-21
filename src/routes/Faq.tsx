@@ -5,7 +5,7 @@ import WhatToWearButton from '../components/WhatToWearButton'
 import WhereToShop from '../components/WhereToShop'
 import { useHashDisclosure } from '../lib/useHashDisclosure'
 import RsvpModal from '../components/RsvpModal'
-import { WITHJOY_RSVP_URL } from '../lib/constants'
+import { AIR_SUVIDHA_URL, WITHJOY_RSVP_URL } from '../lib/constants'
 
 const linkClass = 'underline hover:text-rosewood'
 
@@ -215,6 +215,24 @@ const groups = (
               visa and entry documents
             </Link>{' '}
             tip.
+          </p>
+        ),
+      },
+      {
+        id: 'health-declaration',
+        title: 'Is there a health form to fill out before I fly?',
+        body: (
+          <p>
+            Yes — India asks every arriving traveler to file a short health self-declaration on{' '}
+            <a href={AIR_SUVIDHA_URL} target="_blank" rel="noreferrer" className={linkClass}>
+              Air Suvidha
+            </a>
+            , covering where you’ve traveled recently and any symptoms. Fill it out the day before
+            you fly and keep the download with your passport; our{' '}
+            <Link to="/travel/tips#health-self-declaration" className={linkClass}>
+              travel tip
+            </Link>{' '}
+            has the details.
           </p>
         ),
       },

@@ -6,6 +6,7 @@ import SubmitStepsModal from '../components/earrival/SubmitStepsModal'
 import CopyField from '../components/evisa/CopyField'
 import StickySectionHeading from '../components/StickySectionHeading'
 import { VENUE_ADDRESS, VENUE_DISTRICT, VENUE_STATE } from '../lib/weddingVenue'
+import { AIR_SUVIDHA_URL } from '../lib/constants'
 
 const PORTAL_URL = 'https://indianvisaonline.gov.in/earrival/'
 
@@ -127,6 +128,18 @@ const EArrival: React.FC = () => {
               pick an arrival date a few days ahead, so you can’t do it weeks in advance the way you
               can the e-Visa. Each traveler needs their own card; “Add Member” on the form lets you
               do your group in one go.
+            </p>
+            <p className="mt-2">
+              While you’re at it, the{' '}
+              <a
+                href={AIR_SUVIDHA_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-rosewood"
+              >
+                Air Suvidha health self-declaration
+              </a>{' '}
+              is the other form India asks for — fill it out the day before you fly.
             </p>
           </div>
 

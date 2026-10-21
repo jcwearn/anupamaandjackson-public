@@ -121,6 +121,16 @@ describe('FAQ links', () => {
     }
   })
 
+  it('answers the health form question with the Air Suvidha portal', () => {
+    const { container } = renderPage(<Faq />)
+    const answer = container.querySelector<HTMLElement>('details#health-declaration')!
+
+    expect(within(answer).getByRole('link', { name: 'Air Suvidha' })).toHaveAttribute(
+      'href',
+      'https://airsuvidha.civilaviation.gov.in/',
+    )
+  })
+
   it('opens external shopping links in a new tab safely', () => {
     const { container } = renderPage(<Faq />)
 

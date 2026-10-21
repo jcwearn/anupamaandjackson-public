@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bullets, Disclosure, DisclosureGroup } from '../components/Disclosure'
 import WhatToWearButton from '../components/WhatToWearButton'
 import { useHashDisclosure } from '../lib/useHashDisclosure'
+import { AIR_SUVIDHA_URL } from '../lib/constants'
 
 // What to pack for the week around the events — the heat, the temples, the
 // streets. Not the wedding itself: the dress codes and the outfits live on
@@ -81,6 +82,16 @@ const groups: {
                     e-Arrival Helper
                   </Link>{' '}
                   covers the trickier fields. Keep it with your visa approval.
+                </>,
+                <>
+                  The day before you fly there’s one more: a short{' '}
+                  <Link
+                    to="/travel/tips#health-self-declaration"
+                    className="underline hover:text-rosewood"
+                  >
+                    health self-declaration
+                  </Link>{' '}
+                  that India asks every arriving traveler to file.
                 </>,
               ]}
             />
@@ -187,9 +198,10 @@ const groups: {
     title: 'The week before',
     blurb: 'Packing, phones, and a few things to set up before you fly.',
     tips: [
-      // First in the section because it's the one with a window: the form only
-      // offers arrival dates a few days out, so it can't be done any earlier
-      // and is easy to forget until the airport.
+      // First in the section because it's one of the two with a window: the
+      // form only offers arrival dates a few days out, so it can't be done any
+      // earlier and is easy to forget until the airport. The health
+      // self-declaration below is the other, and follows it for that reason.
       {
         id: 'fill-out-your-e-arrival-card',
         title: 'Fill out your e-Arrival card',
@@ -216,6 +228,35 @@ const groups: {
                 covers the fields that trip people up.
               </>,
               'Save or print the confirmation and keep it with your passport and e-Visa approval.',
+            ]}
+          />
+        ),
+      },
+      // Air Suvidha 2.0, which India switched back on in June 2026 for Ebola
+      // screening. Reports disagree on whether its 24 hours count from
+      // departure or from arrival, so the copy says "the day before you fly"
+      // — inside either reading — rather than an hour count.
+      {
+        id: 'health-self-declaration',
+        title: 'Fill out the health self-declaration (Air Suvidha)',
+        body: (
+          <Bullets
+            items={[
+              <>
+                India asks every arriving traveler to fill out a short health self-declaration on{' '}
+                <a
+                  href={AIR_SUVIDHA_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline hover:text-rosewood"
+                >
+                  Air Suvidha
+                </a>
+                . It asks where you’ve traveled in the last 21 days and whether you have any
+                symptoms.
+              </>,
+              'Fill it out the day before you fly. Each traveler needs their own.',
+              'Download or print it and keep it with your passport, e-Visa approval, and e-Arrival card — you may be asked for it at the airport health desk or immigration.',
             ]}
           />
         ),
@@ -321,7 +362,7 @@ const groups: {
             <h3 className="mt-5 font-display text-base text-rosewood">Arriving in India</h3>
             <Bullets
               items={[
-                'After you exit the plane, follow the crowd to immigration and baggage claim — have your passport, e-Visa approval, and e-Arrival card ready — then look for the prepaid taxi or ride-share pickup area to reach your hotel. Signage points the way, and staff are happy to help if you’re unsure.',
+                'After you exit the plane, follow the crowd to immigration and baggage claim — have your passport, e-Visa approval, e-Arrival card, and health self-declaration ready — then look for the prepaid taxi or ride-share pickup area to reach your hotel. Signage points the way, and staff are happy to help if you’re unsure.',
                 'Connecting through Amsterdam: if both flights are to or from outside the Schengen area, you generally won’t pass through passport control between them — the same holds on the way home.',
               ]}
             />

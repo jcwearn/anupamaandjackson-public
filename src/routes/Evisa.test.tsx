@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { render, screen, within, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Evisa from './Evisa'
 import { NAV_ITEMS } from '../lib/navItems'
 import { JUMP_NAV_INNER_SCROLL_MT, JUMP_NAV_SCROLL_MT } from '../components/JumpNav'
@@ -26,13 +27,21 @@ beforeEach(() => {
   })
 })
 
+// Wrapped for the e-Arrival Helper link in the before-you-fly note.
+const renderPage = () =>
+  render(
+    <MemoryRouter>
+      <Evisa />
+    </MemoryRouter>,
+  )
+
 const sectionIds = ['what-youll-need', 'your-photos', 'the-application']
 
 describe('Evisa', () => {
   it('every in-page jump link points at an element that exists', () => {
     // The chip labels, the section ids and the headings' anchorIds are written
     // out in three separate places, so they can drift apart silently.
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     const hrefs = [...container.querySelectorAll('a[href^="#"]')].map((a) =>
       a.getAttribute('href')!.slice(1),
@@ -45,7 +54,7 @@ describe('Evisa', () => {
   })
 
   it('reaches all three sections from the pinned jump bar', () => {
-    render(<Evisa />)
+    renderPage()
 
     const bar = screen.getByRole('navigation', { name: 'Jump to section' })
     for (const [label, id] of [
@@ -59,7 +68,7 @@ describe('Evisa', () => {
 
   it('sends the walkthrough back up to the reference card', () => {
     // The contact is five screens above the step that tells you to use it.
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     expect(screen.getByRole('link', { name: 'wedding contact' })).toHaveAttribute(
       'href',
@@ -75,7 +84,7 @@ describe('Evisa', () => {
 
   it('names the exact status line the approval email carries', () => {
     // Verbatim, spacing and all — the guest matches it against their inbox.
-    render(<Evisa />)
+    renderPage()
 
     expect(screen.getByText('Application Status :-Granted')).toBeInTheDocument()
   })
@@ -83,7 +92,7 @@ describe('Evisa', () => {
   it('clears both bars when a section is jumped to', () => {
     // Without the larger scroll-mt these land behind the jump bar rather than
     // below it. Tailwind needs the class spelled out, so it is easy to omit.
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     for (const id of sectionIds) {
       expect(container.querySelector(`#${id}`)!.className).toContain(JUMP_NAV_SCROLL_MT)
@@ -91,7 +100,7 @@ describe('Evisa', () => {
   })
 
   it('gives each section heading a copy button matching its section id', () => {
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     for (const [id, title] of [
       ['what-youll-need', 'What you’ll need'],
@@ -106,7 +115,7 @@ describe('Evisa', () => {
   it('puts the file converters in their own section, not inside the checklist', () => {
     // They are the most useful thing on the page and used to sit two levels deep
     // inside one of six checklist cards.
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     const photos = container.querySelector('#your-photos')!
     expect(within(photos as HTMLElement).getAllByText(/Choose a file/)).toHaveLength(2)
@@ -116,7 +125,7 @@ describe('Evisa', () => {
   it('keeps the reference phone number as digits only in the DOM', () => {
     // The +, parentheses, space and dash are CSS pseudo-elements precisely so a
     // copy — from the button or from select-all — picks up only the digits.
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     const phone = container.querySelector('#what-youll-need')!.textContent!
     expect(phone).toContain('9104035010101')
@@ -124,7 +133,7 @@ describe('Evisa', () => {
   })
 
   it('copies a reference field value rather than a link to the page', () => {
-    render(<Evisa />)
+    renderPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Reference Name in India' }))
 
@@ -132,7 +141,7 @@ describe('Evisa', () => {
   })
 
   it('copies the phone number as the digits the form wants', () => {
-    render(<Evisa />)
+    renderPage()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Phone No/Mobile No' }))
 
@@ -140,7 +149,7 @@ describe('Evisa', () => {
   })
 
   it('numbers every step of the walkthrough', () => {
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     const steps = container.querySelectorAll('#the-application ol > li')
     expect(steps.length).toBeGreaterThan(0)
@@ -150,7 +159,7 @@ describe('Evisa', () => {
   })
 
   it('draws the timeline rail between steps but not after the last one', () => {
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     const steps = container.querySelectorAll('#the-application ol > li')
     const rails = container.querySelectorAll('#the-application ol > li [data-step-rail]')
@@ -158,7 +167,7 @@ describe('Evisa', () => {
   })
 
   it('spells it e-Visa, the way the Indian government does', () => {
-    const { container } = render(<Evisa />)
+    const { container } = renderPage()
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('India e-Visa Helper')
     // The one exception: "Apply here for e-visa" quotes the portal's own button.
@@ -168,5 +177,22 @@ describe('Evisa', () => {
 
   it('links the page from the site nav under the government spelling', () => {
     expect(NAV_ITEMS).toContainEqual({ to: '/evisa', label: 'e-Visa' })
+  })
+
+  it('points on to the two forms due just before departure', () => {
+    // Guests finish here weeks out; this is the signpost back to the forms
+    // that can only be done in the last days.
+    renderPage()
+    const note = document.getElementById('before-you-fly')!
+
+    expect(within(note).getByRole('link', { name: 'e-Arrival Helper' })).toHaveAttribute(
+      'href',
+      '/e-arrival',
+    )
+    expect(note).toHaveTextContent('just before your departure')
+    const airSuvidha = within(note).getByRole('link', { name: 'Air Suvidha' })
+    expect(airSuvidha).toHaveAttribute('href', 'https://airsuvidha.civilaviation.gov.in/')
+    expect(airSuvidha).toHaveAttribute('target', '_blank')
+    expect(airSuvidha).toHaveAttribute('rel', 'noreferrer')
   })
 })

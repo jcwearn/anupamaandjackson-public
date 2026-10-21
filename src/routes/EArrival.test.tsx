@@ -56,7 +56,11 @@ describe('EArrival', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copy Address in India' }))
     expect(writeText).toHaveBeenLastCalledWith(VENUE_ADDRESS)
 
-    render(<Evisa />)
+    render(
+      <MemoryRouter>
+        <Evisa />
+      </MemoryRouter>,
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Copy Address' }))
     expect(writeText).toHaveBeenLastCalledWith(VENUE_ADDRESS)
   })
@@ -126,6 +130,15 @@ describe('EArrival', () => {
     expect(screen.getByRole('link', { name: /official portal/ })).toHaveAttribute(
       'href',
       'https://indianvisaonline.gov.in/earrival/',
+    )
+  })
+
+  it('points to the Air Suvidha health declaration, due the same week', () => {
+    renderPage()
+
+    expect(screen.getByRole('link', { name: /Air Suvidha/ })).toHaveAttribute(
+      'href',
+      'https://airsuvidha.civilaviation.gov.in/',
     )
   })
 

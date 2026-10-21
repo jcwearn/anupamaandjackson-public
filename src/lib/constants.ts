@@ -34,3 +34,9 @@ export const JUMP_NAV_SECTION_TOP = 'calc(env(safe-area-inset-top, 0px) + 8rem)'
 // string above. Safe-area-inset-top is assumed 0 here, consistent with the
 // rest of this file.
 export const SITE_NAV_HEIGHT_PX = 80
+
+// India's health self-declaration, brought back in June 2026 for Ebola
+// screening and required of every international arrival. Linked from /evisa,
+// /e-arrival, the travel tips and the FAQ, so there is one place to change it
+// if the ministry moves it.
+export const AIR_SUVIDHA_URL = 'https://airsuvidha.civilaviation.gov.in/'

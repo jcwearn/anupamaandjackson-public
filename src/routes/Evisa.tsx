@@ -1,5 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
+import { Link } from 'react-router-dom'
 import FileShrinker from '../components/evisa/FileShrinker'
 import CopyField from '../components/evisa/CopyField'
 import StickySectionHeading from '../components/StickySectionHeading'
@@ -9,6 +10,7 @@ import JumpNav, {
   type JumpTarget,
 } from '../components/JumpNav'
 import { VENUE_ADDRESS, VENUE_DISTRICT, VENUE_NAME, VENUE_STATE } from '../lib/weddingVenue'
+import { AIR_SUVIDHA_URL } from '../lib/constants'
 
 const PORTAL_URL = 'https://indianvisaonline.gov.in/evisa/Registration'
 const PORTAL_HOME = 'https://indianvisaonline.gov.in/evisa'
@@ -332,6 +334,42 @@ const Evisa: React.FC = () => {
               </p>
             </div>
           </section>
+
+          {/* Guests do the e-Visa weeks out, and this is the page they keep
+              open for the trip's paperwork — yet nothing here pointed on to
+              the two forms that can only be done in the last days, and
+              /e-arrival isn't in the nav. Not a jump-bar chip: the bar is full
+              at three on a 390px screen. */}
+          <div id="before-you-fly" className="mx-auto w-full max-w-2xl px-4">
+            <div className="rounded-lg border border-gold/40 bg-lily/25 px-4 py-3 text-sm leading-relaxed text-zeus/80">
+              <h2 className="font-display text-lg text-rosewood">
+                Two more forms, just before you fly
+              </h2>
+              <ul className="mt-2 list-disc space-y-1.5 pl-4">
+                <li>
+                  <strong>Your e-Arrival card.</strong> It only opens a few days before you arrive,
+                  so fill it out just before your departure. Our{' '}
+                  <Link to="/e-arrival" className="underline hover:text-rosewood">
+                    e-Arrival Helper
+                  </Link>{' '}
+                  covers the fields that trip people up.
+                </li>
+                <li>
+                  <strong>The health self-declaration.</strong> India asks every arriving traveler
+                  to fill one out on{' '}
+                  <a
+                    href={AIR_SUVIDHA_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-rosewood"
+                  >
+                    Air Suvidha
+                  </a>{' '}
+                  the day before they fly. Download it and keep it with your passport.
+                </li>
+              </ul>
+            </div>
+          </div>
 
           <p className="mx-auto w-full max-w-2xl px-4 text-xs text-zeus/60">
             This page is a friendly helper made for our wedding guests and isn’t affiliated with the
