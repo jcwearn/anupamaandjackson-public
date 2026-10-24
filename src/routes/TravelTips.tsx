@@ -336,6 +336,7 @@ const groups: {
               'Uber — for cars and autos.',
               'Google Maps — for getting around and finding places nearby.',
               'WhatsApp — the primary way people message in India.',
+              'Swiggy — for food and snack delivery to your hotel.',
               'Your airline’s app — for boarding passes and flight updates.',
             ]}
           />
