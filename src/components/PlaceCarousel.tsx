@@ -203,10 +203,25 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-2">
+      {/* Below md this is a bar pinned to the foot of the screen. Under the
+          card, as it is on a laptop, it sat at the bottom of something taller
+          than a phone, so every turn meant scrolling past the whole card first.
+          Sticky rather than fixed: it is held only within the carousel, so it
+          turns up as the card scrolls into view, rides along while you read,
+          and settles back under the card once you scroll past — nothing to
+          show and hide by hand. -mx-4 takes it out to the page's gutters. */}
+      <div
+        className={clsx(
+          'sticky bottom-0 z-20 -mx-4 border-t border-gold/40 bg-cream/95 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] backdrop-blur',
+          'md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none',
+        )}
+      >
         {/* One cluster: step either side, jump in the middle. At lg the arrows
-            leave the row and stand beside the card instead — see ArrowButton. */}
-        <div className="flex items-center justify-center gap-4">
+            leave the row and stand beside the card instead — see ArrowButton.
+            Nine dots crowd a phone-width bar, so there the name and count take
+            their place; from md the caption goes last and, at full width, wraps
+            onto a line of its own beneath the dots. */}
+        <div className="flex items-center justify-between gap-3 md:flex-wrap md:justify-center md:gap-x-4 md:gap-y-2">
           {index > 0 ? (
             <ArrowButton
               direction="prev"
@@ -219,7 +234,7 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
             <span aria-hidden className="h-11 w-11 shrink-0 lg:hidden" />
           )}
 
-          <ul className="flex flex-wrap items-center justify-center gap-2">
+          <ul className="hidden flex-wrap items-center justify-center gap-2 md:flex">
             {places.map((place, i) => (
               <li key={place.slug}>
                 <button
@@ -236,17 +251,20 @@ const PlaceCarousel: React.FC<{ places: Place[] }> = ({ places }) => {
             ))}
           </ul>
 
+          {/* Without this the turn is silent to a screen reader. */}
+          <p
+            aria-live="polite"
+            className="min-w-0 flex-1 truncate text-center text-sm text-rosewood md:order-last md:basis-full md:text-xs md:text-zeus/60"
+          >
+            {current.name} — {index + 1} of {places.length}
+          </p>
+
           {index < places.length - 1 ? (
             <ArrowButton direction="next" label="Next place" onClick={() => select(index + 1)} />
           ) : (
             <span aria-hidden className="h-11 w-11 shrink-0 lg:hidden" />
           )}
         </div>
-
-        {/* Without this the turn is silent to a screen reader. */}
-        <p aria-live="polite" className="text-xs text-zeus/60">
-          {current.name} — {index + 1} of {places.length}
-        </p>
       </div>
     </div>
   )

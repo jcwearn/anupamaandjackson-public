@@ -105,7 +105,12 @@ const Hyderabad: React.FC = () => {
           </section>
         </ArchFrame>
 
-        <PlaceCarousel places={places} />
+        {/* Wider than the column from lg, because a card with its photo beside
+            the text needs the room. 4rem each side takes it to 896px, which
+            leaves the arrows standing beside it exactly enough room at 1024. */}
+        <div className="lg:-mx-16">
+          <PlaceCarousel places={places} />
+        </div>
 
         <p className="text-xs text-zeus/60">
           Opening hours and ticketing change, so check before you set out — and see{' '}
