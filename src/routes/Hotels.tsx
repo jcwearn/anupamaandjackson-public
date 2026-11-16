@@ -46,7 +46,7 @@ const UNLOCK_COPY = {
 }
 
 const Hotels: React.FC = () => {
-  // Set only for guests the generator resolved to a room at the resort: tagged,
+  // Set only for guests HQ resolved to a room at the resort: tagged,
   // attending, and taking it. Undefined on the server and on the first client
   // render, so the prerendered page and the hydrated one agree.
   const { events, golkonda, golkondaRoom, displayName, status, openUnlock } =

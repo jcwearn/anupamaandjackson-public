@@ -65,7 +65,7 @@ export interface KeralaGuestInfo {
 
 /**
  * Whether the guest's room at Golkonda is on us ('covered') or theirs to settle
- * ('own'). Absent unless the generator found all three of: a Golkonda tag, an
+ * ('own'). Absent unless HQ found all three of: a Golkonda tag, an
  * Attending muhurtham RSVP, and an answer accepting the room — see
  * `golkondaStay` in wedding-hq's src/shared/guestRules.ts. A guest on the
  * Golkonda room list has it whatever With Joy says, from their row's Self-pay
