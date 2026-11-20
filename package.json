@@ -35,7 +35,7 @@
     "autoprefixer": "10.6.2",
     "clsx": "2.1.1",
     "jsdom": "31.0.1",
-    "oxlint": "1.93.0",
+    "oxlint": "1.94.0",
     "postcss": "8.5.33",
     "prettier": "3.10.1",
     "tailwindcss": "4.3.5",
